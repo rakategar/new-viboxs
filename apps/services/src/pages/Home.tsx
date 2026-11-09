@@ -6,6 +6,7 @@ import Marquee from '@viboxs/shared/marquee';
 import { gsap, reducedMotion, useMotion } from '@viboxs/shared/motion';
 import SignalField from '../components/SignalField';
 import HeroDiagram from '../components/HeroDiagram';
+import AgentBuild from '../components/AgentBuild';
 import Mockup from '../components/Mockups';
 import Accordion from '../components/Accordion';
 import EcoLink from '../components/EcoLink';
@@ -23,9 +24,9 @@ export default function Home() {
     const el = ref.current;
     if (!el || reducedMotion()) return;
     const ctx = gsap.context(() => {
-      gsap.from('.s-hero__chip, .s-hero__aside > *', { y: 24, autoAlpha: 0, duration: 0.8, stagger: 0.08, ease: 'power3.out', delay: 0.15 });
-      gsap.to('.s-hero__copy', {
-        yPercent: -18, autoAlpha: 0.2, ease: 'none',
+      gsap.from('.s-hero__chip, .s-hero__aside > *, .s-hero__agent', { y: 24, autoAlpha: 0, duration: 0.8, stagger: 0.08, ease: 'power3.out', delay: 0.15 });
+      gsap.to('.s-hero__agent', {
+        yPercent: -8, ease: 'none',
         scrollTrigger: { trigger: '.s-hero', start: 'top top', end: 'bottom top', scrub: true },
       });
       gsap.to('.s-hero .signal', {
@@ -64,15 +65,16 @@ function Hero() {
           <div className="s-hero__copy stack-24">
             <span className="s-hero__chip"><span className="s-hero__tag">SERVICES</span>SOLUSI BISNIS · BERBASIS PROPOSAL</span>
             <Split as="h1" id="hero-h" className="h1 s-hero__h" text="Bangun sistem yang menjawab kebutuhan bisnis Anda." />
-          </div>
-          <div className="s-hero__aside stack-24">
-            <p className="lead muted">VIBOXS membantu memetakan tantangan, menentukan ruang lingkup, dan membangun website, sistem, otomasi, serta integrasi AI sesuai kebutuhan.</p>
-            <div className="row-12">
-              <Magnetic><Link to="/start" className="btn btn--primary">Konsultasikan Kebutuhan <ArrowRight /></Link></Magnetic>
-              <Magnetic><Link to="/#solutions" className="btn btn--ghost">Jelajahi Layanan <ArrowDown /></Link></Magnetic>
+            <div className="s-hero__aside stack-24">
+              <p className="lead muted">VIBOXS membantu memetakan tantangan, menentukan ruang lingkup, dan membangun website, sistem, otomasi, serta integrasi AI sesuai kebutuhan.</p>
+              <div className="row-12">
+                <Magnetic><Link to="/start" className="btn btn--primary">Konsultasikan Kebutuhan <ArrowRight /></Link></Magnetic>
+                <Magnetic><Link to="/#solutions" className="btn btn--ghost">Jelajahi Layanan <ArrowDown /></Link></Magnetic>
+              </div>
+              <span className="xs-13 muted">Proyek custom berbasis proposal. Tidak ada paket atau angka “mulai dari”.</span>
             </div>
-            <span className="xs-13 muted">Proyek custom berbasis proposal. Tidak ada paket atau angka “mulai dari”.</span>
           </div>
+          <div className="s-hero__agent"><AgentBuild /></div>
         </div>
         <div data-anim="up"><HeroDiagram /></div>
       </div>
