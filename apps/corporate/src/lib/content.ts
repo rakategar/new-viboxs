@@ -1,18 +1,10 @@
 // Semua copy berstatus PROPOSED (lihat 02_DESIGN_CORPORATE.md) — founder memilih final.
 
-export type DestKey = 'universe' | 'edu' | 'services';
-export type LaunchStatus = 'live' | 'pending';
+import { LAUNCH, ORIGIN, type DestKey } from '@viboxs/shared/ecosystem';
 
-/**
- * Status peluncuran tiap subdomain.
- * Saat ini universe/edu/services.viboxs.com masih 404, jadi ditandai 'pending'
- * ("Sedang disiapkan") — bukan link mati. Ubah ke 'live' begitu subdomain siap.
- */
-export const LAUNCH: Record<DestKey, LaunchStatus> = {
-  universe: 'pending',
-  edu: 'pending',
-  services: 'pending',
-};
+// Status peluncuran subdomain sekarang ada di packages/shared/src/ecosystem.ts (LAUNCH),
+// dipakai bersama oleh Corporate & Services.
+export { LAUNCH, type DestKey };
 
 /** Form kontak umum: nonaktif sampai kebijakan privasi & penerima pesan siap. */
 export const CONTACT_FORM_ENDPOINT: string | null = null;
@@ -57,7 +49,7 @@ export const DEST: Record<DestKey, Dest> = {
 export const ORDER: DestKey[] = ['universe', 'edu', 'services'];
 
 export const isPending = (k: DestKey) => LAUNCH[k] !== 'live';
-export const destHref = (k: DestKey) => (isPending(k) ? `/disiapkan/${k}` : `https://${DEST[k].domain}`);
+export const destHref = (k: DestKey) => (isPending(k) ? `/disiapkan/${k}` : ORIGIN[k]);
 
 export const KW: Record<DestKey, string[]> = {
   universe: ['opc', 'sendiri', 'solo', 'founder', 'komunitas', 'jejaring', 'network', 'satu orang', 'freelance', 'berbagi', 'kolaborasi'],

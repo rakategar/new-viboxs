@@ -1,0 +1,20 @@
+{
+  "name": "@viboxs/shared",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Token, motion, efek, ikon, dan konfigurasi ekosistem yang dipakai semua app VIBOXS.",
+  "exports": {
+    "./motion": "./src/motion.ts",
+    "./fx": "./src/fx.tsx",
+    "./icons": "./src/icons.tsx",
+    "./cursor": "./src/cursor.tsx",
+    "./marquee": "./src/marquee.tsx",
+    "./ecosystem": "./src/ecosystem.ts",
+    "./base.css": "./src/styles/base.css"
+  },
+  "peerDependencies": {
+    "gsap": "3.12.5",
+    "react": "^18.3.1"
+  }
+}

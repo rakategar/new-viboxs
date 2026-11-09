@@ -2,12 +2,14 @@ import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from
 import { Link } from 'react-router-dom';
 import HandsCanvas from '../components/HandsCanvas';
 import RouteFinder from '../components/RouteFinder';
-import Marquee from '../components/Marquee';
+import Marquee from '@viboxs/shared/marquee';
 import DestLink from '../components/DestLink';
 import { Magnetic, Split, useSpotlight } from '../components/fx';
 import { ArrowDown, ArrowRight, Check, IconFlow } from '../components/Icons';
 import { DEST, type DestKey, STEPS, isPending } from '../lib/content';
 import { EASE, ScrollTrigger, gsap, reducedMotion, useMotion } from '../lib/motion';
+
+const MQ_WORDS = ['Belajar', 'Terhubung', 'Membangun', 'One Person Company', 'AI Venture Studio', 'Universe', 'EDU', 'Services'];
 
 function Badge({ k }: { k: DestKey }) {
   return isPending(k)
@@ -233,7 +235,7 @@ export default function Home() {
         </div>
       </section>
 
-      <Marquee />
+      <Marquee words={MQ_WORDS} />
 
       {/* H03 — Tiga pintu */}
       <section id="ecosystem" className="section">

@@ -8,3 +8,4 @@ dist
 /*.jpeg
 /*.jpg
 /*.png
+*.tsbuildinfo

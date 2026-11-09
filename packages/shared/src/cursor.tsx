@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { finePointer, gsap, reducedMotion } from '../lib/motion';
+import { finePointer, gsap, reducedMotion } from './motion';
 
 /**
  * Aksen kursor opsional (M06): cincin kecil yang mengikuti pointer,

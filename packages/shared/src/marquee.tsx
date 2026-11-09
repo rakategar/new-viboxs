@@ -1,10 +1,9 @@
 import { useEffect, useRef } from 'react';
-import { gsap, reducedMotion } from '../lib/motion';
+import { gsap, reducedMotion } from './motion';
 
-const WORDS = ['Belajar', 'Terhubung', 'Membangun', 'One Person Company', 'AI Venture Studio', 'Universe', 'EDU', 'Services'];
 
 /** Pita teks berjalan; kecepatan & kemiringan bereaksi pada kecepatan scroll. Dekoratif. */
-export default function Marquee() {
+export default function Marquee({ words }: { words: string[] }) {
   const trackRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const el = trackRef.current;
@@ -25,7 +24,7 @@ export default function Marquee() {
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
   }, []);
-  const row = WORDS.map((w, i) => (
+  const row = words.map((w, i) => (
     <span className="mq__item" key={i}>
       {w}
       <span className="mq__dots"><i /><i /><i /></span>

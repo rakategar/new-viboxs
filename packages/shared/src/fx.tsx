@@ -1,5 +1,5 @@
 import { createElement, useEffect, useRef, type ElementType, type ReactNode, type RefObject } from 'react';
-import { finePointer, gsap, reducedMotion } from '../lib/motion';
+import { finePointer, gsap, reducedMotion } from './motion';
 
 /** Judul yang dipecah per kata — teks tetap utuh untuk pembaca layar. */
 export function Split({ as = 'h2', text, className, id }: { as?: ElementType; text: string; className?: string; id?: string }) {
