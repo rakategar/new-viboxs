@@ -24,10 +24,16 @@ export const finePointer = () =>
  *  data-draw             → stroke SVG path tergambar ter-scrub
  * Semua mati saat prefers-reduced-motion: konten tetap tampil apa adanya.
  */
+/** Teks yang "diketik" oleh kawanan agen (services) tidak ikut dianimasikan lapisan ini. */
+const agentOwned = (el: Element) =>
+  document.documentElement.classList.contains('agents-on') &&
+  el.matches('h1, h2, .eyebrow, .lead, .body-17') && !el.closest('[data-build]');
+
 export function initMotion(scope: HTMLElement) {
   if (reducedMotion()) return () => {};
   const ctx = gsap.context(() => {
     scope.querySelectorAll<HTMLElement>('[data-split]').forEach((el) => {
+      if (agentOwned(el)) return;
       const words = el.querySelectorAll<HTMLElement>('.w > span');
       if (!words.length) return;
       gsap.from(words, {
@@ -37,6 +43,7 @@ export function initMotion(scope: HTMLElement) {
     });
 
     scope.querySelectorAll<HTMLElement>('[data-anim="up"]').forEach((el) => {
+      if (agentOwned(el)) return;
       gsap.from(el, {
         y: 28, autoAlpha: 0, duration: 0.8, ease: EASE, delay: Number(el.dataset.delay || 0),
         scrollTrigger: { trigger: el, start: 'top 90%', once: true },
