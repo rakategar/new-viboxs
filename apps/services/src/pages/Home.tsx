@@ -6,7 +6,6 @@ import Marquee from '@viboxs/shared/marquee';
 import { gsap, reducedMotion, useMotion } from '@viboxs/shared/motion';
 import SignalField from '../components/SignalField';
 import HeroDiagram from '../components/HeroDiagram';
-import AgentBuild from '../components/AgentBuild';
 import Mockup from '../components/Mockups';
 import Accordion from '../components/Accordion';
 import EcoLink from '../components/EcoLink';
@@ -24,9 +23,8 @@ export default function Home() {
     const el = ref.current;
     if (!el || reducedMotion()) return;
     const ctx = gsap.context(() => {
-      gsap.from('.s-hero__chip, .s-hero__aside > *, .s-hero__agent', { y: 24, autoAlpha: 0, duration: 0.8, stagger: 0.08, ease: 'power3.out', delay: 0.15 });
-      gsap.to('.s-hero__agent', {
-        yPercent: -8, ease: 'none',
+            gsap.to('.s-hero__copy', {
+        yPercent: -14, ease: 'none',
         scrollTrigger: { trigger: '.s-hero', start: 'top top', end: 'bottom top', scrub: true },
       });
       gsap.to('.s-hero .signal', {
@@ -63,20 +61,19 @@ function Hero() {
       <div className="container rel stack-48">
         <div className="s-hero__top">
           <div className="s-hero__copy stack-24">
-            <span className="s-hero__chip"><span className="s-hero__tag">SERVICES</span>SOLUSI BISNIS · BERBASIS PROPOSAL</span>
+            <span className="s-hero__chip" data-build="Badge · Services"><span className="s-hero__tag">SERVICES</span>SOLUSI BISNIS · BERBASIS PROPOSAL</span>
             <Split as="h1" id="hero-h" className="h1 s-hero__h" text="Bangun sistem yang menjawab kebutuhan bisnis Anda." />
-            <div className="s-hero__aside stack-24">
+          </div>
+          <div className="s-hero__aside stack-24">
               <p className="lead muted">VIBOXS membantu memetakan tantangan, menentukan ruang lingkup, dan membangun website, sistem, otomasi, serta integrasi AI sesuai kebutuhan.</p>
-              <div className="row-12">
+              <div className="row-12" data-build="Tombol · CTA">
                 <Magnetic><Link to="/start" className="btn btn--primary">Konsultasikan Kebutuhan <ArrowRight /></Link></Magnetic>
                 <Magnetic><Link to="/#solutions" className="btn btn--ghost">Jelajahi Layanan <ArrowDown /></Link></Magnetic>
               </div>
               <span className="xs-13 muted">Proyek custom berbasis proposal. Tidak ada paket atau angka “mulai dari”.</span>
-            </div>
           </div>
-          <div className="s-hero__agent"><AgentBuild /></div>
         </div>
-        <div data-anim="up"><HeroDiagram /></div>
+        <div data-build="Diagram · input → intervensi → output"><HeroDiagram /></div>
       </div>
     </section>
   );
@@ -92,7 +89,7 @@ const WHO = [
 function IntentCard({ w, i }: { w: (typeof WHO)[number]; i: number }) {
   const spot = useSpotlight<HTMLAnchorElement>();
   return (
-    <Link ref={spot} to={startHref({ org: w.k, from: w.t })} className="intent-card">
+    <Link ref={spot} to={startHref({ org: w.k, from: w.t })} className="intent-card" data-build={`Kartu · ${w.t}`}>
       <span className="intent-card__glow" aria-hidden="true" />
       <span className="row-between">
         <span className="icon-tile"><w.Ic size={20} /></span>
@@ -120,7 +117,7 @@ function WhoWeHelp() {
             <p className="body-17 muted" data-anim="up">Pilih yang paling mendekati situasi Anda. Pilihan ini kami bawa ke formulir brief.</p>
           </div>
         </div>
-        <div className="intent-grid" data-anim="stagger">
+        <div className="intent-grid">
           {WHO.map((w, i) => <IntentCard key={w.k} w={w} i={i} />)}
         </div>
         <p className="small muted" data-anim="up">Founder OPC yang mencari jejaring dan komunitas: <EcoLink k="universe">Kenali Universe ↗</EcoLink></p>
@@ -135,7 +132,7 @@ function SvcCard({ k }: { k: (typeof SVC_ORDER)[number] }) {
   const spot = useSpotlight<HTMLElement>();
   const Ic = catIcon[k];
   return (
-    <article ref={spot} className={`svc-card svc-card--${k}`}>
+    <article ref={spot} className={`svc-card svc-card--${k}`} data-build={`Layanan · ${s.name}`}>
       <span className="svc-card__glow" aria-hidden="true" />
       <Mockup k={k} />
       <div className="svc-card__body">
@@ -170,21 +167,21 @@ function Solutions() {
           </div>
         </div>
 
-        <div className="tiers" data-anim="stagger">
-          <div className="tier">
+        <div className="tiers">
+          <div className="tier" data-build="Tier · 01 Diagnose">
             <span className="mono-label">01 · DIAGNOSE</span>
             <b className="h4">Strategic Advisory</b>
             <span className="small muted lh">Diagnosis bisnis, opportunity mapping, roadmap, serta arah produk dan AI.</span>
             <Link to="/advisory" className="link-arrow">Diskusikan tantangan <ArrowRight /></Link>
           </div>
-          <div className="tier tier--main">
+          <div className="tier tier--main" data-build="Tier · 02 Build">
             <span className="tier__border" aria-hidden="true" />
             <span className="mono-label accent">02 · BUILD</span>
             <b className="h4">Lima layanan inti</b>
             <span className="small muted lh">Website, aplikasi, dashboard, automation, integrasi AI, growth systems, dan infrastruktur.</span>
             <span className="small strong row-8">Kirim brief atau minta proposal di bawah <ArrowDown /></span>
           </div>
-          <div className="tier">
+          <div className="tier" data-build="Tier · 03 Ongoing">
             <span className="mono-label">03 · ONGOING</span>
             <b className="h4">Iterasi &amp; dukungan</b>
             <span className="small muted lh">Iterasi, maintenance, dan growth support; kerja sama strategis secara selektif.</span>
@@ -192,11 +189,11 @@ function Solutions() {
           </div>
         </div>
 
-        <div className="svc-grid" data-anim="stagger">
+        <div className="svc-grid">
           {SVC_ORDER.map((k) => <SvcCard key={k} k={k} />)}
         </div>
 
-        <div className="support-row" data-anim="up">
+        <div className="support-row" data-build="Nav · kapabilitas pendukung">
           <span className="eyebrow">Kapabilitas pendukung</span>
           <Link to="/advisory">Strategic Advisory</Link>
           <Link to="/capabilities">Academy &amp; Corporate Training</Link>
@@ -233,7 +230,7 @@ function WorkingModel() {
           <Link to="/process" className="btn btn--ink-ghost btn--sm" data-anim="up">Lihat proses lengkap <ArrowRight /></Link>
         </div>
 
-        <div className="wm__wide" data-anim="up">
+        <div className="wm__wide" data-build="Komponen · 7 tahap kerja">
           <div className="wm__rail" aria-hidden="true"><span style={{ transform: `scaleX(${cur / (FLOW.length - 1)})` }} /></div>
           <div role="tablist" aria-label="Tahap kerja" className="wm__tabs" onKeyDown={onKey}>
             {FLOW.map((t, i) => (
@@ -305,13 +302,13 @@ function Proof() {
         </div>
         {CASE_STUDIES.length === 0 ? (
           <div className="proof">
-            <div className="proof__empty" data-anim="up">
+            <div className="proof__empty" data-build="State kosong · studi kasus">
               <span className="icon-tile icon-tile--round"><IcDoc size={22} /></span>
               <b className="h4">Belum ada studi kasus yang kami publikasikan.</b>
               <p className="body muted">Kasus hanya tampil setelah disetujui klien. Sementara itu, lihat cara kami menyusun kebutuhan dan menyiapkan serah terima pekerjaan.</p>
               <Link to="/process" className="link-arrow">Lihat proses kerja <ArrowRight /></Link>
             </div>
-            <div className="proof__pack">
+            <div className="proof__pack" data-build="Daftar · paket serah terima">
               <span className="mono-label">ISI PAKET SERAH TERIMA · CONTOH STRUKTUR</span>
               <ul className="pack" data-anim="stagger">
                 {[['Ringkasan kebutuhan', 'Hasil discovery'], ['Proposal & SOW', 'Lingkup, biaya, jadwal'], ['Daftar UAT', 'Kriteria penerimaan'], ['Dokumentasi teknis', 'Struktur & akses'], ['Dokumen serah terima', 'Akses & dukungan']].map(([t, d], i) => (
@@ -340,12 +337,12 @@ function Commercial() {
           <span className="eyebrow ink-muted" data-anim="up">Kejelasan komersial</span>
           <Split className="h2" text="Tanpa paket harga. Semua tertulis di proposal." />
           <p className="body-17 ink-muted" data-anim="up">Setiap proyek memiliki kebutuhan dan ruang lingkup yang berbeda. Setelah kami memahami kebutuhan Anda, kami menyiapkan penjelasan solusi, estimasi biaya, dan ketentuan kerja dalam proposal.</p>
-          <figure className="photo photo--light" data-anim="clip">
+          <figure className="photo photo--light" data-build="Gambar · foto stok">
             <img data-parallax="30" src="/assets/photo-diskusi.jpeg" alt="Tim berdiskusi di depan papan berisi grafik" loading="lazy" />
             <figcaption>Foto stok · ilustrasi</figcaption>
           </figure>
         </div>
-        <div className="stack-20" data-anim="up">
+        <div className="stack-20" data-build="Accordion · kejelasan komersial">
           <Accordion tone="light" items={COMM.map((c) => ({ q: c.q, a: c.a }))} />
           <div className="trust">
             <span className="trust__ic"><Check size={16} /></span>
@@ -372,7 +369,7 @@ function Closing() {
   return (
     <section className="section--xl">
       <div className="container">
-        <div ref={spot} className="closing">
+        <div ref={spot} className="closing" data-build="Section · CTA penutup">
           <svg className="closing__rings" viewBox="0 0 1100 1100" aria-hidden="true">
             <g className="spin-slow"><circle cx="550" cy="550" r="300" fill="none" stroke="rgba(246,247,255,.08)" strokeDasharray="2 10" /></g>
             <g className="spin-rev"><circle cx="550" cy="550" r="420" fill="none" stroke="rgba(246,247,255,.06)" /><circle cx="970" cy="550" r="5" fill="#FF4A26" /></g>

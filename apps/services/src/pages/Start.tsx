@@ -147,7 +147,7 @@ export default function Start() {
           <Split as="h1" className="h2 st__h" text="Ceritakan kebutuhan Anda. Kami akan membantu mengarahkan langkah berikutnya." />
           <p className="body-17 muted" data-anim="up">Ceritakan kebutuhan Anda, tanpa komitmen biaya.</p>
           {from && <span className="from-chip" data-anim="up"><span className="xs muted">Dipilih dari:</span><strong>{from}</strong></span>}
-          <div className="after" data-anim="up">
+          <div className="after" data-build="Panel · setelah mengirim">
             <span className="eyebrow">Setelah Anda mengirim</span>
             <ol>
               <li><span>1</span><span>Kami membaca brief dan memastikan kategorinya.</span></li>
@@ -171,7 +171,7 @@ export default function Start() {
 
         <div className="st__main" ref={topRef}>
           {status !== 'success' ? (
-            <div className="st__card">
+            <div className="st__card" data-build="Form · Start a Mission">
               <div className="st__progress">
                 <span className="xs-13 strong">Langkah {step} dari 2</span>
                 <ol aria-label="Progres formulir" className="steps">

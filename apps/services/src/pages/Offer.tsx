@@ -23,7 +23,7 @@ export function Partners() {
             <p className="lead muted" data-anim="up">Untuk trainer, konsultan, dan agency yang ingin menawarkan solusi digital kepada klien — tanpa membangun tim teknis sendiri.</p>
             <div data-anim="up"><Magnetic><Link to={start} className="btn btn--primary">Diskusikan Kolaborasi <ArrowRight /></Link></Magnetic></div>
           </div>
-          <div className="collab" role="img" aria-label="Diagram kolaborasi anonim: klien Anda berhubungan dengan Anda; VIBOXS bekerja di belakang Anda sebagai tim delivery dalam lapisan kerahasiaan." data-anim="up">
+          <div className="collab" role="img" aria-label="Diagram kolaborasi anonim: klien Anda berhubungan dengan Anda; VIBOXS bekerja di belakang Anda sebagai tim delivery dalam lapisan kerahasiaan." data-build="Diagram · kolaborasi">
             <span className="mono-label">DIAGRAM KOLABORASI · ANONIM · ILUSTRASI</span>
             <div className="collab__stack">
               <div className="collab__layer collab__layer--client">
@@ -54,7 +54,7 @@ export function Partners() {
             </div>
           </div>
           <div className="split-2 align-start">
-            <div className="panel" data-anim="up">
+            <div className="panel" data-build="Panel · manfaat">
               <span className="eyebrow">Yang Anda dapatkan</span>
               <ul className="ticks">
                 {['Konsultasi solusi sebelum Anda menawarkan ke klien', 'Kemampuan build untuk lima layanan inti', 'Delivery rahasia — nama Anda yang tampil', 'Dokumentasi dan quality control per milestone'].map((t) => (
@@ -62,7 +62,7 @@ export function Partners() {
                 ))}
               </ul>
             </div>
-            <div className="panel" data-anim="up">
+            <div className="panel" data-build="Panel · batas kerja sama">
               <span className="eyebrow">Batas kerja sama</span>
               <ul className="bounds">
                 <li><strong>NDA bila relevan</strong><span className="small muted">Kerahasiaan diatur tertulis sebelum detail klien dibagikan.</span></li>
@@ -96,7 +96,7 @@ export function Advisory() {
             <p className="lead muted" data-anim="up">Diagnosis bisnis, opportunity mapping, dan roadmap produk atau AI — untuk Anda yang belum yakin apa yang perlu dibangun lebih dulu.</p>
             <div data-anim="up"><Magnetic><Link to={startHref({ kategori: 'advisory', from: 'Strategic Advisory' })} className="btn btn--primary">Diskusikan tantangan <ArrowRight /></Link></Magnetic></div>
           </div>
-          <figure className="photo" data-anim="clip">
+          <figure className="photo" data-build="Gambar · foto stok">
             <img data-parallax="40" src="/assets/photo-diskusi.jpeg" alt="Tim berdiskusi di depan papan berisi grafik" />
             <figcaption>Foto stok · ilustrasi</figcaption>
           </figure>
@@ -104,7 +104,7 @@ export function Advisory() {
       </section>
       <section className="section section--line">
         <div className="container stack-40">
-          <div className="mods" data-anim="stagger">
+          <div className="mods">
             {[
               ['A · DIAGNOSIS', 'Diagnosis bisnis', 'Memetakan proses, hambatan, dan data yang ada sekarang.', 'Output: peta masalah'],
               ['B · DISCOVERY', 'Opportunity mapping', 'Membandingkan peluang perbaikan beserta dampak, risiko, dan prasyaratnya.', 'Output: daftar prioritas'],
@@ -124,7 +124,7 @@ export function Advisory() {
 function ModCard({ k, t, d, o, i }: { k: string; t: string; d: string; o: string; i: number }) {
   const spot = useSpotlight<HTMLDivElement>();
   return (
-    <div ref={spot} className="mod">
+    <div ref={spot} className="mod" data-build={`Modul · ${t}`}>
       <span className="svc-card__glow" aria-hidden="true" />
       <span className="mod__track" aria-hidden="true"><span style={{ width: `${(i + 1) * 33.3}%` }} /></span>
       <span className="mono-label">{k}</span>
@@ -149,7 +149,7 @@ export function Capabilities() {
             <Split as="h1" className="h1-sm" text="Pelatihan tim dan infrastruktur digital." />
             <p className="lead muted" data-anim="up">Dua kapabilitas yang mendukung lima layanan inti — dikerjakan custom per organisasi.</p>
           </div>
-          <div className="caps" data-anim="stagger">
+          <div className="caps">
             <CapCard>
               <span className="icon-tile icon-tile--lg"><IcGrad size={24} /></span>
               <h2 className="h3-lg">Academy &amp; Corporate Training</h2>
@@ -177,5 +177,5 @@ export function Capabilities() {
 
 function CapCard({ children }: { children: ReactNode }) {
   const spot = useSpotlight<HTMLDivElement>();
-  return <div ref={spot} className="cap"><span className="svc-card__glow" aria-hidden="true" />{children}</div>;
+  return <div ref={spot} className="cap" data-build="Kartu · kapabilitas"><span className="svc-card__glow" aria-hidden="true" />{children}</div>;
 }

@@ -65,13 +65,13 @@ export default function Process() {
             <span className="eyebrow ink-muted" data-anim="up">Guardrails</span>
             <Split className="h2" text="Batas yang kami pegang di setiap proyek." />
           </div>
-          <div className="guards" data-anim="stagger">
+          <div className="guards">
             {[
               ['Inquiry bukan perintah kerja', 'Development tidak otomatis dimulai dari inquiry. Pekerjaan berjalan setelah lingkup dikunci.'],
               ['Semua ketentuan tertulis di SOW', 'SLA, jumlah revisi, garansi, lisensi, dan hak kekayaan intelektual ditulis di SOW.'],
               ['Boleh berkata tidak', 'Kebutuhan yang tidak feasible bisa kami tolak, dengan alasan yang jelas.'],
             ].map(([t, d], i) => (
-              <div key={t} className="guard">
+              <div key={t} className="guard" data-build={`Guardrail · ${t}`}>
                 <span className="guard__n mono">0{i + 1}</span>
                 <b className="h4">{t}</b>
                 <span className="body ink-muted">{d}</span>
@@ -89,7 +89,7 @@ export default function Process() {
 
       <section className="section--xl">
         <div className="container">
-          <div className="cta-band cta-band--big" data-anim="up">
+          <div className="cta-band cta-band--big" data-build="Section · CTA">
             <Split className="h2" text="Tahap pertama dimulai dari brief Anda." />
             <Magnetic><Link to="/start" className="btn btn--primary">Konsultasikan Kebutuhan <ArrowRight /></Link></Magnetic>
           </div>

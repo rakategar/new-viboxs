@@ -23,7 +23,7 @@ export default function Detail() {
 
       {s.photo && (
         <div className="container pb-section">
-          <figure className="photo photo--wide" data-anim="clip">
+          <figure className="photo photo--wide" data-build="Gambar · foto stok">
             <img data-parallax="50" src={s.photo} alt={s.photoAlt} />
             <figcaption>Foto stok · ilustrasi</figcaption>
           </figure>
@@ -36,9 +36,9 @@ export default function Detail() {
             <span className="eyebrow" data-anim="up">Untuk siapa</span>
             <Split className="h2" text="Masalah yang biasanya kami dengar." />
           </div>
-          <div className="who3" data-anim="stagger">
+          <div className="who3">
             {s.forWhom.map(([t, x], i) => (
-              <div key={t} className="who3__card">
+              <div key={t} className="who3__card" data-build={`Kartu · ${t}`}>
                 <span className="mono-label">0{i + 1}</span>
                 <b className="h4">{t}</b>
                 <p className="body muted">“{x}”</p>
@@ -65,9 +65,9 @@ export default function Detail() {
           </div>
           <div className="stack-16">
             <span className="eyebrow ink-muted" data-anim="up">Contoh penggunaan</span>
-            <div className="cases" data-anim="stagger">
+            <div className="cases">
               {s.cases.map(([t, x], i) => (
-                <div key={t} className="case">
+                <div key={t} className="case" data-build={`Use case · ${t}`}>
                   <span className="mono xs ink-muted">{String(i + 1).padStart(2, '0')}</span>
                   <b>{t}</b>
                   <span className="small ink-muted">{x}</span>
@@ -95,7 +95,7 @@ export default function Detail() {
             </ol>
           </div>
           <div className="split-2 align-start">
-            <div className="excl" data-anim="up">
+            <div className="excl" data-build="Panel · batasan & risiko">
               <span className="eyebrow">Batasan &amp; risiko</span>
               <b className="body-16">{s.exclLead}</b>
               <ul>{s.excl.map((x) => <li key={x}>{x}</li>)}</ul>
@@ -110,7 +110,7 @@ export default function Detail() {
 
       <section className="pb-section">
         <div className="container stack-40">
-          <div className="cta-band" data-anim="up">
+          <div className="cta-band" data-build="Banner · CTA">
             <div className="stack-6">
               <b className="h3">Siap membahas {s.name}?</b>
               <span className="body muted">Brief Anda kami baca dulu. Tidak ada komitmen biaya sampai proposal disepakati.</span>
@@ -118,7 +118,7 @@ export default function Detail() {
             <Magnetic><Link to={start} className="btn btn--primary">{startLabel} <ArrowRight /></Link></Magnetic>
           </div>
           <span className="eyebrow">Layanan lain</span>
-          <div className="others" data-anim="stagger">
+          <div className="others">
             {SVC_ORDER.filter((k) => k !== s.key).map((k) => <OtherCard key={k} o={SVC[k]} />)}
           </div>
         </div>
@@ -151,7 +151,7 @@ function DHero({ s, start, startLabel }: { s: Service; start: string; startLabel
             </div>
             <span className="xs-13 muted" data-anim="up">Berbasis proposal — estimasi biaya disusun setelah scoping.</span>
           </div>
-          <div className="io" role="img" aria-label="Diagram: tantangan masuk, diproses melalui layanan, menjadi contoh output." data-anim="up">
+          <div className="io" role="img" aria-label="Diagram: tantangan masuk, diproses melalui layanan, menjadi contoh output." data-build={`Diagram · ${s.name}`}>
             <span className="mono-label">INPUT → INTERVENSI → OUTPUT · ILUSTRASI</span>
             <div className="io__col">
               {s.inputs.map((x, i) => <span key={x} className="io__in" style={{ ['--i' as string]: i }}>{x}</span>)}
@@ -177,7 +177,7 @@ function OtherCard({ o }: { o: Service }) {
   const spot = useSpotlight<HTMLDivElement>();
   const Ic = catIcon[o.key];
   return (
-    <div ref={spot} className="other">
+    <div ref={spot} className="other" data-build={`Kartu · ${o.name}`}>
       <span className="svc-card__glow" aria-hidden="true" />
       <span className="row-10"><span className="svc-card__ic"><Ic size={16} /></span><span className="mono xs muted">{o.n}</span></span>
       <b className="h4">{o.name}</b>
