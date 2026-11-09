@@ -1,0 +1,10 @@
+node_modules
+dist
+.vercel
+*.log
+.DS_Store
+
+# Gambar referensi lokal (bukan aset situs)
+/*.jpeg
+/*.jpg
+/*.png
