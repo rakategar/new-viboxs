@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
-import { finePointer, reducedMotion } from '@viboxs/shared/motion';
+import { finePointer, reducedMotion } from './motion';
 
 /**
  * Kawanan agen yang "membangun" halaman ini saat di-scroll.

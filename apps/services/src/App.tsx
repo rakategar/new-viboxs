@@ -4,7 +4,7 @@ import Cursor from '@viboxs/shared/cursor';
 import { ScrollTrigger } from '@viboxs/shared/motion';
 import Header from './components/Header';
 import Footer from './components/Footer';
-import AgentSwarm from './components/AgentSwarm';
+import AgentSwarm from '@viboxs/shared/swarm';
 import Home from './pages/Home';
 import Detail from './pages/Detail';
 import Start from './pages/Start';

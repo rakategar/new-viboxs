@@ -1,0 +1,30 @@
+/* ---------- agent swarm: kawanan agen yang membangun halaman ---------- */
+.agents-on [data-build]:not(.is-built) { clip-path: inset(0 100% 100% 0); }
+[data-build].is-fast { animation: fadeUp 500ms var(--ease) both; }
+.swarm { position: fixed; inset: 0; z-index: 90; pointer-events: none; overflow: hidden; }
+.swarm__cur { position: absolute; left: 0; top: 0; will-change: transform; }
+.swarm__cur svg { position: relative; z-index: 1; filter: drop-shadow(0 4px 10px rgba(0, 0, 0, .55)); }
+.swarm__name { position: absolute; left: 15px; top: 17px; padding: 3px 9px; border-radius: 99px; background: var(--ac); color: #090B14; font: 600 11px/1.35 var(--font); white-space: nowrap; box-shadow: 0 8px 22px -8px var(--ac); transition: opacity var(--base); }
+.swarm__ring { position: absolute; left: -9px; top: -9px; width: 24px; height: 24px; border-radius: 99px; border: 2px solid var(--ac); opacity: 0; }
+.swarm__cur.is-click .swarm__ring { animation: swRing 550ms ease-out; }
+@keyframes swRing { from { transform: scale(.3); opacity: 1; } to { transform: scale(2.6); opacity: 0; } }
+.swarm__box { position: absolute; left: 0; top: 0; width: 0; height: 0; border: 1.5px dashed var(--ac); border-radius: 6px; background: color-mix(in oklab, var(--ac) 5%, transparent); opacity: 0; }
+.swarm__box.is-on { opacity: 1; }
+.swarm__box.is-done { border-style: solid; box-shadow: 0 0 0 4px color-mix(in oklab, var(--ac) 14%, transparent); }
+.swarm__box.is-fade { opacity: 0; transition: opacity 500ms; }
+.swarm__tag { position: absolute; left: -1.5px; bottom: 100%; margin-bottom: 4px; padding: 2px 8px; border-radius: 5px; background: var(--ac); color: #090B14; font: 600 11px/1.5 var(--font-mono); white-space: nowrap; }
+.swarm__box.is-done .swarm__tag::before { content: "✓ "; }
+@media (max-width: 600px) { .swarm__name, .swarm__tag { font-size: 10px; } }
+@media (prefers-reduced-motion: reduce) { .swarm { display: none; } }
+
+/* teks yang diketik agen */
+.agents-on main :is(h1, h2, .eyebrow, .lead, .body-17):not(.is-built):not(.is-typing):not([data-build] *) { visibility: hidden; }
+.tch { opacity: 0; }
+.tch.on { opacity: 1; }
+.swarm__box.is-text { background: transparent; border-width: 1px; border-radius: 4px; }
+.swarm__box.is-text .swarm__tag { font-size: 10px; padding: 1px 6px; }
+/* siaga: orbit kecil di sekitar cursor pengguna, label disembunyikan */
+.swarm__cur svg { transition: transform 300ms var(--ease); }
+.swarm__cur.is-idle svg { transform: scale(.82); }
+.swarm__cur.is-idle .swarm__name { opacity: 0; transform: translateY(-4px) scale(.9); }
+.swarm__name { transition: opacity 260ms, transform 260ms var(--ease); }

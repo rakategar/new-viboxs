@@ -1,14 +1,19 @@
 {
   "name": "viboxs-digital",
   "private": true,
-  "description": "Monorepo VIBOXS — satu repo, app terpisah per host (ADR-01).",
-  "workspaces": ["apps/*", "packages/*"],
+  "description": "Monorepo VIBOXS \u2014 satu repo, app terpisah per host (ADR-01).",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
     "dev": "npm run dev -w apps/corporate",
     "dev:corporate": "npm run dev -w apps/corporate",
     "dev:services": "npm run dev -w apps/services",
     "build": "npm run build --workspaces --if-present",
     "build:corporate": "npm run build -w apps/corporate",
-    "build:services": "npm run build -w apps/services"
+    "build:services": "npm run build -w apps/services",
+    "dev:edu": "npm run dev -w apps/edu",
+    "build:edu": "npm run build -w apps/edu"
   }
 }

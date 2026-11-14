@@ -11,7 +11,9 @@
     "./cursor": "./src/cursor.tsx",
     "./marquee": "./src/marquee.tsx",
     "./ecosystem": "./src/ecosystem.ts",
-    "./base.css": "./src/styles/base.css"
+    "./base.css": "./src/styles/base.css",
+    "./swarm": "./src/swarm.tsx",
+    "./swarm.css": "./src/styles/swarm.css"
   },
   "peerDependencies": {
     "gsap": "3.12.5",
