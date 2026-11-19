@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect } from 'react';
+import { Suspense, lazy, useEffect, useLayoutEffect } from 'react';
 import { Route, Routes, useLocation } from 'react-router-dom';
 import Cursor from '@viboxs/shared/cursor';
 import AgentSwarm from '@viboxs/shared/swarm';
@@ -11,6 +11,9 @@ import Detail from './pages/Detail';
 import Events from './pages/Events';
 import Library, { LibraryIndex } from './pages/Library';
 import Checkout from './pages/Checkout';
+import Collab from './pages/Collab';
+
+const Admin = lazy(() => import('./admin/Admin'));
 import { Help, NotFound, Policy, Teams } from './pages/Misc';
 import { DESCS, TITLES, bySlug, hrefOf } from './lib/data';
 import { applySeo } from '@viboxs/shared/seo';
@@ -44,6 +47,9 @@ function RouteEffects() {
 
 export default function App() {
   const { pathname } = useLocation();
+  if (pathname === '/admin' || pathname.startsWith('/admin/')) {
+    return <Suspense fallback={<div className="adm-boot">Memuat dashboard…</div>}><Admin /></Suspense>;
+  }
   return (
     <>
       <RouteEffects />
@@ -59,6 +65,7 @@ export default function App() {
           <Route path="/library/:slug" element={<Library />} />
           <Route path="/checkout/:slug" element={<Checkout />} />
           <Route path="/corporate-training" element={<Teams />} />
+          <Route path="/kolaborator" element={<Collab />} />
           <Route path="/help" element={<Help />} />
           <Route path="/policies/:kind" element={<Policy />} />
           <Route path="*" element={<NotFound />} />

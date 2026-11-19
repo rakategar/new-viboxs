@@ -1,3 +1,4 @@
+import { submitUrl } from '@viboxs/shared/backend';
 // Semua copy berstatus PROPOSED (lihat 02_DESIGN_CORPORATE.md) — founder memilih final.
 
 import { LAUNCH, ORIGIN, type DestKey } from '@viboxs/shared/ecosystem';
@@ -6,8 +7,8 @@ import { LAUNCH, ORIGIN, type DestKey } from '@viboxs/shared/ecosystem';
 // dipakai bersama oleh Corporate & Services.
 export { LAUNCH, type DestKey };
 
-/** Form kontak umum: nonaktif sampai kebijakan privasi & penerima pesan siap. */
-export const CONTACT_FORM_ENDPOINT: string | null = null;
+/** Form kontak umum → edge function Supabase (simpan + email otomatis ke admin@viboxs.com). */
+export const CONTACT_FORM_ENDPOINT: string | null = submitUrl('contact', 'corporate');
 
 /** Karya: tetap kosong sampai ada studi kasus yang disetujui (route /work tersembunyi dari menu). */
 export const CASE_STUDIES: unknown[] = [];

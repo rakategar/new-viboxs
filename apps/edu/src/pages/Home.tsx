@@ -12,10 +12,8 @@ import NotifyForm from '../components/NotifyForm';
 import Status from '../components/Status';
 import Accordion from '../components/Accordion';
 import {
-  CATALOG_FILLED, FAQ, FEATURED, FORMATS, PATHS, PROGRAMS, STEPS, TYPE, byDate, bySlug, ctaFor, hrefOf, priceOf, timeOf, whenOf,
+  CATALOG_FILLED, FAQ, FEATURED, FORMATS, HOME, PATHS, PROGRAMS, STEPS, TYPE, byDate, bySlug, ctaFor, hrefOf, priceOf, timeOf, whenOf,
 } from '../lib/data';
-
-const MQ = ['Prompting dasar', 'SOP & operasional', 'Distribusi konten', 'Komunikasi tertulis', 'Riset pasar', 'AI untuk dokumen', 'Produktivitas', 'Spreadsheet'];
 
 export default function Home() {
   const ref = useRef<HTMLDivElement>(null);
@@ -34,25 +32,41 @@ export default function Home() {
     return () => ctx.revert();
   }, []);
 
+  const on = HOME.sections;
+  const a = HOME.announcement;
   return (
     <div ref={ref}>
+      {a.on && a.text && (
+        <div className="announce" role="note">
+          <div className="container announce__in">
+            <span className="announce__dot" aria-hidden="true" /><span>{a.text}</span>
+            {a.link && (/^https?:/.test(a.link)
+              ? <a href={a.link} className="announce__link" target="_blank" rel="noopener noreferrer">{a.linkLabel || 'Lihat'} <ArrowRight size={14} /></a>
+              : <Link to={a.link} className="announce__link">{a.linkLabel || 'Lihat'} <ArrowRight size={14} /></Link>)}
+          </div>
+        </div>
+      )}
       <Hero />
-      <Marquee words={MQ} />
-      <Paths />
-      <div className="light">
-        <Featured />
-        <Formats />
-        <Schedule />
-      </div>
-      <Enroll />
-      <Bridges />
-      <Closing />
+      {on.marquee && HOME.marquee.length > 0 && <Marquee words={HOME.marquee} />}
+      {on.paths && <Paths />}
+      {(on.featured || on.formats || on.schedule) && (
+        <div className="light">
+          {on.featured && <Featured />}
+          {on.formats && <Formats />}
+          {on.schedule && <Schedule />}
+        </div>
+      )}
+      {on.enroll && <Enroll />}
+      {on.collab && <Collab />}
+      {on.bridges && <Bridges />}
+      {on.closing && <Closing />}
     </div>
   );
 }
 
 /* ---------------- E02 Hero ---------------- */
 function Hero() {
+  const h = HOME.hero;
   return (
     <section className="e-hero" aria-labelledby="hero-h">
       <div className="e-hero__bg" aria-hidden="true">
@@ -62,14 +76,14 @@ function Hero() {
       </div>
       <div className="container rel e-hero__grid">
         <div className="e-hero__copy stack-24">
-          <span className="e-chip" data-build="Badge · EDU"><span className="e-chip__tag">EDU</span>BELAJAR PRAKTIS · VIBOXS</span>
-          <h1 id="hero-h" className="h1 e-hero__h">Belajar keterampilan yang bisa langsung <span className="accent">dipraktikkan.</span></h1>
-          <p className="lead muted maxw-520">Jelajahi panduan digital, webinar, dan program praktis dari ekosistem VIBOXS. Lihat format, jadwal, dan ketentuannya sebelum mendaftar.</p>
+          <span className="e-chip" data-build="Badge · EDU"><span className="e-chip__tag">EDU</span>{h.chip}</span>
+          <h1 id="hero-h" className="h1 e-hero__h">{h.title}{h.accent && <> <span className="accent">{h.accent}</span></>}</h1>
+          <p className="lead muted maxw-520">{h.lead}</p>
           <div className="row-12" data-build="Tombol · CTA">
-            <Magnetic><Link to="/programs" className="btn btn--primary btn--lg">Jelajahi Program <ArrowRight /></Link></Magnetic>
-            <Magnetic><Link to="/events" className="btn btn--ghost btn--lg"><IconClock size={16} />Lihat Jadwal</Link></Magnetic>
+            <Magnetic><Link to="/programs" className="btn btn--primary btn--lg">{h.cta1} <ArrowRight /></Link></Magnetic>
+            <Magnetic><Link to="/events" className="btn btn--ghost btn--lg"><IconClock size={16} />{h.cta2}</Link></Magnetic>
           </div>
-          <span className="xs-13 muted">Tanpa login untuk membaca program. Harga dan ketentuan tertulis sebelum kamu mendaftar.</span>
+          {h.note && <span className="xs-13 muted">{h.note}</span>}
         </div>
         <HeroJourney />
       </div>
@@ -83,9 +97,9 @@ const PATH_C = ['var(--v-accent-2)', 'var(--v-accent)', 'var(--v-gold)'];
 function PathCard({ p, i }: { p: (typeof PATHS)[number]; i: number }) {
   const tilt = useTilt<HTMLAnchorElement>(3);
   return (
-    <Link ref={tilt} to={`/programs?path=${p.id}`} className="path-card" style={{ ['--pc' as string]: PATH_C[i] }} data-build={`Kartu · ${p.name}`}>
+    <Link ref={tilt} to={`/programs?path=${p.id}`} className="path-card" style={{ ['--pc' as string]: PATH_C[i % 3] }} data-build={`Kartu · ${p.name}`}>
       <span className="path-card__n" aria-hidden="true">{p.n}</span>
-      <span className="mono xs" style={{ color: PATH_C[i] }}>{p.n} /</span>
+      <span className="mono xs" style={{ color: PATH_C[i % 3] }}>{p.n} /</span>
       <span className="stack-10"><span className="h3">{p.name}</span><span className="body muted">{p.desc}</span></span>
       <span className="row-8">{p.topics.map((t) => <span key={t} className="tag">{t}</span>)}</span>
       <span className="path-card__foot">Lihat jalur belajar<span className="path-card__arr"><ArrowRight /></span></span>
@@ -99,10 +113,10 @@ function Paths() {
       <div className="container stack-40">
         <div className="sec-head">
           <div className="sec-head__copy">
-            <span className="eyebrow">Jalur belajar</span>
-            <h2 className="h2">Mulai dari tujuanmu.</h2>
+            <span className="eyebrow">{HOME.paths.eyebrow}</span>
+            <h2 className="h2">{HOME.paths.title}</h2>
           </div>
-          <p className="body muted maxw-420">Jalur belajar adalah cara memfilter topik — bukan program sertifikasi.</p>
+          <p className="body muted maxw-420">{HOME.paths.desc}</p>
         </div>
         <div className="path-grid">{PATHS.map((p, i) => <PathCard key={p.id} p={p} i={i} />)}</div>
       </div>
@@ -117,14 +131,14 @@ function Featured() {
       <div className="container stack-40">
         <div className="sec-head">
           <div className="sec-head__copy">
-            <span className="eyebrow">Program pilihan</span>
-            <h2 className="h2">Yang bisa kamu ikuti sekarang.</h2>
+            <span className="eyebrow">{HOME.featured.eyebrow}</span>
+            <h2 className="h2">{HOME.featured.title}</h2>
           </div>
           {CATALOG_FILLED && <Link to="/programs" className="btn btn--ink-ghost btn--sm">Semua program <ArrowRight size={14} /></Link>}
         </div>
         {CATALOG_FILLED ? (
           <div className="card-grid card-grid--lg">
-            {FEATURED.map((s) => { const p = bySlug(s)!; return <ProgramCard key={s} p={p} showPath build />; })}
+            {FEATURED.map((s) => bySlug(s)).filter((p) => !!p).map((p) => <ProgramCard key={p!.slug} p={p!} showPath build />)}
           </div>
         ) : (
           <div className="empty-feature" data-build="Blok · Katalog kosong">
@@ -149,7 +163,7 @@ function Formats() {
   const [tab, setTab] = useState(1);
   const [fade, setFade] = useState(false);
   const f = FORMATS[tab];
-  const card = bySlug(f.card)!;
+  const card = bySlug(f.card) || PROGRAMS.find((p) => p.type === f.id);
   const float = useTilt<HTMLAnchorElement>(5);
 
   function pick(i: number) {
@@ -171,8 +185,8 @@ function Formats() {
     <section className="pb-section">
       <div className="container stack-32">
         <div className="sec-head__copy">
-          <span className="eyebrow">Pilih format</span>
-          <h2 className="h2">Cara belajar yang sesuai ritmemu.</h2>
+          <span className="eyebrow">{HOME.formats.eyebrow}</span>
+          <h2 className="h2">{HOME.formats.title}</h2>
         </div>
         <div className="fmt" data-build="Panel · Format belajar">
           <div role="tablist" aria-label="Format belajar" className="fmt__tabs" onKeyDown={onKey} style={{ ['--ti' as string]: tab }}>
@@ -195,7 +209,7 @@ function Formats() {
               ) : <div className="dashed-note">{f.fallback}</div>}
             </div>
             <div className="fmt__stage">
-              {CATALOG_FILLED ? (
+              {CATALOG_FILLED && card ? (
                 <Link ref={float} to={hrefOf(card)} className="fmt__card">
                   <span className="row-between"><span className="pcard__type">{TYPE[card.type]} · [contoh]</span><Status code={card.status} size="sm" still /></span>
                   <span className="strong lg-18">{card.title}</span>
@@ -208,7 +222,7 @@ function Formats() {
             </div>
           </div>
         </div>
-        <span className="xs-13 ink-muted">Kursus on-demand belum tersedia dan akan tampil setelah platform belajarnya siap.</span>
+        {HOME.formats.note && <span className="xs-13 ink-muted">{HOME.formats.note}</span>}
       </div>
     </section>
   );
@@ -221,12 +235,12 @@ function Schedule() {
     <section className="pb-section-xl">
       <div className="container split-2 align-start">
         <div className="stack-16 sched__head">
-          <span className="eyebrow">Jadwal terdekat</span>
-          <h2 className="h2">Sesi yang sudah terkonfirmasi.</h2>
-          <p className="body ink-muted">Semua jam dalam WIB. Sesi yang sudah lewat tidak tampil di sini.</p>
+          <span className="eyebrow">{HOME.schedule.eyebrow}</span>
+          <h2 className="h2">{HOME.schedule.title}</h2>
+          <p className="body ink-muted">{HOME.schedule.desc}</p>
           <Link to="/events" className="btn btn--ink btn--sm self-start">Lihat semua event <ArrowRight size={14} /></Link>
         </div>
-        {CATALOG_FILLED ? (
+        {CATALOG_FILLED && sched.length > 0 ? (
           <ol className="tl">
             <span className="tl__line" aria-hidden="true" data-draw-line />
             {sched.map((p) => (
@@ -258,7 +272,7 @@ function Step({ t, d, i }: { t: string; d: string; i: number }) {
   return (
     <li ref={spot} className="step" data-build={`Langkah · 0${i + 1}`}>
       <span className="step__glow" aria-hidden="true" />
-      <span className="step__head"><span className={`step__n ${i === 4 ? 'is-last' : ''}`}>0{i + 1}</span><span className="step__rule" aria-hidden="true" /></span>
+      <span className="step__head"><span className={`step__n ${i === STEPS.length - 1 ? 'is-last' : ''}`}>0{i + 1}</span><span className="step__rule" aria-hidden="true" /></span>
       <span className="step__t">{t}</span>
       <span className="small muted lh">{d}</span>
     </li>
@@ -271,12 +285,32 @@ function Enroll() {
       <div className="container stack-40">
         <div className="sec-head">
           <div className="sec-head__copy">
-            <span className="eyebrow">Cara pendaftaran</span>
-            <h2 className="h2">Lima langkah, tanpa kejutan.</h2>
+            <span className="eyebrow">{HOME.enroll.eyebrow}</span>
+            <h2 className="h2">{HOME.enroll.title}</h2>
           </div>
-          <p className="body muted maxw-420">Sebelum membayar, kamu tahu apa yang dibeli, apa yang diterima, total biaya, cara akses, dan jalur bantuan.</p>
+          <p className="body muted maxw-420">{HOME.enroll.desc}</p>
         </div>
         <ol className="steps">{STEPS.map(([t, d], i) => <Step key={t} t={t} d={d} i={i} />)}</ol>
+      </div>
+    </section>
+  );
+}
+
+/* ---------------- E07b Kolaborator ---------------- */
+function Collab() {
+  const c = HOME.collab;
+  return (
+    <section className="pb-section">
+      <div className="container">
+        <div className="collab-cta" data-build="Panel · Kolaborator">
+          <div className="stack-12">
+            <span className="mono xs ls-08 c-acc2">{c.eyebrow.toUpperCase()}</span>
+            <span className="h3">{c.title}</span>
+            <span className="body muted maxw-620">{c.desc}</span>
+          </div>
+          <div className="collab-cta__roles" aria-hidden="true"><span className="tag">Trainer</span><span className="tag">Educator</span><span className="tag">Partnership</span></div>
+          <Magnetic><Link to="/kolaborator" className="btn btn--primary">{c.cta} <ArrowRight size={16} /></Link></Magnetic>
+        </div>
       </div>
     </section>
   );
@@ -310,11 +344,11 @@ function Closing() {
     <section className="section section--line">
       <div className="container split-2">
         <div className="stack-20">
-          <h2 className="h2 h2--xl">Siap mulai belajar?</h2>
-          <p className="body-17 muted maxw-460">Lihat program yang sedang dibuka, atau tanyakan dulu hal yang belum jelas.</p>
+          <h2 className="h2 h2--xl">{HOME.closing.title}</h2>
+          <p className="body-17 muted maxw-460">{HOME.closing.desc}</p>
           <div className="row-12" data-build="Tombol · CTA akhir">
-            <Magnetic><Link to="/programs" className="btn btn--primary btn--lg">Lihat Program yang Tersedia</Link></Magnetic>
-            <Link to="/corporate-training" className="btn btn--ghost btn--lg">Butuh pelatihan untuk tim?</Link>
+            <Magnetic><Link to="/programs" className="btn btn--primary btn--lg">{HOME.closing.cta1}</Link></Magnetic>
+            <Link to="/corporate-training" className="btn btn--ghost btn--lg">{HOME.closing.cta2}</Link>
           </div>
         </div>
         <div className="stack-8">

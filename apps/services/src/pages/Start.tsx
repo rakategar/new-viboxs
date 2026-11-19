@@ -3,8 +3,8 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { ArrowRight, Check } from '@viboxs/shared/icons';
 import { Split } from '@viboxs/shared/fx';
 import { useMotion } from '@viboxs/shared/motion';
-import { IcAlert, IcCopy, IcLock, IcWifiOff, catIcon } from '../components/icons';
-import { CONTACT, mailto } from '@viboxs/shared/ecosystem';
+import { IcAlert, IcCopy, IcWifiOff, catIcon } from '../components/icons';
+import { CONTACT } from '@viboxs/shared/ecosystem';
 import { BUDGET, CATS, HORIZON, INTAKE_ENDPOINT, JENIS, ORGS, STATUSES, WA, catLabel, type CatKey } from '../lib/content';
 
 type F = {
@@ -13,13 +13,12 @@ type F = {
   privacy: boolean; marketing: boolean; website: string; // website = honeypot
 };
 const EMPTY: F = { kategori: '', jenis: '', org: '', hasil: '', status: '', nama: '', email: '', waCode: '+62', wa: '', orgName: '', horizon: '', budget: '', privacy: false, marketing: false, website: '' };
-type Status = 'idle' | 'submitting' | 'success' | 'mailed' | 'error' | 'offline';
+type Status = 'idle' | 'submitting' | 'success' | 'error' | 'offline';
 type Sim = 'ok' | 'error' | 'offline';
 
 const DEV = import.meta.env.DEV;
 const isOffline = () => !window.navigator.onLine;
-/** Tanpa endpoint di produksi → brief dikirim lewat email (mailto ke admin@viboxs.com). Di dev → simulasi berlabel. */
-const MAIL_MODE = !INTAKE_ENDPOINT && !DEV;
+/** Endpoint selalu ada (edge function). Simulasi hanya bila endpoint dikosongkan di dev. */
 const SIMULATE = !INTAKE_ENDPOINT && DEV;
 
 function v1(f: F) {
@@ -96,10 +95,6 @@ export default function Start() {
     if (Object.keys(e).length) { setErr(e); setStatus('idle'); focusSummary(); return; }
     setErr({});
     if (f.website) return; // honeypot terisi → abaikan diam-diam
-    if (MAIL_MODE) {
-      window.location.href = mailto(`Start a Mission — ${catLabel(f.kategori) || 'Kebutuhan baru'} — ${f.nama.trim()}`, briefText());
-      setStatus('mailed'); toTop(); return;
-    }
     setStatus('submitting');
 
     if (SIMULATE) {
@@ -134,20 +129,6 @@ export default function Start() {
   }
 
   const reset = () => { setF({ ...EMPTY }); setStep(1); setErr({}); setStatus('idle'); setRefNo(''); setCopied(false); toTop(); };
-  const briefText = () => [
-    `Kategori: ${catLabel(f.kategori) || '-'}`,
-    `Jenis: ${JENIS.find(([v]) => v === f.jenis)?.[1] || '-'}`,
-    `Organisasi: ${ORGS.find(([v]) => v === f.org)?.[1] || '-'}${f.orgName ? ` (${f.orgName})` : ''}`,
-    `Status saat ini: ${STATUSES.find(([v]) => v === f.status)?.[1] || '-'}`,
-    '', 'Hasil yang diharapkan:', f.hasil.trim(), '',
-    `Nama: ${f.nama.trim()}`, `Email: ${f.email.trim()}`, `WhatsApp: ${f.wa ? `${f.waCode} ${f.wa}` : '-'}`,
-    `Horizon waktu: ${f.horizon || '-'}`, `Anggaran: ${f.budget || '-'}`,
-    `Bersedia menerima info pemasaran: ${f.marketing ? 'Ya' : 'Tidak'}`,
-    from ? `Dipilih dari: ${from}` : '', '', '— dikirim dari service.viboxs.com/start',
-  ].filter((l, i, a) => l !== '' || a[i - 1] !== '').join('\n');
-  const copyBrief = async () => {
-    try { await navigator.clipboard.writeText(briefText()); setCopied(true); window.setTimeout(() => setCopied(false), 2400); } catch { /* clipboard tidak tersedia */ }
-  };
   const copy = async () => {
     try { await navigator.clipboard.writeText(refNo); setCopied(true); window.setTimeout(() => setCopied(false), 2400); } catch { /* clipboard tidak tersedia */ }
   };
@@ -189,7 +170,7 @@ export default function Start() {
         </aside>
 
         <div className="st__main" ref={topRef}>
-          {status !== 'success' && status !== 'mailed' ? (
+          {status !== 'success' ? (
             <div className="st__card" data-build="Form · Start a Mission">
               <div className="st__progress">
                 <span className="xs-13 strong">Langkah {step} dari 2</span>
@@ -204,12 +185,6 @@ export default function Start() {
                 <div className="steps__bar" aria-hidden="true"><span style={{ transform: `scaleX(${step === 1 ? 0.5 : 1})` }} /></div>
               </div>
 
-              {MAIL_MODE && step === 2 && (
-                <div role="status" className="note note--info">
-                  <span className="row-10"><IcLock size={18} /><strong>Dikirim lewat email</strong></span>
-                  <span>Saat Anda menekan kirim, aplikasi email terbuka dengan brief yang sudah terisi untuk <a href={`mailto:${CONTACT.email}`}>{CONTACT.email}</a>. Tinggal tekan Kirim di aplikasi email Anda.</span>
-                </div>
-              )}
               {errList.length > 0 && (
                 <div ref={summaryRef} tabIndex={-1} role="alert" className="note note--err">
                   <strong className="row-8"><IcAlert size={16} />{errList.length} isian perlu diperbaiki</strong>
@@ -220,7 +195,7 @@ export default function Start() {
               {status === 'error' && (
                 <div role="alert" className="note note--err">
                   <strong className="row-8"><IcAlert size={16} />Belum berhasil dikirim. Coba lagi.</strong>
-                  <span>Server tidak merespons. Isian Anda tidak hilang.</span>
+                  <span>Server tidak merespons. Isian Anda tidak hilang. Bila tetap gagal, kirim ke <a href={`mailto:${CONTACT.email}`}>{CONTACT.email}</a>.</span>
                 </div>
               )}
               {status === 'offline' && (
@@ -380,35 +355,12 @@ export default function Start() {
                 </fieldset>
               </form>
             </div>
-          ) : status === 'mailed' ? (
-            <div role="status" className="st__card success">
-              <span className="success__burst" aria-hidden="true"><Check size={28} /></span>
-              <div className="stack-8">
-                <h2 className="h2-sm">Brief siap dikirim lewat email.</h2>
-                <p className="body-16 muted">Aplikasi email Anda terbuka dengan brief yang sudah terisi. Tekan <strong>Kirim</strong> di sana agar brief sampai ke tim kami.</p>
-              </div>
-              <div className="ref">
-                <span className="stack-4"><span className="xs muted">Email tidak terbuka? Kirim manual ke</span><code className="ref__no">{CONTACT.email}</code></span>
-                <button type="button" className="btn btn--ghost btn--sm" onClick={copyBrief}><IcCopy size={16} />{copied ? 'Tersalin' : 'Salin isi brief'}</button>
-              </div>
-              <dl className="kv">
-                <div><dt>Kategori</dt><dd>{sumKat}</dd></div>
-                <div><dt>Jenis</dt><dd>{sumJenis}</dd></div>
-                <div><dt>Hasil</dt><dd>{f.hasil.trim()}</dd></div>
-                <div><dt>Kontak</dt><dd>{f.nama} · {f.email}</dd></div>
-              </dl>
-              <span className="xs-13 muted">Mengirim brief bukan kontrak. Kami membalas ke email yang Anda isi.</span>
-              <div className="row-12">
-                <a href={mailto(`Start a Mission — ${sumKat || 'Kebutuhan baru'} — ${f.nama.trim()}`, briefText())} className="btn btn--light btn--sm">Buka email lagi <ArrowRight /></a>
-                <button type="button" className="btn btn--ghost btn--sm" onClick={reset}>Kirim kebutuhan lain</button>
-              </div>
-            </div>
           ) : (
             <div role="status" className="st__card success">
               <span className="success__burst" aria-hidden="true"><Check size={28} /></span>
               <div className="stack-8">
                 <h2 className="h2-sm">Permintaan diterima.</h2>
-                <p className="body-16 muted">Proses tindak lanjut sesuai kanal yang Anda isi. Simpan nomor referensi untuk korespondensi.</p>
+                <p className="body-16 muted">Brief Anda sudah masuk ke tim kami di {CONTACT.email}. Kami membalas lewat kanal yang Anda isi — simpan nomor referensi untuk korespondensi.</p>
               </div>
               <div className="ref">
                 <span className="stack-4"><span className="xs muted">Nomor referensi</span><code className="ref__no">{refNo}</code></span>

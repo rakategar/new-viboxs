@@ -1,12 +1,9 @@
 // Copy services.viboxs.com — dari "VIBOXS Services.dc.html" + services-data.js (Claude Design).
 // Semua copy berstatus PROPOSED (03_DESIGN_SERVICES.md). Founder memilih final.
+import { submitUrl } from '@viboxs/shared/backend';
 
-/**
- * Endpoint penerima brief Start a Mission (POST JSON → { ref }).
- * null = formulir NONAKTIF sampai kebijakan privasi & penerima lead siap (brief §6, INTAKE_ENABLED=false).
- * Set lewat env VITE_INTAKE_ENDPOINT di Vercel ketika sudah siap.
- */
-export const INTAKE_ENDPOINT: string | null = import.meta.env.VITE_INTAKE_ENDPOINT || null;
+/** Endpoint penerima brief Start a Mission (POST JSON → { ref }): edge function Supabase → database + email ke admin@viboxs.com. */
+export const INTAKE_ENDPOINT: string | null = import.meta.env.VITE_INTAKE_ENDPOINT || submitUrl('mission', 'services');
 
 /** Studi kasus yang sudah disetujui klien (maks 3). Kosong → state kosong yang jujur, /work tidak di menu. */
 export const CASE_STUDIES: { slug: string; title: string }[] = [];

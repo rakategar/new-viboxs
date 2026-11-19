@@ -23,9 +23,17 @@ const SITES = {
   },
   edu: {
     origin: 'https://edu.viboxs.com',
-    routes: () => {
-      const items = [...read('apps/edu/src/lib/data.ts').matchAll(/slug: '([a-z0-9-]+)', type: '(webinar|workshop|ebook)'/g)];
-      return [['/', 1.0], ['/programs', 0.9], ['/events', 0.9], ['/library', 0.8], ['/corporate-training', 0.7], ['/help', 0.5],
+    routes: async () => {
+      // Program dari CMS (Supabase) bila terjangkau; jika tidak, dari data bawaan di data.ts.
+      let items = [...read('apps/edu/src/lib/data.ts').matchAll(/slug: '([a-z0-9-]+)', type: '(webinar|workshop|ebook)'/g)];
+      try {
+        const be = read('packages/shared/src/backend.ts');
+        const url = be.match(/SUPABASE_URL = '([^']+)'/)[1], key = be.match(/SUPABASE_KEY = '([^']+)'/)[1];
+        const r = await fetch(`${url}/rest/v1/edu_programs?select=slug,data->>type&published=is.true`, { headers: { apikey: key, Authorization: `Bearer ${key}` }, signal: AbortSignal.timeout(5000) });
+        const rows = r.ok ? await r.json() : [];
+        if (rows.length) items = rows.map((x) => [null, x.slug, x.type]);
+      } catch { /* offline saat build → pakai data bawaan */ }
+      return [['/', 1.0], ['/programs', 0.9], ['/events', 0.9], ['/library', 0.8], ['/kolaborator', 0.7], ['/corporate-training', 0.7], ['/help', 0.5],
         ...items.map(([, s, t]) => [t === 'ebook' ? `/library/${s}` : `/programs/${s}`, 0.7]),
         ...['purchase', 'refund', 'privacy', 'terms'].map((k) => [`/policies/${k}`, 0.3])];
     },
@@ -34,6 +42,6 @@ const SITES = {
 
 const site = SITES[app];
 if (!site) { console.error(`App tidak dikenal: ${app}`); process.exit(1); }
-const urls = site.routes().map(([p, pr]) => `  <url><loc>${site.origin}${p}</loc><lastmod>${today}</lastmod><priority>${pr.toFixed(1)}</priority></url>`);
+const urls = (await site.routes()).map(([p, pr]) => `  <url><loc>${site.origin}${p}</loc><lastmod>${today}</lastmod><priority>${pr.toFixed(1)}</priority></url>`);
 writeFileSync(join(root, `apps/${app}/public/sitemap.xml`), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join('\n')}\n</urlset>\n`);
 console.log(`sitemap ${app}: ${urls.length} URL`);

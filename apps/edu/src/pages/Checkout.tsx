@@ -3,7 +3,8 @@ import { Link, useParams } from 'react-router-dom';
 import { Check } from '@viboxs/shared/icons';
 import { reducedMotion } from '@viboxs/shared/motion';
 import { NotFound } from './Misc';
-import { TYPE, bySlug, emailOk, hrefOf, priceOf, rid, whenOf } from '../lib/data';
+import { TYPE, bySlug, emailOk, hrefOf, priceOf, whenOf } from '../lib/data';
+import { submitForm } from '@viboxs/shared/backend';
 
 type Step = 'summary' | 'data' | 'redirect' | 'pending' | 'paid' | 'free' | 'failed';
 const STEPPER = ['Ringkasan', 'Data diri', 'Pembayaran', 'Selesai'];
@@ -32,7 +33,7 @@ export default function Checkout() {
     const v = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
     setF((x) => ({ ...x, [k]: v })); setErr((x) => ({ ...x, [k]: '' }));
   };
-  function submit(e: FormEvent) {
+  async function submit(e: FormEvent) {
     e.preventDefault();
     const er: Record<string, string> = {};
     if (!f.nama.trim()) er.nama = 'Tulis nama lengkapmu.';
@@ -40,7 +41,17 @@ export default function Checkout() {
     if (!f.terms) er.terms = 'Persetujuan ketentuan wajib untuk melanjutkan.';
     setErr(er);
     if (Object.keys(er).length) { window.setTimeout(() => document.getElementById(`co-${Object.keys(er)[0]}`)?.focus(), 0); return; }
-    later(() => { setOrder(`${p!.free ? 'REG' : 'EDU'}-${rid()}`); go(p!.free ? 'free' : 'redirect'); }, 800);
+    if (busy) return;
+    setBusy(true); setErr({});
+    try {
+      const ref = await submitForm('register', 'edu', {
+        program: p!.title, slug: p!.slug, jenis: p!.type, jadwal: whenOf(p!), harga: priceOf(p!),
+        nama: f.nama.trim(), email: f.email.trim(), wa: f.wa.trim(), marketing: f.marketing, terms: f.terms,
+      });
+      setOrder(ref); go(p!.free ? 'free' : 'redirect');
+    } catch (x) {
+      setErr({ form: (x as Error).message });
+    } finally { setBusy(false); }
   }
   const cur = stepIdx(step);
 
@@ -99,6 +110,7 @@ export default function Checkout() {
                   {err.terms && <span role="alert" className="field-err">{err.terms}</span>}
                   <label className="check-l"><input type="checkbox" checked={f.marketing} onChange={field('marketing')} /><span><strong className="ink">Opsional.</strong> Kirimi saya info program EDU lainnya. Tidak memengaruhi pendaftaran.</span></label>
                 </div>
+                {err.form && <span role="alert" className="field-err">{err.form}</span>}
                 <div className="row-12">
                   <button type="submit" className="btn btn--ink btn--lg" disabled={busy}>{busy && <span className="spin-sm spin-sm--light" aria-hidden="true" />}{busy ? 'Memproses…' : p.free ? 'Konfirmasi registrasi' : 'Buat order'}</button>
                   <button type="button" className="btn btn--ink-ghost btn--lg" onClick={() => go('summary')}>Kembali</button>

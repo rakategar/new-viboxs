@@ -21,6 +21,7 @@ export default function Footer() {
             <Link to="/events">Events</Link>
             <Link to="/library">Digital Library</Link>
             <Link to="/corporate-training">For Teams</Link>
+            <Link to="/kolaborator">Jadi kolaborator</Link>
           </nav>
           <nav aria-label="Ekosistem">
             <span className="eyebrow">Ekosistem</span>

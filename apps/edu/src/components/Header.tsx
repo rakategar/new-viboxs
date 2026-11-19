@@ -9,6 +9,7 @@ export const NAV = [
   { to: '/events', label: 'Events' },
   { to: '/library', label: 'Digital Library' },
   { to: '/corporate-training', label: 'For Teams' },
+  { to: '/kolaborator', label: 'Kolaborator' },
   { to: '/help', label: 'Help' },
 ];
 

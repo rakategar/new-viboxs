@@ -68,15 +68,20 @@ const RAW: Program[] = [
   { slug: 'riset-pasar-opc', type: 'webinar', path: 'biz', title: 'Pengantar Riset Pasar untuk OPC', summary: 'Cara sederhana memvalidasi ide sebelum membangun produk.', forWho: 'Calon founder dan OPC', level: 'Pemula', status: 'COMPLETED', past: true, free: true, day: 'Kamis', date: '5 November 2026', dShort: '05', mShort: 'NOV', time: '19.00–20.30 WIB', dur: '90 menit', mode: 'Online', loc: 'Zoom', cap: '[Kapasitas]', sortDate: '2026-11-05', added: -1, tags: ['riset', 'pasar', 'validasi'] },
 ];
 
-export const PROGRAMS: Program[] = RAW.map((p) =>
-  p.type === 'ebook' ? p : { ...p, outcomes: p.outcomes || D_WEB.outcomes, agenda: p.agenda || D_WEB.agenda, receive: p.receive || D_WEB.receive, access: p.access || D_WEB.access, lang: 'Bahasa Indonesia' },
-);
 
-/** Katalog terisi atau kosong (kondisi produksi saat ini = kosong). Fixtures berlabel [contoh]. */
-export const CATALOG_FILLED = (import.meta.env.VITE_EDU_CATALOG ?? 'example') !== 'empty';
+/** Normalisasi program: webinar/workshop mendapat default outcomes/agenda/receive/access. */
+export const normalizeProgram = (p: Program): Program =>
+  p.type === 'ebook' ? p : { ...p, outcomes: p.outcomes?.length ? p.outcomes : D_WEB.outcomes, agenda: p.agenda?.length ? p.agenda : D_WEB.agenda, receive: p.receive?.length ? p.receive : D_WEB.receive, access: p.access || D_WEB.access, lang: p.lang || 'Bahasa Indonesia' };
+
+/** Data bawaan (dipakai sebagai seed CMS & fallback bila database tidak terjangkau). */
+export const DEFAULT_PROGRAMS: Program[] = RAW;
+export const PROGRAMS: Program[] = RAW.map((p) => normalizeProgram(p));
+
+/** Katalog terisi atau kosong. Diatur dari CMS (settings.catalogFilled); env hanya default. */
+export let CATALOG_FILLED = (import.meta.env.VITE_EDU_CATALOG ?? 'example') !== 'empty';
 
 export const bySlug = (slug?: string) => PROGRAMS.find((p) => p.slug === slug);
-export const FEATURED = ['dasar-ai-kerja-harian', 'sop-bisnis-satu-orang', 'panduan-prompt-operasional', 'distribusi-konten-opc', 'komunikasi-tertulis-kerja', 'otomasi-spreadsheet-ai'];
+export let FEATURED = ['dasar-ai-kerja-harian', 'sop-bisnis-satu-orang', 'panduan-prompt-operasional', 'distribusi-konten-opc', 'komunikasi-tertulis-kerja', 'otomasi-spreadsheet-ai'];
 
 export const FORMATS = [
   { id: 'ebook', name: 'E-book', kicker: 'Digital Guides', desc: 'Panduan digital yang bisa dibaca kapan saja. Kamu tahu format file, isi, dan cara aksesnya sebelum membeli.', card: 'panduan-prompt-operasional',
@@ -144,6 +149,7 @@ export const DESCS: Record<string, string> = {
   '/events': 'Jadwal webinar dan workshop VIBOXS EDU. Semua waktu dalam WIB, dengan status pendaftaran yang selalu diperbarui.',
   '/library': 'Digital Library VIBOXS EDU: e-book dan panduan praktis yang bisa langsung dipakai untuk kerja dan bisnis.',
   '/corporate-training': 'Pelatihan AI dan produktivitas untuk tim perusahaan dari VIBOXS EDU, disesuaikan dengan kebutuhan organisasi Anda.',
+  '/kolaborator': 'Daftar sebagai trainer, educator, atau partner VIBOXS EDU. Ajukan e-book atau webinar kategori AI untuk dipublikasikan di edu.viboxs.com.',
   '/help': 'Pusat bantuan VIBOXS EDU: pendaftaran, pembayaran, akses materi, dan perubahan jadwal. Hubungi admin@viboxs.com.',
 };
 
@@ -154,4 +160,82 @@ export const TITLES: Record<string, string> = {
   '/corporate-training': 'Training untuk tim — VIBOXS EDU',
   '/help': 'Bantuan & FAQ — VIBOXS EDU',
   '/library': 'Digital Library — VIBOXS EDU',
+  '/kolaborator': 'Jadi kolaborator — Trainer, Educator & Partner AI · VIBOXS EDU',
 };
+
+/* ================= Konten halaman utama (dikelola CMS /admin) ================= */
+export interface HomeContent {
+  announcement: { on: boolean; text: string; link: string; linkLabel: string };
+  hero: { chip: string; title: string; accent: string; lead: string; cta1: string; cta2: string; note: string };
+  marquee: string[];
+  paths: { eyebrow: string; title: string; desc: string };
+  featured: { eyebrow: string; title: string; slugs: string[] };
+  formats: { eyebrow: string; title: string; note: string };
+  schedule: { eyebrow: string; title: string; desc: string };
+  enroll: { eyebrow: string; title: string; desc: string };
+  collab: { eyebrow: string; title: string; desc: string; cta: string };
+  closing: { title: string; desc: string; cta1: string; cta2: string };
+  sections: Record<SectionKey, boolean>;
+}
+export type SectionKey = 'marquee' | 'paths' | 'featured' | 'formats' | 'schedule' | 'enroll' | 'collab' | 'bridges' | 'closing';
+export const SECTION_LABEL: Record<SectionKey, string> = {
+  marquee: 'Marquee topik', paths: 'Jalur belajar', featured: 'Program pilihan', formats: 'Pilih format', schedule: 'Jadwal terdekat',
+  enroll: 'Cara pendaftaran', collab: 'Ajakan kolaborator', bridges: 'Universe & Services', closing: 'Penutup & FAQ',
+};
+
+export const DEFAULT_HOME: HomeContent = {
+  announcement: { on: false, text: '', link: '', linkLabel: 'Lihat' },
+  hero: {
+    chip: 'BELAJAR PRAKTIS · VIBOXS', title: 'Belajar keterampilan yang bisa langsung', accent: 'dipraktikkan.',
+    lead: 'Jelajahi panduan digital, webinar, dan program praktis dari ekosistem VIBOXS. Lihat format, jadwal, dan ketentuannya sebelum mendaftar.',
+    cta1: 'Jelajahi Program', cta2: 'Lihat Jadwal', note: 'Tanpa login untuk membaca program. Harga dan ketentuan tertulis sebelum kamu mendaftar.',
+  },
+  marquee: ['Prompting dasar', 'SOP & operasional', 'Distribusi konten', 'Komunikasi tertulis', 'Riset pasar', 'AI untuk dokumen', 'Produktivitas', 'Spreadsheet'],
+  paths: { eyebrow: 'Jalur belajar', title: 'Mulai dari tujuanmu.', desc: 'Jalur belajar adalah cara memfilter topik — bukan program sertifikasi.' },
+  featured: { eyebrow: 'Program pilihan', title: 'Yang bisa kamu ikuti sekarang.', slugs: [...FEATURED] },
+  formats: { eyebrow: 'Pilih format', title: 'Cara belajar yang sesuai ritmemu.', note: 'Kursus on-demand belum tersedia dan akan tampil setelah platform belajarnya siap.' },
+  schedule: { eyebrow: 'Jadwal terdekat', title: 'Sesi yang sudah terkonfirmasi.', desc: 'Semua jam dalam WIB. Sesi yang sudah lewat tidak tampil di sini.' },
+  enroll: { eyebrow: 'Cara pendaftaran', title: 'Lima langkah, tanpa kejutan.', desc: 'Sebelum membayar, kamu tahu apa yang dibeli, apa yang diterima, total biaya, cara akses, dan jalur bantuan.' },
+  collab: {
+    eyebrow: 'Kolaborator EDU', title: 'Punya keahlian di bidang AI? Publikasikan e-book atau webinarmu di VIBOXS EDU.',
+    desc: 'Trainer, educator, dan partner bisa mengajukan produk belajar kategori AI. Tim kami meninjau setiap pengajuan dan membalas lewat email.',
+    cta: 'Ajukan kolaborasi',
+  },
+  closing: { title: 'Siap mulai belajar?', desc: 'Lihat program yang sedang dibuka, atau tanyakan dulu hal yang belum jelas.', cta1: 'Lihat Program yang Tersedia', cta2: 'Butuh pelatihan untuk tim?' },
+  sections: { marquee: true, paths: true, featured: true, formats: true, schedule: true, enroll: true, collab: true, bridges: true, closing: true },
+};
+
+export interface Settings { catalogFilled: boolean; seoTitle: string; seoDesc: string }
+export const DEFAULT_SETTINGS: Settings = { catalogFilled: CATALOG_FILLED, seoTitle: TITLES['/'], seoDesc: DESCS['/'] };
+
+/** Objek hidup yang dibaca halaman. Diisi ulang dari database saat aplikasi dimuat. */
+export const HOME: HomeContent = structuredClone(DEFAULT_HOME);
+export const DEFAULT_PATHS: Path[] = structuredClone(PATHS);
+export const DEFAULT_FAQ: Faq[] = structuredClone(FAQ);
+export const DEFAULT_STEPS: [string, string][] = structuredClone(STEPS);
+
+const fill = <T,>(arr: T[], next: unknown) => { if (Array.isArray(next) && next.length) arr.splice(0, arr.length, ...(next as T[])); };
+/** Gabungkan objek dalam secara dangkal per bagian, agar field baru tetap punya default. */
+function mergeHome(v: Partial<HomeContent>) {
+  for (const k of Object.keys(DEFAULT_HOME) as (keyof HomeContent)[]) {
+    const d = DEFAULT_HOME[k], n = v[k];
+    if (n == null) continue;
+    (HOME as unknown as Record<string, unknown>)[k] = Array.isArray(d) ? (Array.isArray(n) ? n : d) : typeof d === 'object' ? { ...d, ...(n as object) } : n;
+  }
+}
+
+export interface RemoteContent { programs?: Program[]; home?: Partial<HomeContent>; paths?: Path[]; faq?: Faq[]; steps?: [string, string][]; settings?: Partial<Settings> }
+/** Terapkan konten dari CMS ke data hidup. Data yang kosong/hilang tetap memakai bawaan. */
+export function applyRemote(c: RemoteContent) {
+  if (c.programs?.length) PROGRAMS.splice(0, PROGRAMS.length, ...c.programs.map(normalizeProgram));
+  if (c.home) mergeHome(c.home);
+  fill(PATHS, c.paths);
+  fill(FAQ, c.faq);
+  fill(STEPS, c.steps);
+  if (c.settings) {
+    if (typeof c.settings.catalogFilled === 'boolean') CATALOG_FILLED = c.settings.catalogFilled;
+    if (c.settings.seoTitle) TITLES['/'] = c.settings.seoTitle;
+    if (c.settings.seoDesc) DESCS['/'] = c.settings.seoDesc;
+  }
+  FEATURED = HOME.featured.slugs.filter((s) => bySlug(s));
+}

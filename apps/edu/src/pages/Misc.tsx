@@ -1,11 +1,12 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, type FormEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowRight } from '@viboxs/shared/icons';
 import { useMotion } from '@viboxs/shared/motion';
 import EcoLink from '../components/EcoLink';
 import Accordion from '../components/Accordion';
-import { CONTACT, mailto } from '@viboxs/shared/ecosystem';
-import { FAQ, FAQ_G, SUPPORT } from '../lib/data';
+import { CONTACT } from '@viboxs/shared/ecosystem';
+import { submitForm } from '@viboxs/shared/backend';
+import { FAQ, FAQ_G, SUPPORT, emailOk } from '../lib/data';
 
 /* ---------------- /corporate-training ---------------- */
 export function Teams() {
@@ -69,13 +70,67 @@ export function Help() {
             </div>
             <Accordion key={g} tone="light" defaultOpen={null} items={list.map((f) => ({ key: f.q, q: <span className="stack-2"><span className="mono xxs ls-08 ink-muted">{f.g.toUpperCase()}</span>{f.q}</span>, a: f.a }))} />
           </section>
+          <section className="stack-16 maxw-880" id="kirim">
+            <h2 className="h2-block">Masih butuh bantuan?</h2>
+            <HelpForm />
+          </section>
           <section className="help-cta" data-build="Panel · Kontak">
-            <span className="stack-6"><span className="h4">Masih butuh bantuan?</span><span className="body o80">Sertakan nomor order atau registrasi bila ada.</span></span>
-            <span className="contact-links"><a href={mailto('Bantuan VIBOXS EDU')} className="btn btn--light btn--sm">{CONTACT.email}</a><a href={CONTACT.instagramUrl} target="_blank" rel="noopener noreferrer" className="btn btn--ghost btn--sm">Instagram @{CONTACT.instagram}</a></span>
+            <span className="stack-6"><span className="h4">Lebih suka kontak langsung?</span><span className="body o80">Email atau DM Instagram kami. Sertakan nomor order atau registrasi bila ada.</span></span>
+            <span className="contact-links"><a href={`mailto:${CONTACT.email}`} className="btn btn--light btn--sm">{CONTACT.email}</a><a href={CONTACT.instagramUrl} target="_blank" rel="noopener noreferrer" className="btn btn--ghost btn--sm">Instagram @{CONTACT.instagram}</a></span>
           </section>
         </div>
       </div>
     </div>
+  );
+}
+
+function HelpForm() {
+  const [f, setF] = useState({ topik: SUPPORT[0][0], nama: '', email: '', order: '', pesan: '', hp: '' });
+  const [err, setErr] = useState<Record<string, string>>({});
+  const [state, setState] = useState<'idle' | 'sending' | 'done' | 'error'>('idle');
+  const [msg, setMsg] = useState('');
+  const [refNo, setRefNo] = useState('');
+  const set = (k: keyof typeof f, v: string) => { setF((o) => ({ ...o, [k]: v })); setErr((e) => ({ ...e, [k]: '' })); };
+
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    if (state === 'sending') return;
+    const er: Record<string, string> = {};
+    if (!f.nama.trim()) er.nama = 'Isi nama kamu';
+    if (!emailOk(f.email)) er.email = 'Isi email yang dipakai saat mendaftar';
+    if (f.pesan.trim().length < 10) er.pesan = 'Ceritakan kendalanya (minimal 10 karakter)';
+    setErr(er);
+    if (Object.values(er).some(Boolean)) { document.getElementById(`h-${Object.keys(er)[0]}`)?.focus(); return; }
+    setState('sending');
+    try {
+      const { hp, ...rest } = f;
+      setRefNo(await submitForm('help', 'edu', { ...rest, _hp: hp, source: 'edu.viboxs.com/help' }));
+      setState('done');
+    } catch (x) { setMsg((x as Error).message); setState('error'); }
+  }
+
+  if (state === 'done') return (
+    <div role="status" className="help-form">
+      <span className="h4">Permintaan bantuan terkirim.</span>
+      <span className="body ink-muted">Tim EDU membalas ke <b>{f.email}</b>. Nomor referensi: <code className="mono strong">{refNo}</code></span>
+      <button type="button" className="btn btn--ink btn--sm self-start" onClick={() => { setF({ ...f, pesan: '', order: '' }); setState('idle'); }}>Kirim permintaan lain</button>
+    </div>
+  );
+  return (
+    <form noValidate onSubmit={submit} className="help-form" data-build="Form · Bantuan">
+      {state === 'error' && <div role="alert" className="note note--warn"><strong>! Belum terkirim</strong><span>{msg}</span></div>}
+      <div className="form-2">
+        <div className="field"><label htmlFor="h-topik">Topik</label>
+          <select id="h-topik" value={f.topik} onChange={(e) => set('topik', e.target.value)}>{SUPPORT.map(([t]) => <option key={t}>{t}</option>)}<option>Lainnya</option></select></div>
+        <div className="field"><label htmlFor="h-order">Nomor order / registrasi <span className="ink-muted">(opsional)</span></label><input id="h-order" value={f.order} onChange={(e) => set('order', e.target.value)} /></div>
+        <div className="field"><label htmlFor="h-nama">Nama</label><input id="h-nama" autoComplete="name" value={f.nama} onChange={(e) => set('nama', e.target.value)} aria-invalid={!!err.nama} />{err.nama && <span className="field__err">! {err.nama}</span>}</div>
+        <div className="field"><label htmlFor="h-email">Email</label><input id="h-email" type="email" autoComplete="email" value={f.email} onChange={(e) => set('email', e.target.value)} aria-invalid={!!err.email} />{err.email && <span className="field__err">! {err.email}</span>}</div>
+      </div>
+      <div className="field"><label htmlFor="h-pesan">Ceritakan kendalanya</label><textarea id="h-pesan" rows={4} value={f.pesan} onChange={(e) => set('pesan', e.target.value)} aria-invalid={!!err.pesan} />{err.pesan && <span className="field__err">! {err.pesan}</span>}</div>
+      <div className="hp" aria-hidden="true"><label>Jangan diisi<input tabIndex={-1} autoComplete="off" value={f.hp} onChange={(e) => set('hp', e.target.value)} /></label></div>
+      <button type="submit" className="btn btn--ink self-start" disabled={state === 'sending'}>{state === 'sending' ? 'Mengirim…' : 'Kirim ke tim EDU'} <ArrowRight size={14} /></button>
+      <span className="xs-13 ink-muted">Langsung masuk ke {CONTACT.email}.</span>
+    </form>
   );
 }
 

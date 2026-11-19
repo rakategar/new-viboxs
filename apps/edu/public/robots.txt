@@ -1,5 +1,6 @@
 User-agent: *
 Allow: /
 Disallow: /checkout/
+Disallow: /admin
 
 Sitemap: https://edu.viboxs.com/sitemap.xml

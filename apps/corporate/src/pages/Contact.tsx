@@ -29,7 +29,7 @@ function validate(c: C): Errs {
   return e;
 }
 
-function ContactForm({ endpoint }: { endpoint: string }) {
+function ContactForm({ endpoint, intent }: { endpoint: string; intent: string }) {
   const [c, setC] = useState<C>(EMPTY);
   const [err, setErr] = useState<Errs>({});
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
@@ -49,7 +49,7 @@ function ContactForm({ endpoint }: { endpoint: string }) {
     if (Object.keys(errs).length) { setErr(errs); setTimeout(() => summaryRef.current?.focus(), 0); return; }
     setErr({}); setStatus('loading');
     try {
-      const r = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(c) });
+      const r = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...c, intent, source: 'www.viboxs.com/contact' }) });
       if (!r.ok) throw new Error(String(r.status));
       const j = await r.json().catch(() => ({}));
       if (!j.ref) throw new Error('no-ref'); // sukses hanya bila server mengonfirmasi penyimpanan
@@ -174,7 +174,7 @@ export default function Contact() {
                   </div>
                 </div>
               )}
-              {!hand && CONTACT_FORM_ENDPOINT && <ContactForm endpoint={CONTACT_FORM_ENDPOINT} />}
+              {!hand && CONTACT_FORM_ENDPOINT && <ContactForm endpoint={CONTACT_FORM_ENDPOINT} intent={INTENTS.find((x) => x.k === intent)?.title || intent} />}
             </div>
           </div>
         </div>
