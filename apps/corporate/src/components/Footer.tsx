@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { CASE_STUDIES } from '../lib/content';
 import { useMotion } from '../lib/motion';
 import DestLink from './DestLink';
+import { CONTACT } from '@viboxs/shared/ecosystem';
 
 export default function Footer() {
   const ref = useRef<HTMLElement>(null);
@@ -38,13 +39,13 @@ export default function Footer() {
           </nav>
           <div className="ftr__contact">
             <span className="eyebrow">Kontak resmi</span>
-            <span className="slot">[Email resmi — menunggu verifikasi]</span>
-            <span className="slot">[Kanal sosial berlabel — menunggu]</span>
+            <a href={`mailto:${CONTACT.email}`}>{CONTACT.email}</a>
+            <a href={CONTACT.instagramUrl} target="_blank" rel="noopener noreferrer">Instagram @{CONTACT.instagram}</a>
           </div>
         </div>
         <div className="ftr__bottom">
           <span>© {new Date().getFullYear()} VIBOXS · PT Ekosistem Pelosok Hub</span>
-          <span>viboxs.com · Bahasa Indonesia</span>
+          <span>www.viboxs.com · Bahasa Indonesia</span>
         </div>
       </div>
       <div className="container ftr__mark" aria-hidden="true">

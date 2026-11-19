@@ -138,10 +138,20 @@ export const byDate = (a: Program, b: Program) => a.sortDate.localeCompare(b.sor
 export const emailOk = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.trim());
 export const rid = () => Math.random().toString(36).slice(2, 8).toUpperCase();
 
+export const DESCS: Record<string, string> = {
+  '/': 'VIBOXS EDU: webinar, workshop, dan e-book praktis tentang AI, bisnis, dan karier. Jadwal, harga, dan ketentuan tertulis jelas sebelum mendaftar.',
+  '/programs': 'Katalog program VIBOXS EDU: webinar, workshop, dan panduan digital tentang AI untuk kerja, bisnis satu orang, dan karier.',
+  '/events': 'Jadwal webinar dan workshop VIBOXS EDU. Semua waktu dalam WIB, dengan status pendaftaran yang selalu diperbarui.',
+  '/library': 'Digital Library VIBOXS EDU: e-book dan panduan praktis yang bisa langsung dipakai untuk kerja dan bisnis.',
+  '/corporate-training': 'Pelatihan AI dan produktivitas untuk tim perusahaan dari VIBOXS EDU, disesuaikan dengan kebutuhan organisasi Anda.',
+  '/help': 'Pusat bantuan VIBOXS EDU: pendaftaran, pembayaran, akses materi, dan perubahan jadwal. Hubungi admin@viboxs.com.',
+};
+
 export const TITLES: Record<string, string> = {
-  '/': 'VIBOXS EDU — Belajar keterampilan yang bisa langsung dipraktikkan',
+  '/': 'VIBOXS EDU — Webinar, Workshop & E-book Praktis tentang AI dan Bisnis',
   '/programs': 'Katalog program — VIBOXS EDU',
   '/events': 'Jadwal event — VIBOXS EDU',
   '/corporate-training': 'Training untuk tim — VIBOXS EDU',
   '/help': 'Bantuan & FAQ — VIBOXS EDU',
+  '/library': 'Digital Library — VIBOXS EDU',
 };

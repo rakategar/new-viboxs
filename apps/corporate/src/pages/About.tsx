@@ -5,6 +5,7 @@ import { Magnetic, Split } from '../components/fx';
 import { IconBuild, IconLayout, IconSearch, IconSupport } from '../components/Icons';
 import { DEST, ORDER } from '../lib/content';
 import { useMotion } from '../lib/motion';
+import { CONTACT } from '@viboxs/shared/ecosystem';
 
 const APPROACH = [
   { Ico: IconSearch, t: 'Pahami kebutuhan', d: 'Konteks, proses berjalan, dan batasan dipetakan bersama.' },
@@ -76,7 +77,7 @@ export default function About() {
             <div><dt>Unit</dt><dd><b>VIBOXS — AI Venture Studio</b></dd></div>
             <div><dt>NIB</dt><dd><span className="slot-ink">[Menunggu verifikasi legal]</span></dd></div>
             <div><dt>Alamat terdaftar</dt><dd><span className="slot-ink">[Menunggu verifikasi legal]</span></dd></div>
-            <div><dt>Kontak resmi</dt><dd><span className="slot-ink">[Email/kanal resmi — menunggu]</span></dd></div>
+            <div><dt>Kontak resmi</dt><dd><b><a href={`mailto:${CONTACT.email}`}>{CONTACT.email}</a> · <a href={CONTACT.instagramUrl} target="_blank" rel="noopener noreferrer">Instagram @{CONTACT.instagram}</a></b></dd></div>
           </dl>
         </div>
       </section>

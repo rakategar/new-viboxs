@@ -4,6 +4,7 @@ import { ArrowRight } from '@viboxs/shared/icons';
 import { useMotion } from '@viboxs/shared/motion';
 import EcoLink from '../components/EcoLink';
 import Accordion from '../components/Accordion';
+import { CONTACT, mailto } from '@viboxs/shared/ecosystem';
 import { FAQ, FAQ_G, SUPPORT } from '../lib/data';
 
 /* ---------------- /corporate-training ---------------- */
@@ -31,7 +32,7 @@ export function Teams() {
               <span className="h3">Disusun untuk organisasimu</span>
               <ul className="bullets muted"><li>Materi dan studi kasus disesuaikan dengan proses tim</li><li>Jadwal dan format disepakati bersama</li><li>Berbasis proposal dan ruang lingkup kerja (SOW)</li></ul>
               <EcoLink k="services" path="/start?org=perusahaan&from=EDU%20training" className="btn btn--primary self-start">Diskusikan pelatihan untuk tim ↗</EcoLink>
-              <span className="xs-13 muted">Membuka services.viboxs.com/start dengan topik training.</span>
+              <span className="xs-13 muted">Membuka service.viboxs.com/start dengan topik training.</span>
             </div>
           </div>
         </div>
@@ -70,7 +71,7 @@ export function Help() {
           </section>
           <section className="help-cta" data-build="Panel · Kontak">
             <span className="stack-6"><span className="h4">Masih butuh bantuan?</span><span className="body o80">Sertakan nomor order atau registrasi bila ada.</span></span>
-            <span className="slot slot--onink">[Email bantuan resmi — menunggu verifikasi]</span>
+            <span className="contact-links"><a href={mailto('Bantuan VIBOXS EDU')} className="btn btn--light btn--sm">{CONTACT.email}</a><a href={CONTACT.instagramUrl} target="_blank" rel="noopener noreferrer" className="btn btn--ghost btn--sm">Instagram @{CONTACT.instagram}</a></span>
           </section>
         </div>
       </div>

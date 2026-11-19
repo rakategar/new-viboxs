@@ -11,7 +11,9 @@ import Start from './pages/Start';
 import Process from './pages/Process';
 import { Advisory, Capabilities, Partners } from './pages/Offer';
 import { Faq, Legal, NotFound, Work } from './pages/Misc';
-import { TITLES, svcBySlug } from './lib/content';
+import { DESCS, TITLES, svcBySlug } from './lib/content';
+import { applySeo } from '@viboxs/shared/seo';
+import { ORIGIN } from '@viboxs/shared/ecosystem';
 
 function RouteEffects() {
   const { pathname, hash } = useLocation();
@@ -26,7 +28,12 @@ function RouteEffects() {
   }, [pathname, hash]);
   useEffect(() => {
     const svc = pathname.startsWith('/services/') ? svcBySlug(pathname.split('/')[2]) : undefined;
-    document.title = svc ? `${svc.name} — VIBOXS Services` : TITLES[pathname] || 'VIBOXS Services';
+    applySeo({
+      origin: ORIGIN.services, path: pathname,
+      title: svc ? `${svc.name} — VIBOXS Services` : TITLES[pathname] || 'Halaman tidak ditemukan — VIBOXS Services',
+      description: svc ? `${svc.promise} ${svc.problem}`.slice(0, 300) : DESCS[pathname] || DESCS['/'],
+      noindex: !(svc || pathname in TITLES) || pathname === '/work',
+    });
     const t = window.setTimeout(() => ScrollTrigger.refresh(), 120);
     return () => window.clearTimeout(t);
   }, [pathname]);

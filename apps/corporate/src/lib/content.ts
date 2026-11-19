@@ -39,7 +39,7 @@ export const DEST: Record<DestKey, Dest> = {
     owns: ['Program dan kelas', 'Jadwal sesi', 'Materi & latihan'],
   },
   services: {
-    key: 'services', name: 'Services', role: 'Solusi bisnis', tag: 'Build', domain: 'services.viboxs.com', verb: 'Membangun',
+    key: 'services', name: 'Services', role: 'Solusi bisnis', tag: 'Build', domain: 'service.viboxs.com', verb: 'Membangun',
     desc: 'Untuk organisasi dan founder yang membutuhkan solusi digital, sistem, atau pendampingan profesional.',
     cta: 'Lihat solusi profesional', q: 'Butuh solusi digital untuk bisnis?',
     owns: ['Konsultasi kebutuhan', 'Perancangan & pembangunan solusi', 'Pendampingan profesional'],
@@ -49,7 +49,7 @@ export const DEST: Record<DestKey, Dest> = {
 export const ORDER: DestKey[] = ['universe', 'edu', 'services'];
 
 export const isPending = (k: DestKey) => LAUNCH[k] !== 'live';
-export const destHref = (k: DestKey) => (isPending(k) ? `/disiapkan/${k}` : ORIGIN[k]);
+export const destHref = (k: DestKey, path = '') => (isPending(k) ? `/disiapkan/${k}` : `${ORIGIN[k]}${path}`);
 
 export const KW: Record<DestKey, string[]> = {
   universe: ['opc', 'sendiri', 'solo', 'founder', 'komunitas', 'jejaring', 'network', 'satu orang', 'freelance', 'berbagi', 'kolaborasi'],
@@ -102,10 +102,19 @@ export const NAV = [
   { to: '/contact', label: 'Kontak' },
 ];
 
+export const DESCS: Record<string, string> = {
+  '/': 'VIBOXS adalah AI Venture Studio yang membangun ekosistem bagi individu dan bisnis untuk belajar (EDU), berkolaborasi (Universe), dan membangun solusi digital (Services) di era AI.',
+  '/ecosystem': 'Peta ekosistem VIBOXS: Universe untuk komunitas One Person Company, EDU untuk program belajar praktis, dan Services untuk solusi digital & otomasi AI bisnis.',
+  '/about': 'Tentang VIBOXS, unit AI Venture Studio di bawah PT Ekosistem Pelosok Hub: misi, cara kerja, dan identitas resmi.',
+  '/contact': 'Hubungi VIBOXS lewat admin@viboxs.com atau Instagram @ded.viboxs. Pilih jalur kebutuhan Anda: belajar, komunitas, atau solusi bisnis.',
+};
+
 export const TITLES: Record<string, string> = {
   '/': 'VIBOXS — Ekosistem Bisnis & AI Venture Studio',
   '/ecosystem': 'Ekosistem VIBOXS — Universe, EDU & Services',
   '/about': 'Tentang VIBOXS — AI Venture Studio',
   '/contact': 'Kontak VIBOXS — Pilih Jalur Kebutuhan',
   '/work': 'Karya — VIBOXS',
+  '/privacy': 'Kebijakan privasi — VIBOXS',
+  '/terms': 'Ketentuan layanan — VIBOXS',
 };

@@ -12,7 +12,9 @@ import Events from './pages/Events';
 import Library, { LibraryIndex } from './pages/Library';
 import Checkout from './pages/Checkout';
 import { Help, NotFound, Policy, Teams } from './pages/Misc';
-import { TITLES, bySlug } from './lib/data';
+import { DESCS, TITLES, bySlug, hrefOf } from './lib/data';
+import { applySeo } from '@viboxs/shared/seo';
+import { ORIGIN } from '@viboxs/shared/ecosystem';
 
 function RouteEffects() {
   const { pathname, hash } = useLocation();
@@ -26,7 +28,14 @@ function RouteEffects() {
   }, [pathname, hash]);
   useEffect(() => {
     const p = bySlug(pathname.split('/')[2]);
-    document.title = p && /^\/(programs|events|library)\//.test(pathname) ? `${p.title} — VIBOXS EDU` : TITLES[pathname] || 'VIBOXS EDU';
+    const item = p && /^\/(programs|events|library)\//.test(pathname) ? p : undefined;
+    const policy = /^\/policies\/(purchase|refund|privacy|terms)$/.test(pathname);
+    applySeo({
+      origin: ORIGIN.edu, path: item ? hrefOf(item) : pathname, // /events/x → canonical /programs/x
+      title: item ? `${item.title} — VIBOXS EDU` : TITLES[pathname] || (policy ? 'Kebijakan — VIBOXS EDU' : pathname.startsWith('/checkout/') ? 'Checkout — VIBOXS EDU' : 'Halaman tidak ditemukan — VIBOXS EDU'),
+      description: item ? item.summary : DESCS[pathname] || DESCS['/'],
+      noindex: !(item || policy || pathname in TITLES) || pathname.startsWith('/checkout/'),
+    });
     const t = window.setTimeout(() => ScrollTrigger.refresh(), 120);
     return () => window.clearTimeout(t);
   }, [pathname]);

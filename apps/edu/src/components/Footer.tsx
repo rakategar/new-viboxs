@@ -2,6 +2,7 @@ import { useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useMotion } from '@viboxs/shared/motion';
 import EcoLink from './EcoLink';
+import { CONTACT } from '@viboxs/shared/ecosystem';
 
 export default function Footer() {
   const ref = useRef<HTMLElement>(null);
@@ -39,7 +40,8 @@ export default function Footer() {
           <div className="ftr__contact">
             <span className="eyebrow">Bantuan</span>
             <Link to="/help" className="small">Pusat bantuan &amp; FAQ</Link>
-            <span className="slot">[Email bantuan resmi — menunggu verifikasi]</span>
+            <a href={`mailto:${CONTACT.email}`}>{CONTACT.email}</a>
+            <a href={CONTACT.instagramUrl} target="_blank" rel="noopener noreferrer">Instagram @{CONTACT.instagram}</a>
           </div>
         </div>
         <div className="ftr__bottom">

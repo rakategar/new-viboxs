@@ -403,7 +403,7 @@ export default function Home() {
             <div className="row-12 center" data-anim="up">
               <Magnetic><DestLink k="universe" className="btn btn--primary">Jelajahi Universe</DestLink></Magnetic>
               <Magnetic><DestLink k="edu" className="btn btn--light">Lihat EDU</DestLink></Magnetic>
-              <Magnetic><DestLink k="services" className="btn btn--ghost btn--onbg">Diskusikan kebutuhan</DestLink></Magnetic>
+              <Magnetic><DestLink k="services" path="/start?from=viboxs.com" className="btn btn--ghost btn--onbg">Diskusikan kebutuhan</DestLink></Magnetic>
             </div>
           </div>
         </div>

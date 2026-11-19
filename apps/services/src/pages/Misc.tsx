@@ -4,6 +4,7 @@ import { ArrowRight } from '@viboxs/shared/icons';
 import { Split } from '@viboxs/shared/fx';
 import { useMotion } from '@viboxs/shared/motion';
 import Accordion from '../components/Accordion';
+import { CONTACT } from '@viboxs/shared/ecosystem';
 import { IcDoc } from '../components/icons';
 import { CASE_STUDIES, FAQ, FAQ_G } from '../lib/content';
 
@@ -97,7 +98,7 @@ export function Legal({ kind }: { kind: 'privacy' | 'terms' }) {
             <p className="body-16">Dokumen ini belum dipublikasikan. Isi {title.toLowerCase()} disusun dan ditinjau tim hukum sebelum formulir Start a Mission dibuka.</p>
             <dl className="legal-dl">
               <div><dt>Pengendali data</dt><dd><span className="slot-ink">[Identitas legal — menunggu verifikasi]</span></dd></div>
-              <div><dt>Kontak</dt><dd><span className="slot-ink">[Email resmi — menunggu verifikasi]</span></dd></div>
+              <div><dt>Kontak</dt><dd><b><a href={`mailto:${CONTACT.email}`}>{CONTACT.email}</a></b></dd></div>
               <div><dt>Versi</dt><dd><span className="slot-ink">[Belum ditetapkan]</span></dd></div>
             </dl>
           </div>

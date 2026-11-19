@@ -4,6 +4,7 @@ import { Split } from '../components/fx';
 import { ArrowRight } from '../components/Icons';
 import { CONTACT_FORM_ENDPOINT, DEST, INTENTS, type DestKey, isPending } from '../lib/content';
 import { useMotion } from '../lib/motion';
+import { CONTACT, mailto } from '@viboxs/shared/ecosystem';
 
 type C = { nama: string; via: 'email' | 'wa'; kontak: string; pesan: string; privacy: boolean };
 type Errs = Partial<Record<keyof C, string>>;
@@ -164,10 +165,13 @@ export default function Contact() {
               )}
               {!hand && !CONTACT_FORM_ENDPOINT && (
                 <div className="form-card stack-16">
-                  <span className="badge badge--warn self-start">! Form belum dibuka</span>
-                  <h2 className="h3">Form kontak umum sedang disiapkan.</h2>
-                  <p className="body muted">Kami menunggu kebijakan privasi dan penerima pesan siap sebelum menerima data Anda. Sementara itu, gunakan kanal resmi berikut.</p>
-                  <div className="stack-8"><span className="slot slot--lg">[Email resmi — menunggu verifikasi]</span><span className="slot slot--lg">[Kanal alternatif terverifikasi — menunggu]</span></div>
+                  <span className="eyebrow">Kontak resmi</span>
+                  <h2 className="h3">Kirim pesan langsung ke tim VIBOXS.</h2>
+                  <p className="body muted">Ceritakan kebutuhan Anda secara singkat lewat email. Untuk kabar terbaru ekosistem, ikuti Instagram kami.</p>
+                  <div className="contact-links">
+                    <a href={mailto('Pertanyaan umum — VIBOXS')} className="btn btn--primary">{CONTACT.email}<ArrowRight size={16} /></a>
+                    <a href={CONTACT.instagramUrl} target="_blank" rel="noopener noreferrer" className="btn btn--ghost">Instagram @{CONTACT.instagram}</a>
+                  </div>
                 </div>
               )}
               {!hand && CONTACT_FORM_ENDPOINT && <ContactForm endpoint={CONTACT_FORM_ENDPOINT} />}

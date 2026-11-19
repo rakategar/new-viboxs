@@ -8,7 +8,9 @@ import Ecosystem from './pages/Ecosystem';
 import About from './pages/About';
 import Contact from './pages/Contact';
 import { Legal, NotFound, Pending, Work } from './pages/Misc';
-import { TITLES } from './lib/content';
+import { DESCS, TITLES } from './lib/content';
+import { applySeo } from '@viboxs/shared/seo';
+import { ORIGIN } from '@viboxs/shared/ecosystem';
 import { ScrollTrigger } from './lib/motion';
 
 function RouteEffects() {
@@ -17,7 +19,13 @@ function RouteEffects() {
     if (!hash) window.scrollTo(0, 0);
   }, [pathname, hash]);
   useEffect(() => {
-    document.title = TITLES[pathname] || (pathname.startsWith('/disiapkan') ? 'Sedang disiapkan — VIBOXS' : 'VIBOXS');
+    const known = pathname in TITLES;
+    applySeo({
+      origin: ORIGIN.corporate, path: pathname,
+      title: TITLES[pathname] || (pathname.startsWith('/disiapkan') ? 'Sedang disiapkan — VIBOXS' : 'Halaman tidak ditemukan — VIBOXS'),
+      description: DESCS[pathname] || DESCS['/'],
+      noindex: !known || pathname === '/work',
+    });
     const t = window.setTimeout(() => ScrollTrigger.refresh(), 120);
     return () => window.clearTimeout(t);
   }, [pathname]);

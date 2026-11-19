@@ -1,9 +1,9 @@
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import DestLink from '../components/DestLink';
 import { Split } from '../components/fx';
 import { IconBriefcase, IconClock } from '../components/Icons';
-import { DEST, ORDER, type DestKey } from '../lib/content';
+import { DEST, ORDER, destHref, isPending, type DestKey } from '../lib/content';
 import { useMotion } from '../lib/motion';
 
 function Orbit({ label }: { label: string }) {
@@ -48,7 +48,10 @@ export function Pending() {
   const root = useRef<HTMLDivElement>(null);
   useMotion(root, [key]);
   const d = DEST[(key as DestKey)] || null;
+  const live = !!d && !isPending(d.key);
+  useEffect(() => { if (live && d) window.location.replace(destHref(d.key)); }, [live, d]);
   if (!d) return <NotFound />;
+  if (live) return <section className="full-center"><p className="body muted">Mengalihkan ke {d.domain}…</p></section>;
   return (
     <section ref={root} className="full-center">
       <Orbit label={d.domain} />

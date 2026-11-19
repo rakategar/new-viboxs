@@ -223,8 +223,18 @@ export const NAV: { to: string; label: string }[] = [
   { to: '/partners', label: 'Partners' },
 ];
 
+export const DESCS: Record<string, string> = {
+  '/': 'Jasa pembuatan website, sistem internal, dashboard, otomasi AI, dan integrasi AI untuk bisnis di Indonesia. Proyek custom berbasis proposal dari VIBOXS Services.',
+  '/start': 'Ceritakan kebutuhan digital bisnis Anda ke VIBOXS Services, tanpa komitmen biaya. Kami bantu menentukan ruang lingkup dan menyiapkan proposal.',
+  '/process': 'Proses kerja VIBOXS Services: diagnosis kebutuhan, desain ruang lingkup, pembangunan solusi, lalu review & handover.',
+  '/partners': 'Program partner VIBOXS Services untuk agency dan mitra teknologi yang ingin berkolaborasi membangun solusi digital.',
+  '/advisory': 'Strategic advisory VIBOXS: pendampingan strategi digital & AI untuk founder, perusahaan, dan institusi.',
+  '/capabilities': 'Kapabilitas VIBOXS Services: website & sistem, otomasi AI, dashboard internal, integrasi AI, growth & konten.',
+  '/faq': 'Jawaban seputar quotation, revisi, timeline, hosting, biaya AI API, dan maintenance di VIBOXS Services.',
+};
+
 export const TITLES: Record<string, string> = {
-  '/': 'VIBOXS Services — Solusi digital berbasis proposal',
+  '/': 'VIBOXS Services — Jasa Website, Sistem & Otomasi AI untuk Bisnis',
   '/start': 'Start a Mission — VIBOXS Services',
   '/process': 'Proses kerja — VIBOXS Services',
   '/partners': 'Partners — VIBOXS Services',

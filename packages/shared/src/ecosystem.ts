@@ -15,17 +15,17 @@ export type LaunchStatus = 'live' | 'pending';
  */
 export const LAUNCH: Record<DestKey, LaunchStatus> = {
   universe: 'pending',
-  edu: 'pending',
-  services: 'pending',
+  edu: 'live',
+  services: 'live',
 };
 
 const env = (import.meta as unknown as { env?: Record<string, string | undefined> }).env || {};
 
 export const ORIGIN: Record<SiteKey, string> = {
-  corporate: env.VITE_CORPORATE_ORIGIN || 'https://viboxs.com',
+  corporate: env.VITE_CORPORATE_ORIGIN || 'https://www.viboxs.com',
   universe: env.VITE_UNIVERSE_ORIGIN || 'https://universe.viboxs.com',
   edu: env.VITE_EDU_ORIGIN || 'https://edu.viboxs.com',
-  services: env.VITE_SERVICES_ORIGIN || 'https://services.viboxs.com',
+  services: env.VITE_SERVICES_ORIGIN || 'https://service.viboxs.com',
 };
 
 export interface Site { key: SiteKey; name: string; role: string; domain: string }
@@ -34,7 +34,7 @@ export const SITES: Record<SiteKey, Site> = {
   corporate: { key: 'corporate', name: 'VIBOXS', role: 'Overview perusahaan', domain: 'viboxs.com' },
   universe: { key: 'universe', name: 'Universe', role: 'Komunitas OPC', domain: 'universe.viboxs.com' },
   edu: { key: 'edu', name: 'EDU', role: 'Pembelajaran', domain: 'edu.viboxs.com' },
-  services: { key: 'services', name: 'Services', role: 'Solusi bisnis', domain: 'services.viboxs.com' },
+  services: { key: 'services', name: 'Services', role: 'Solusi bisnis', domain: 'service.viboxs.com' },
 };
 
 export const SITE_ORDER: SiteKey[] = ['corporate', 'universe', 'edu', 'services'];
@@ -47,3 +47,14 @@ export const isPending = (k: SiteKey) => k !== 'corporate' && LAUNCH[k] !== 'liv
  */
 export const siteUrl = (k: SiteKey, path = '') =>
   isPending(k) ? `${ORIGIN.corporate}/disiapkan/${k}` : `${ORIGIN[k]}${path}`;
+
+/** Kontak resmi, dipakai di semua app (footer, halaman kontak, form, JSON-LD). */
+export const CONTACT = {
+  email: 'admin@viboxs.com',
+  instagram: 'ded.viboxs',
+  instagramUrl: 'https://www.instagram.com/ded.viboxs/',
+} as const;
+
+/** mailto: dengan subjek (dan isi opsional) yang sudah terisi. */
+export const mailto = (subject: string, body = '') =>
+  `mailto:${CONTACT.email}?subject=${encodeURIComponent(subject)}${body ? `&body=${encodeURIComponent(body)}` : ''}`;
