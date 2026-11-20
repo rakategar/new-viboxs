@@ -1,288 +1,430 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type PointerEvent as RPointer } from 'react';
 import { Link } from 'react-router-dom';
-import AgentSwarm from '@viboxs/shared/swarm';
-import Cursor from '@viboxs/shared/cursor';
-import { Split, useSpotlight } from '@viboxs/shared/fx';
-import { reducedMotion, useMotion } from '@viboxs/shared/motion';
-import { ORIGIN, SITES, SITE_ORDER, siteUrl, isPending, CONTACT } from '@viboxs/shared/ecosystem';
-import { ArrowRight, Chevron, Close, Grid, Menu } from '@viboxs/shared/icons';
+import { CONTACT, ORIGIN, SITES, SITE_ORDER, isPending, siteUrl } from '@viboxs/shared/ecosystem';
 import { useAuth } from '../lib/auth';
-import EcoOrbit from './EcoOrbit';
+import { I } from '../ui/kit';
+import { FEATURES, HERO_FLOW, INVARIANTS, SCROLL_FLOW_A, SCROLL_FLOW_B, SECURITY, SHOWCASE, SOON, TILES } from './landing/content';
+import { RevealText, reduced, useInView, useReveal } from './landing/motion';
+import Nav, { Roll } from './landing/Nav';
+import { PixelIcon, PixelTrail } from './landing/Pixel';
+import Workflow from './landing/Workflow';
 
-const FLOW = [
-  { k: 'Lead', s: 'service.viboxs.com', d: 'Permintaan klien tersimpan di Services, lalu muncul di inbox Commander.' },
-  { k: 'Mission', s: 'Commander', d: 'Commander menyusun brief yang sudah disanitasi — tanpa kontak & harga klien.' },
-  { k: 'Offer & bid', s: 'Ranger terpilih', d: 'Hanya Ranger yang ditargetkan melihat penawaran. Tawaran tiap Ranger privat.' },
-  { k: 'Kontrak', s: 'Per misi', d: 'Fee disepakati, perjanjian diterima sebelum pekerjaan dimulai.' },
-  { k: 'Deliverable', s: 'Versi', d: 'Setiap kiriman jadi versi baru. Revisi tertaut ke versi dan lingkupnya.' },
-  { k: 'Payable', s: 'Approval', d: 'Diterima ≠ dibayar. Honor disetujui, lalu transfer dicatat dengan bukti.' },
-];
-
-const ROLES = [
-  { n: '01', t: 'Commander', d: 'Control Center: aplikasi, undangan, lead, misi, review EDU, payout, audit.', a: ['Undang & cabut akses', 'Lihat harga klien vs fee', 'Approve program & payout'], tag: 'Founder' },
-  { n: '02', t: 'Ranger', d: 'Workspace proyek: penawaran yang ditujukan untuk Anda, kontrak, deliverable, honor pribadi.', a: ['Bid & negosiasi', 'Submit & revisi berversi', 'Honor milik sendiri saja'], tag: 'Undangan' },
-  { n: '03', t: 'EDU Contributor', d: 'Susun webinar, workshop, atau e-book — kirim untuk review sebelum tayang di EDU.', a: ['Draft program', 'Review Commander', 'Status tayang dari EDU'], tag: 'Undangan' },
-  { n: '04', t: 'EDU Learner', d: 'Asesmen awal, rekomendasi dari katalog EDU yang benar-benar tayang, Early Points.', a: ['Daftar sendiri, gratis', 'Rekomendasi beralasan', 'Poin belum bisa ditukar'], tag: 'Self-register' },
-  { n: '05', t: 'OPC Founder', d: 'Profil usaha, produk showcase, dan VIBOXS Connect untuk menemukan mitra bisnis.', a: ['Profil opt-in', 'Produk ke antrean Universe', 'Permintaan kolaborasi'], tag: 'Undangan' },
-  { n: '06', t: 'Business Partner', d: 'Kolaborasi B2B antar bisnis terverifikasi — tanpa ACC rutin Commander.', a: ['Workspace dua pihak', 'Kontrak antar pihak', 'Approval hanya bila VIBOXS terlibat'], tag: 'Undangan' },
-];
-
-const TRUTH = ['draft ≠ tayang', 'diajukan ≠ disetujui', 'klik ≠ pembelian', 'tawaran ≠ fee', 'diterima ≠ dibayar', 'minat ≠ membership', 'poin ≠ rupiah'];
-
-const SOON = [
-  ['Professional AI Tools', 'PRD Builder, Design System Builder, AI Quality Inspector.'],
-  ['Dede AI Advisor', 'Panduan metodologi founder dengan knowledge base terkurasi.'],
-  ['Affiliate EDU', 'Tautan referral lintas peran — belum ada komisi aktif.'],
-  ['Penukaran poin', 'Early Points tercatat, aturan tukar menunggu persetujuan.'],
-  ['Investor Network', 'Visi eksplorasi — bukan janji pendanaan atau akses investor.'],
-];
-
+/** studio.viboxs.com — landing publik. Bahasa visual sendiri: terang, dot-grid, node-graph. */
 export default function Landing() {
   const ref = useRef<HTMLDivElement>(null);
   const { session } = useAuth();
-  useLayoutEffect(() => {
-    if (!reducedMotion()) document.documentElement.classList.add('agents-on');
-    return () => document.documentElement.classList.remove('agents-on');
-  }, []);
-  useMotion(ref, []);
-
+  useReveal(ref);
   return (
-    <div ref={ref} className="ld">
-      <LandingHeader signedIn={!!session} />
+    <div ref={ref} className="nx">
+      <Nav signedIn={!!session} />
       <main id="main">
-        <section className="ld-hero">
-          <div className="ld-hero__glow" aria-hidden="true" />
-          <div className="container ld-hero__grid">
-            <div className="ld-hero__copy">
-              <span className="eyebrow ld-eyebrow"><i aria-hidden="true" />VIBOXS · Studio — ruang kerja privat</span>
-              <h1 className="h1">Backstage dari empat pintu VIBOXS.</h1>
-              <p className="lead muted maxw-560">Tempat Commander, Rangers, kontributor EDU, Learner, dan mitra bisnis bekerja — dalam satu identitas, dengan izin yang terpisah per peran dan dijaga di server.</p>
-              <div className="row-12 ld-hero__cta" data-build="CTA">
-                <Link to={session ? '/workspace' : '/login'} className="btn btn--primary">{session ? 'Buka workspace' : 'Masuk Studio'}<ArrowRight /></Link>
-                <Link to="/daftar" className="btn btn--ghost">Daftar sebagai EDU Learner</Link>
-              </div>
-              <p className="xs muted ld-hero__note" data-build="Catatan akses">Akses profesional hanya melalui undangan Commander — tidak ada pendaftaran Ranger/Trainer/OPC di sini.</p>
-            </div>
-            <div className="ld-hero__viz" data-build="Peta ekosistem"><EcoOrbit /></div>
-          </div>
-        </section>
-
-        <section className="section section--line" id="alur">
-          <div className="container stack-40">
-            <div className="split-2 align-end">
-              <div className="stack-16">
-                <span className="eyebrow">Alur kerja · lead → honor</span>
-                <h2 className="h2">Setiap proyek lewat tangan Commander. Tidak ada yang otomatis diam-diam.</h2>
-              </div>
-              <p className="body-17 muted maxw-560">Lead dari Services tidak pernah otomatis menjadi misi. Commander mengonversi, menargetkan Ranger, menunjuk pemenang, dan menyetujui pembayaran — setiap langkah tercatat di audit.</p>
-            </div>
-            <FlowRail />
-          </div>
-        </section>
-
-        <section className="section section--line" id="peran">
-          <div className="container stack-40">
-            <div className="stack-16 maxw-720">
-              <span className="eyebrow">Satu orang, banyak peran, hak terpisah</span>
-              <h2 className="h2">Ganti konteks, izin ikut berganti — di server, bukan cuma di menu.</h2>
-            </div>
-            <div className="ld-roles" data-anim="stagger">{ROLES.map((r) => <RoleCard key={r.n} {...r} />)}</div>
-          </div>
-        </section>
-
-        <section className="section section--line" id="firewall">
-          <div className="container stack-40">
-            <div className="split-2 align-end">
-              <div className="stack-16">
-                <span className="eyebrow">Business firewall</span>
-                <h2 className="h2">Missions dan Connect tidak pernah berbagi payload.</h2>
-              </div>
-              <p className="body-17 muted maxw-560">Harga klien dan margin disimpan di tabel terpisah yang hanya bisa dibaca Commander. Peran Ranger tidak lolos ke VIBOXS Connect — bahkan lewat URL langsung atau API.</p>
-            </div>
-            <Firewall />
-          </div>
-        </section>
-
-        <section className="ld-truth" aria-label="Status yang jujur">
-          <div className="ld-truth__track">
-            {[0, 1].map((k) => <div key={k} className="ld-truth__row" aria-hidden={k === 1}>{TRUTH.map((t) => <span key={t}>{t}<i /></span>)}</div>)}
-          </div>
-        </section>
-
-        <section className="section" id="segera">
-          <div className="container stack-32">
-            <div className="row-between">
-              <div className="stack-12"><span className="eyebrow">Coming Soon</span><h2 className="h2-sm">Direncanakan, belum aktif.</h2></div>
-              <p className="small muted maxw-460">Ditampilkan sebagai informasi. Tidak ada transaksi, token, komisi, atau janji yang berjalan di balik kartu ini.</p>
-            </div>
-            <div className="ld-soon" data-anim="stagger">
-              {SOON.map(([t, d]) => <div key={t} className="ld-soon__c"><span className="ld-soon__tag">Soon</span><b>{t}</b><p>{d}</p></div>)}
-            </div>
-          </div>
-        </section>
-
-        <section className="section section--line">
-          <div className="container ld-cta" data-build="Ajakan">
-            <div className="stack-16">
-              <Split as="h2" className="h2" text="Sudah diundang? Masuk dengan email undangan Anda." />
-              <p className="body-17 muted maxw-560">Ingin bergabung sebagai profesional? Mulai dari situs publik yang sesuai — lamaran Anda masuk ke inbox Commander.</p>
-            </div>
-            <div className="ld-cta__paths">
-              <Link to="/login" className="ld-path ld-path--main"><b>Masuk Studio</b><span>Commander · Ranger · Contributor · Partner</span><ArrowRight /></Link>
-              <a href={`${ORIGIN.edu}/kolaborator`} className="ld-path"><b>Jadi kontributor EDU</b><span>Lamar di edu.viboxs.com</span><ArrowRight /></a>
-              <a href={`${ORIGIN.services}/start`} className="ld-path"><b>Butuh solusi bisnis</b><span>Start a Mission di Services</span><ArrowRight /></a>
-              <a href={`${ORIGIN.corporate}/contact`} className="ld-path"><b>Ranger / partner</b><span>Hubungi lewat viboxs.com</span><ArrowRight /></a>
-            </div>
-          </div>
-        </section>
+        <Hero signedIn={!!session} />
+        <EcoStrip />
+        <Showcase />
+        <Pills />
+        <Breathing />
+        <Scrolly />
+        <Firewall />
+        <Security />
+        <Soon />
+        <Cta signedIn={!!session} />
       </main>
-      <footer className="ld-foot">
-        <div className="container ld-foot__in">
-          <div className="stack-12">
-            <span className="st-brand"><img src="/assets/viboxs-wordmark-white.png" alt="VIBOXS" height={16} /><span>STUDIO</span></span>
-            <p className="small muted maxw-460">VIBOXS adalah unit AI Venture Studio di bawah PT Ekosistem Pelosok Hub. Studio adalah aplikasi operasional privat — bukan etalase publik.</p>
-          </div>
-          <nav className="ld-foot__nav" aria-label="Ekosistem">
-            {SITE_ORDER.map((k) => <a key={k} href={siteUrl(k)}>{SITES[k].name}<small>{isPending(k) ? 'Sedang disiapkan' : SITES[k].role}</small></a>)}
-          </nav>
-          <div className="small muted">Kontak: <a href={`mailto:${CONTACT.email}`}>{CONTACT.email}</a> · © {new Date().getFullYear()}</div>
-        </div>
-      </footer>
-      <Cursor />
-      <AgentSwarm />
-      <div className="grain" aria-hidden="true" />
+      <Footer />
     </div>
   );
 }
 
-function LandingHeader({ signedIn }: { signedIn: boolean }) {
-  const [scrolled, setScrolled] = useState(false);
-  const [eco, setEco] = useState(false);
-  const [drawer, setDrawer] = useState(false);
-  const btn = useRef<HTMLButtonElement>(null);
-  useEffect(() => {
-    const on = () => setScrolled(window.scrollY > 12);
-    on(); window.addEventListener('scroll', on, { passive: true });
-    return () => window.removeEventListener('scroll', on);
-  }, []);
-  useEffect(() => {
-    if (!eco) return;
-    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') { setEco(false); btn.current?.focus(); } };
-    const off = (e: MouseEvent) => { if (!(e.target as HTMLElement).closest('.hdr__actions')) setEco(false); };
-    document.addEventListener('keydown', esc); document.addEventListener('mousedown', off);
-    return () => { document.removeEventListener('keydown', esc); document.removeEventListener('mousedown', off); };
-  }, [eco]);
-  const links: [string, string][] = [['#alur', 'Alur kerja'], ['#peran', 'Peran'], ['#firewall', 'Firewall'], ['#segera', 'Segera hadir']];
+const Brk = () => <span className="brk" aria-hidden="true"><i /><i /><i /><i /></span>;
+const Tag = ({ children }: { children: string[] }) => <span className="nx-tag">{children.map((c) => <span key={c}>{c}</span>)}</span>;
+
+/* ---------------- hero ---------------- */
+function Hero({ signedIn }: { signedIn: boolean }) {
   return (
-    <header className={`hdr ${scrolled ? 'is-scrolled' : ''}`}>
-      <a href="#main" className="skip">Lewati ke konten</a>
-      <div className="container hdr__in">
-        <a href={ORIGIN.corporate} className="hdr__brand st-brand" aria-label="VIBOXS — beranda"><img src="/assets/viboxs-wordmark-white.png" alt="VIBOXS" /><span>STUDIO</span></a>
-        <nav className="hdr__nav" aria-label="Halaman">{links.map(([h, l]) => <a key={h} href={h} className="hdr__link">{l}</a>)}</nav>
-        <div className="hdr__actions">
-          <button ref={btn} type="button" className="pill-btn" aria-expanded={eco} aria-haspopup="true" onClick={() => setEco((o) => !o)}><Grid />Ekosistem<Chevron className={`chev ${eco ? 'is-open' : ''}`} /></button>
-          {eco && (
-            <div className="switcher" role="menu">
-              <span className="switcher__label">Jelajahi ekosistem</span>
-              {SITE_ORDER.map((k) => (
-                <a key={k} role="menuitem" href={siteUrl(k)} className="switcher__item">
-                  <span className="switcher__txt"><b>{SITES[k].name}</b><span>{SITES[k].role}</span></span>
-                  {isPending(k) && <span className="tag-pending">Sedang disiapkan</span>}
-                </a>
-              ))}
-              <span className="switcher__item is-active"><span className="switcher__txt"><b>Studio</b><span>Ruang kerja privat</span></span><span className="here">● Anda di sini</span></span>
+    <section className="nx-hero" id="alur">
+      <div className="nx-hero__dots dots-light" aria-hidden="true" />
+      <div className="nx-wrap nx-hero__in">
+        <Tag>{['Studio', 'Ruang kerja privat']}</Tag>
+        <RevealText as="h1" className="nx-h1" text={'Satu ruang kerja.\nIzin terpisah per peran.'} />
+        <p className="nx-lead" data-rv>Backstage ekosistem VIBOXS — tempat Commander, Rangers, kontributor EDU, Learner, dan mitra bisnis bekerja dalam satu identitas, dengan hak akses yang dijaga di server.</p>
+        <div className="nx-row nx-hero__cta" data-rv>
+          <Link to={signedIn ? '/workspace' : '/login'} className="nx-btn nx-btn--pink"><Roll>{signedIn ? 'Buka workspace' : 'Masuk Studio'}</Roll></Link>
+          <Link to="/daftar" className="nx-btn nx-btn--gray"><Roll>Daftar sebagai Learner</Roll></Link>
+        </div>
+      </div>
+      <div className="nx-wrap nx-hero__canvas" data-rv>
+        <Workflow flow={HERO_FLOW} label="Ilustrasi alur misi: lead dari Services, dikonversi Commander, ditawarkan ke Ranger terpilih, sampai payable." minW={820} />
+        <p className="nx-cap">Ilustrasi alur misi — bukan data nyata. Geser node, atau tekan + untuk langkah berikutnya.</p>
+      </div>
+    </section>
+  );
+}
+
+function EcoStrip() {
+  return (
+    <section className="nx-eco" aria-label="Terhubung dengan ekosistem VIBOXS">
+      <p className="nx-cap">Terhubung dengan ekosistem VIBOXS</p>
+      <ul className="nx-eco__row" data-rv>
+        {SITE_ORDER.map((k) => (
+          <li key={k}><a href={siteUrl(k)}><b>{SITES[k].domain}</b><small>{isPending(k) ? 'Sedang disiapkan' : SITES[k].role}</small></a></li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+/* ---------------- use-case showcase (kartu gelap, tab auto-rotate) ---------------- */
+function Showcase() {
+  const [i, setI] = useState(0);
+  const [hold, setHold] = useState(false);
+  const [box, seen] = useInView<HTMLDivElement>(0.3, false);
+  useEffect(() => {
+    if (hold || !seen || reduced()) return;
+    const t = window.setTimeout(() => setI((x) => (x + 1) % SHOWCASE.length), 6500);
+    return () => window.clearTimeout(t);
+  }, [i, hold, seen]);
+  useEffect(() => {
+    const on = (e: Event) => { const k = (e as CustomEvent<string>).detail; const n = SHOWCASE.findIndex((s) => s.k === (k === 'partner' ? 'opc' : k)); if (n >= 0) setI(n); };
+    window.addEventListener('nx-role', on);
+    return () => window.removeEventListener('nx-role', on);
+  }, []);
+  const s = SHOWCASE[i];
+  return (
+    <section className="nx-sec" id="peran">
+      <div className="nx-wrap">
+        <div ref={box} className="nx-show dots-dark" onMouseEnter={() => setHold(true)} onMouseLeave={() => setHold(false)} onFocus={() => setHold(true)} onBlur={() => setHold(false)}>
+          <div className="nx-show__tabs" role="tablist" aria-label="Peran">
+            {SHOWCASE.map((x, n) => (
+              <button key={x.k} type="button" role="tab" aria-selected={n === i} className={`nx-tab ${n === i ? 'is-on' : ''} ${hold ? 'is-hold' : ''}`} onClick={() => setI(n)}>
+                {n === i && <Brk />}{x.tab}{n === i && seen && !reduced() && <span className="nx-tab__bar" key={i} />}
+              </button>
+            ))}
+          </div>
+          <div className="nx-show__body">
+            <div className="nx-show__copy" key={s.k}>
+              <div className="nx-show__pix"><PixelIcon name={s.pix} cell={10} accent /></div>
+              <h3>{s.h}</h3>
+              <p>{s.d}</p>
+              <Link to={s.cta[0]} className="nx-ulink">{s.cta[1]}<I.arrow size={16} /></Link>
             </div>
-          )}
-          <Link to={signedIn ? '/workspace' : '/login'} className="btn btn--primary btn--sm">{signedIn ? 'Workspace' : 'Masuk'}</Link>
-        </div>
-        <button type="button" className="icon-btn hdr__burger" aria-label="Buka menu" aria-expanded={drawer} onClick={() => setDrawer(true)}><Menu /></button>
-      </div>
-      <div className={`drawer-scrim ${drawer ? 'is-open' : ''}`} onClick={() => setDrawer(false)} aria-hidden="true" />
-      <div className={`drawer ${drawer ? 'is-open' : ''}`} hidden={!drawer} role="dialog" aria-modal="true" aria-label="Menu">
-        <div className="drawer__top"><img src="/assets/viboxs-wordmark-white.png" alt="VIBOXS" /><button type="button" className="icon-btn" aria-label="Tutup menu" onClick={() => setDrawer(false)}><Close /></button></div>
-        <nav className="drawer__nav">{links.map(([h, l], i) => <a key={h} href={h} style={{ ['--i' as string]: i }} onClick={() => setDrawer(false)}>{l}<span /></a>)}</nav>
-        <div className="drawer__eco">
-          <span className="eyebrow">Jelajahi ekosistem</span>
-          {SITE_ORDER.map((k) => <a key={k} href={siteUrl(k)} className="drawer__item"><span><b>{SITES[k].name}</b><span>{isPending(k) ? 'Sedang disiapkan' : SITES[k].role}</span></span><ArrowRight /></a>)}
-        </div>
-        <div className="drawer__cta stack-8">
-          <Link to={signedIn ? '/workspace' : '/login'} className="btn btn--primary btn--block">{signedIn ? 'Buka workspace' : 'Masuk Studio'}</Link>
-          <Link to="/daftar" className="btn btn--ghost btn--block">Daftar EDU Learner</Link>
+            <div className="nx-show__flow" key={`f-${s.k}`}>
+              <Workflow flow={s.flow} theme="dark" label={`Ilustrasi alur kerja ${s.tab}`} minW={640} />
+            </div>
+          </div>
         </div>
       </div>
-    </header>
+    </section>
   );
 }
 
-function FlowRail() {
-  const ref = useRef<HTMLOListElement>(null);
-  const [on, setOn] = useState(-1);
-  // langkah menyala bergiliran saat terlihat (ilustrasi alur, bukan status data)
+function Pills() {
+  const P: [keyof typeof I, string, string][] = [
+    ['users', '6 peran', 'dalam satu identitas'],
+    ['key', 'Akses profesional', 'hanya lewat undangan'],
+    ['book', 'Program EDU', 'tidak pernah tayang otomatis'],
+  ];
+  return (
+    <section className="nx-pills nx-wrap" aria-label="Aturan inti">
+      {P.map(([ic, b, s], n) => {
+        const Ico = I[ic];
+        return <div key={b} className="nx-pill-card" data-rv style={{ ['--i' as string]: n }}><span className="nx-pill-card__ico"><Ico size={20} /></span><span><b>{b}</b> {s}</span><i className="cross cross--tl" /><i className="cross cross--br" /></div>;
+      })}
+    </section>
+  );
+}
+
+/* ---------------- section ikon "bernapas" ---------------- */
+const SLOTS: [number, number][] = [[6, 12], [18, 4], [30, 14], [70, 10], [82, 3], [93, 16], [4, 38], [14, 56], [3, 78], [16, 90], [30, 84], [90, 42], [80, 60], [95, 74], [84, 90], [70, 86], [44, 4], [56, 94], [24, 30], [76, 32], [26, 70], [74, 72]];
+function Breathing() {
+  const [box, seen] = useInView<HTMLDivElement>(0.2, false);
+  const [map, setMap] = useState<(number | null)[]>(() => TILES.map((_, i) => (i < 11 ? i * 2 : null)));
   useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    if (reducedMotion()) { setOn(FLOW.length - 1); return; }
-    let t = 0; let i = -1; let vis = false;
-    const io = new IntersectionObserver(([e]) => { vis = e.isIntersecting; });
-    io.observe(el);
-    const tick = () => { if (vis) { i = (i + 1) % (FLOW.length + 2); setOn(Math.min(i, FLOW.length - 1)); } t = window.setTimeout(tick, i >= FLOW.length - 1 ? 1600 : 900); };
-    t = window.setTimeout(tick, 400);
-    return () => { io.disconnect(); window.clearTimeout(t); };
+    if (!seen || reduced()) return;
+    const t = window.setInterval(() => setMap((m) => {
+      const next = [...m];
+      const on = next.map((v, i) => (v != null ? i : -1)).filter((i) => i >= 0);
+      const off = next.map((v, i) => (v == null ? i : -1)).filter((i) => i >= 0);
+      if (on.length) next[on[Math.floor(Math.random() * on.length)]] = null;
+      const used = new Set(next.filter((v) => v != null));
+      const free = SLOTS.map((_, i) => i).filter((i) => !used.has(i));
+      if (off.length && free.length) next[off[Math.floor(Math.random() * off.length)]] = free[Math.floor(Math.random() * free.length)];
+      return next;
+    }), 900);
+    return () => window.clearInterval(t);
+  }, [seen]);
+  const par = (e: RPointer<HTMLDivElement>) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    e.currentTarget.style.setProperty('--px', `${(e.clientX - r.left) / r.width - 0.5}`);
+    e.currentTarget.style.setProperty('--py', `${(e.clientY - r.top) / r.height - 0.5}`);
+  };
+  const last = useRef<(number | null)[]>(map);
+  map.forEach((v, i) => { if (v != null) last.current[i] = v; });
+  return (
+    <section className="nx-breath" ref={box} onPointerMove={par}>
+      <div className="nx-breath__tiles" aria-hidden="true">
+        {TILES.map((t, i) => {
+          const slot = map[i] ?? last.current[i] ?? 0; const Ico = I[t.icon];
+          return <span key={t.label} className={`nx-tile ${map[i] != null ? 'is-on' : ''}`} style={{ left: `${SLOTS[slot][0]}%`, top: `${SLOTS[slot][1]}%`, ['--z' as string]: (i % 3) + 1 }} title={t.label}><Ico size={24} /></span>;
+        })}
+      </div>
+      <div className="nx-breath__copy">
+        <RevealText className="nx-h2" text={'Satu backstage untuk\nempat pintu VIBOXS.'} />
+        <p className="nx-sub" data-rv>Permintaan “Start a Mission” dari Services dan lamaran kolaborator dari EDU otomatis masuk ke inbox Commander. Setiap data tetap di jalurnya sendiri.</p>
+        <div className="nx-row nx-center" data-rv>
+          <a href={`${ORIGIN.services}/start`} className="nx-btn nx-btn--gray"><Roll>Start a Mission</Roll></a>
+          <a href={`${ORIGIN.edu}/kolaborator`} className="nx-btn nx-btn--gray"><Roll>Jadi kontributor EDU</Roll></a>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ---------------- scrollytelling fitur ---------------- */
+function Scrolly() {
+  const sec = useRef<HTMLElement>(null);
+  const [step, setStep] = useState(0);
+  const [wide, setWide] = useState(() => window.matchMedia('(min-width: 961px)').matches);
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 961px)');
+    const on = () => setWide(mq.matches);
+    mq.addEventListener('change', on);
+    return () => mq.removeEventListener('change', on);
   }, []);
+  useEffect(() => {
+    if (!wide) return;
+    let raf = 0;
+    const on = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        const el = sec.current; if (!el) return;
+        const r = el.getBoundingClientRect();
+        const p = Math.min(0.999, Math.max(0, -r.top / (r.height - window.innerHeight)));
+        setStep(Math.floor(p * FEATURES.length));
+      });
+    };
+    on(); window.addEventListener('scroll', on, { passive: true });
+    return () => { window.removeEventListener('scroll', on); cancelAnimationFrame(raf); };
+  }, [wide]);
+
+  const head = (
+    <div className="nx-scr__head">
+      <RevealText className="nx-h2" text={'Lihat, pahami, dan\npercayai setiap langkah.'} />
+      <p className="nx-sub" data-rv>Studio tidak menjalankan keputusan penting secara diam-diam. Setiap langkah punya pemilik, versi, dan jejak.</p>
+    </div>
+  );
+  if (!wide) {
+    return (
+      <section className="nx-sec nx-scr is-stack">
+        <div className="nx-wrap">
+          {head}
+          {FEATURES.map((f, n) => (
+            <div key={f.t} className="nx-scr__item" data-rv>
+              <div className="nx-scr__vis dots-dark"><Visual n={n} /></div>
+              <h3>{f.t}</h3><p>{f.d}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+    );
+  }
   return (
-    <ol ref={ref} className="ld-flow" data-build="Alur misi" style={{ ['--p' as string]: `${(Math.max(on, 0) / (FLOW.length - 1)) * 100}%` }}>
-      <span className="ld-flow__line" aria-hidden="true"><span /></span>
-      {FLOW.map((f, i) => (
-        <li key={f.k} className={i < on ? 'is-done' : i === on ? 'is-now' : ''}>
-          <span className="ld-flow__dot" aria-hidden="true">{String(i + 1).padStart(2, '0')}</span>
-          <b>{f.k}</b><small className="mono">{f.s}</small>
-          <p>{f.d}</p>
-        </li>
-      ))}
-    </ol>
+    <section ref={sec} className="nx-scr" style={{ height: `${FEATURES.length * 85 + 40}vh` }}>
+      <div className="nx-scr__sticky">
+        <div className="nx-wrap nx-scr__grid">
+          <div>
+            {head}
+            <ol className="nx-feats">
+              {FEATURES.map((f, n) => (
+                <li key={f.t} className={n === step ? 'is-on' : ''}>
+                  <b><span className="nx-feats__n">0{n + 1}</span>{f.t}</b>
+                  <div className="nx-feats__d"><p>{f.d}</p></div>
+                </li>
+              ))}
+            </ol>
+          </div>
+          <div className="nx-scr__vis dots-dark">
+            {FEATURES.map((f, n) => <div key={f.t} className={`nx-scr__frame ${n === step ? 'is-on' : ''}`} aria-hidden={n !== step}><Visual n={n} /></div>)}
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }
 
-function RoleCard({ n, t, d, a, tag }: (typeof ROLES)[number]) {
-  const ref = useSpotlight<HTMLElement>();
+function Visual({ n }: { n: number }) {
+  if (n === 0) return <Workflow flow={SCROLL_FLOW_A} theme="dark" focus={['l', 'c', 'b', 'p', 'r']} label="Ilustrasi: brief tersanitasi sebelum sampai ke Ranger" minW={520} />;
+  if (n === 1) return <Workflow flow={SCROLL_FLOW_B} theme="dark" focus={['d', 'q', 'v', 'n']} label="Ilustrasi: persetujuan manusia sebelum payable" minW={520} />;
+  if (n === 2) {
+    return (
+      <div className="nx-mock" role="img" aria-label="Ilustrasi riwayat versi deliverable">
+        <div className="nx-mock__tabs"><span className="is-on">Versi</span><span>Timeline</span><em>Aksi ▾</em></div>
+        <ul>
+          <li><b>v3</b><span>Revisi diminta · lingkup: halaman checkout</span><small>Menunggu</small></li>
+          <li className="is-pub"><b>v2</b><span>Diterima Commander · QC lulus</span><small><i />Diterima</small></li>
+          <li><b>v1</b><span>Kiriman pertama</span><small>Revisi</small></li>
+        </ul>
+        <p className="nx-mock__cap">Ilustrasi — bukan data nyata</p>
+      </div>
+    );
+  }
   return (
-    <article ref={ref} className="ld-role">
-      <div className="row-between"><span className="mono-label">{n}</span><span className={`ld-role__tag ${tag === 'Self-register' ? 'is-open' : ''}`}>{tag}</span></div>
-      <h3 className="h4">{t}</h3>
-      <p className="small muted lh">{d}</p>
-      <ul>{a.map((x) => <li key={x}>{x}</li>)}</ul>
-    </article>
+    <div className="nx-note-wrap" role="img" aria-label="Ilustrasi jejak audit">
+      <div className="nx-note">
+        <span className="nx-label">Catatan</span>
+        <p>Setiap pergantian peran dan keputusan tercatat dengan <b>siapa</b>, <b>sebagai apa</b>, dan <b>kapan</b>.</p>
+      </div>
+      <ul className="nx-log">
+        <li><code>switch_role</code><span>Commander → Ranger</span></li>
+        <li><code>update</code><span>payable · disetujui</span></li>
+        <li><code>insert</code><span>deliverable · v2</span></li>
+      </ul>
+      <p className="nx-mock__cap">Ilustrasi — bukan data nyata</p>
+    </div>
   );
 }
 
+/* ---------------- business firewall ---------------- */
 function Firewall() {
   return (
-    <div className="ld-fw" data-build="Firewall">
-      <div className="ld-fw__side">
-        <span className="ld-fw__h"><b>VIBOXS Missions</b><small>Commander ↔ Ranger</small></span>
-        <ul>
-          <li className="ok">Brief tersanitasi &amp; aset yang diizinkan</li>
-          <li className="ok">Fee Ranger milik sendiri</li>
-          <li className="ok">Thread privat per Ranger</li>
-          <li className="no">Kontak &amp; harga klien</li>
-          <li className="no">Margin &amp; honor Ranger lain</li>
+    <section className="nx-sec" id="keamanan">
+      <div className="nx-wrap nx-fw">
+        <div className="nx-fw__vis dots-dark" data-rv>
+          <div className="nx-fw__col"><span className="nx-label">VIBOXS Missions</span><ul><li>Brief tersanitasi</li><li>Fee milik sendiri</li><li>Thread privat</li></ul></div>
+          <div className="nx-fw__wall" aria-hidden="true">{Array.from({ length: 10 }, (_, i) => <i key={i} style={{ ['--i' as string]: i }} />)}<span className="nx-fw__pkt" /><span className="nx-fw__x">403</span></div>
+          <div className="nx-fw__col"><span className="nx-label">VIBOXS Connect</span><ul><li>Profil bisnis</li><li>Permintaan</li><li>Workspace</li></ul></div>
+        </div>
+        <div className="nx-fw__copy dots-light">
+          <RevealText className="nx-h2" text={'Bergerak cepat,\ntanpa membocorkan apa pun.'} />
+          <div className="nx-fw__card" data-rv>
+            <p>Missions dan Connect tidak pernah berbagi payload. Firewall bisnis dijaga di database, bukan sekadar disembunyikan di menu.</p>
+            <ul>
+              <li><b>Harga klien & margin</b> hanya terbaca oleh Commander.</li>
+              <li><b>Peran Ranger</b> tidak lolos ke Connect — lewat URL langsung sekalipun.</li>
+              <li><b>Honor Ranger lain</b> tidak pernah terlihat oleh sesama Ranger.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function Security() {
+  return (
+    <section className="nx-sec nx-secu">
+      <div className="nx-wrap">
+        <div className="nx-secu__head">
+          <RevealText className="nx-h2" text="Keamanan dibangun di server, bukan di menu." />
+          <p className="nx-sub" data-rv>Setiap izin, keputusan, dan perpindahan peran diperiksa ulang di backend pada setiap permintaan.</p>
+          <div className="nx-row nx-center" data-rv>
+            <Link to="/login" className="nx-btn nx-btn--pink"><Roll>Masuk Studio</Roll></Link>
+            <a href={`mailto:${CONTACT.email}?subject=${encodeURIComponent('Pertanyaan VIBOXS Studio')}`} className="nx-btn nx-btn--gray"><Roll>Hubungi admin</Roll></a>
+          </div>
+        </div>
+        <div className="nx-secu__grid">
+          {SECURITY.map((s, n) => (
+            <article key={s.t} className="nx-secu__card" data-rv style={{ ['--i' as string]: n }}>
+              <div className="nx-secu__pix dots-dark"><PixelIcon name={s.pix} cell={9} /></div>
+              <b>{s.t}</b><p>{s.d}</p>
+            </article>
+          ))}
+        </div>
+        <ul className="nx-inv" aria-label="Status yang selalu jujur" data-rv>
+          {INVARIANTS.map((t) => <li key={t}>{t}</li>)}
         </ul>
       </div>
-      <div className="ld-fw__wall" aria-hidden="true">
-        <span className="ld-fw__packet" />
-        <span className="ld-fw__x">403</span>
-        {Array.from({ length: 9 }, (_, i) => <i key={i} style={{ ['--i' as string]: i }} />)}
+    </section>
+  );
+}
+
+/* ---------------- coming soon (carousel geser + jalan pelan) ---------------- */
+function Soon() {
+  const track = useRef<HTMLDivElement>(null);
+  const st = useRef({ hold: false, drag: false, x: 0, left: 0 });
+  useEffect(() => {
+    const el = track.current!;
+    if (reduced()) return;
+    let raf = 0; let vis = false;
+    const io = new IntersectionObserver(([e]) => { vis = e.isIntersecting; });
+    io.observe(el);
+    const tick = () => {
+      if (vis && !st.current.hold && !st.current.drag) {
+        el.scrollLeft += 0.4;
+        if (el.scrollLeft >= el.scrollWidth / 2) el.scrollLeft -= el.scrollWidth / 2;
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => { cancelAnimationFrame(raf); io.disconnect(); };
+  }, []);
+  const down = (e: RPointer<HTMLDivElement>) => { if (e.pointerType !== 'mouse') return; st.current = { ...st.current, drag: true, x: e.clientX, left: e.currentTarget.scrollLeft }; e.currentTarget.setPointerCapture(e.pointerId); };
+  const move = (e: RPointer<HTMLDivElement>) => { if (st.current.drag) e.currentTarget.scrollLeft = st.current.left - (e.clientX - st.current.x); };
+  const up = () => { st.current.drag = false; };
+  return (
+    <section className="nx-sec nx-soon" id="segera">
+      <div className="nx-wrap nx-soon__head">
+        <div><Tag>{['Coming soon', 'Belum aktif']}</Tag><RevealText className="nx-h2" text="Direncanakan, belum berjalan." /></div>
+        <p className="nx-sub" data-rv>Ditampilkan sebagai informasi. Tidak ada transaksi, token, komisi, atau janji yang berjalan di balik kartu ini.</p>
       </div>
-      <div className="ld-fw__side">
-        <span className="ld-fw__h"><b>VIBOXS Connect</b><small>OPC ↔ Partner ↔ Trainer</small></span>
-        <ul>
-          <li className="ok">Profil bisnis opt-in</li>
-          <li className="ok">Permintaan &amp; workspace dua pihak</li>
-          <li className="ok">Kontrak antar para pihak</li>
-          <li className="no">Akses lewat peran Ranger</li>
-          <li className="no">Fee internal &amp; data misi</li>
-        </ul>
+      <div ref={track} className="nx-soon__track" onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}
+        onMouseEnter={() => { st.current.hold = true; }} onMouseLeave={() => { st.current.hold = false; up(); }} tabIndex={0} aria-label="Fitur yang akan datang (geser)">
+        {[0, 1].map((k) => SOON.map((s, n) => (
+          <article key={`${k}${s.t}`} className={`nx-soon__card nx-soon__card--${n % 3}`} aria-hidden={k === 1}>
+            <span className="nx-label">Segera</span><b>{s.t}</b><p>{s.d}</p>
+          </article>
+        )))}
       </div>
-    </div>
+    </section>
+  );
+}
+
+function Cta({ signedIn }: { signedIn: boolean }) {
+  const paths: [string, string, string, boolean][] = [
+    [signedIn ? '/workspace' : '/login', 'Masuk Studio', 'Commander · Ranger · Contributor · Partner', true],
+    [`${ORIGIN.edu}/kolaborator`, 'Jadi kontributor EDU', 'Lamar di edu.viboxs.com', false],
+    [`${ORIGIN.services}/start`, 'Butuh solusi bisnis', 'Start a Mission di Services', false],
+    [`${ORIGIN.corporate}/contact`, 'Ranger / partner', 'Hubungi lewat viboxs.com', false],
+  ];
+  return (
+    <section className="nx-sec">
+      <div className="nx-wrap nx-cta">
+        <div className="nx-cta__l dots-light">
+          <RevealText className="nx-h2" text={'Sudah diundang?\nMasuk dengan email undangan Anda.'} />
+          <div className="nx-row nx-center" data-rv>
+            <Link to={signedIn ? '/workspace' : '/login'} className="nx-btn nx-btn--pink"><Roll>{signedIn ? 'Buka workspace' : 'Mulai masuk'}</Roll></Link>
+          </div>
+        </div>
+        <div className="nx-cta__r dots-dark" data-rv>
+          <span className="nx-label">Pilih jalur Anda</span>
+          {paths.map(([h, b, s, internal]) => internal
+            ? <Link key={b} to={h} className="nx-path"><span><b>{b}</b><small>{s}</small></span><I.arrow size={18} /></Link>
+            : <a key={b} href={h} className="nx-path"><span><b>{b}</b><small>{s}</small></span><I.arrow size={18} /></a>)}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function Footer() {
+  return (
+    <footer className="nx-foot">
+      <div className="nx-foot__top">
+        <div className="nx-foot__brand">
+          <img src="/assets/viboxs-wordmark-white.png" alt="VIBOXS" />
+          <span className="nx-brand__tag">STUDIO</span>
+          <p>VIBOXS adalah unit AI Venture Studio di bawah PT Ekosistem Pelosok Hub. Studio adalah aplikasi operasional privat — bukan etalase publik.</p>
+        </div>
+        <nav className="nx-foot__cols" aria-label="Footer">
+          <div><span className="nx-label">Ekosistem</span>{SITE_ORDER.map((k) => <a key={k} href={siteUrl(k)}>{SITES[k].name}{isPending(k) && <em>Segera</em>}</a>)}</div>
+          <div><span className="nx-label">Studio</span><Link to="/login">Masuk</Link><Link to="/daftar">Daftar Learner</Link><Link to="/reset">Lupa password</Link></div>
+          <div><span className="nx-label">Kontak</span><a href={`mailto:${CONTACT.email}`}>{CONTACT.email}</a><a href={CONTACT.instagramUrl} target="_blank" rel="noopener noreferrer">@{CONTACT.instagram}</a><a href={`${ORIGIN.edu}/kolaborator`}>Kolaborator EDU</a></div>
+        </nav>
+      </div>
+      <PixelTrail />
+      <div className="nx-foot__bot">
+        <span>Privat · tidak diindeks mesin pencari</span>
+        <span>Akses profesional hanya lewat undangan</span>
+        <span>© {new Date().getFullYear()} PT Ekosistem Pelosok Hub</span>
+      </div>
+    </footer>
   );
 }

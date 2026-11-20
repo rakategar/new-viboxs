@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { MISSION_FLOW, MISSION_STEP_LABEL, type Tone } from '../lib/labels';
 import { useCountUp } from '../lib/hooks';
 
@@ -258,13 +259,15 @@ export function Dialog({ open, onClose, title, children, wide }: { open: boolean
     return () => { document.removeEventListener('keydown', key); document.body.style.overflow = ''; back.current?.focus?.(); };
   }, [open, onClose]);
   if (!open) return null;
-  return (
+  // portal ke body: animasi transform halaman tidak boleh "mengurung" overlay fixed
+  return createPortal(
     <div className="st-dlg" role="presentation" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div className={`st-dlg__box ${wide ? 'is-wide' : ''}`} role="dialog" aria-modal="true" aria-label={title} ref={ref}>
         <header><h2>{title}</h2><button type="button" className="st-icon" onClick={onClose} aria-label="Tutup"><I.x /></button></header>
         <div className="st-dlg__body">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

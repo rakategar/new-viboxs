@@ -17,7 +17,7 @@ const authMsg = (m: string) =>
 export function AuthFrame({ title, sub, children, aside }: { title: string; sub?: ReactNode; children: ReactNode; aside?: ReactNode }) {
   return (
     <main className="au">
-      <div className="au__bg" aria-hidden="true"><span /><span /><span /></div>
+      <div className="au__dots dots-light" aria-hidden="true" />
       <div className="au__wrap">
         <div className="au__card">
           <Link to="/" className="st-brand" aria-label="VIBOXS Studio"><img src="/assets/viboxs-wordmark-white.png" alt="VIBOXS" height={16} /><span>STUDIO</span></Link>
