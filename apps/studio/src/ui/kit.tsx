@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useId, useRef, useSt
 import { createPortal } from 'react-dom';
 import { MISSION_FLOW, MISSION_STEP_LABEL, type Tone } from '../lib/labels';
 import { useCountUp } from '../lib/hooks';
+import { useTheme } from '../lib/theme';
 
 /* ---------------- ikon (outline 1.8px, satu gaya) ---------------- */
 const P = (d: string) => function Icon({ size = 18 }: { size?: number }) {
@@ -42,9 +43,22 @@ export const I = {
   clock: P('M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 6v6l4 2'),
   lock: P('M5 11h14v10H5zM8 11V7a4 4 0 1 1 8 0v4'),
   swap: P('M16 3l4 4-4 4M20 7H4M8 21l-4-4 4-4M4 17h16'),
+  sun: P('M12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10zM12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42'),
+  moon: P('M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z'),
   eye: P('M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6'),
   eyeOff: P('M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19M1 1l22 22'),
 };
+
+/** Tombol ganti tema; ikon matahari/bulan bergantian dengan putaran. */
+export function ThemeToggle({ className = 'st-icon' }: { className?: string }) {
+  const [t, toggle] = useTheme();
+  const dark = t === 'dark';
+  return (
+    <button type="button" className={`${className} theme-tg ${dark ? 'is-dark' : ''}`} onClick={toggle} aria-label={dark ? 'Ganti ke mode terang' : 'Ganti ke mode gelap'} title={dark ? 'Mode terang' : 'Mode gelap'}>
+      <span className="theme-tg__sun"><I.sun /></span><span className="theme-tg__moon"><I.moon /></span>
+    </button>
+  );
+}
 
 /* ---------------- toast ---------------- */
 type Toast = { id: number; msg: string; tone: 'ok' | 'err' | 'info'; title?: string; link?: string };

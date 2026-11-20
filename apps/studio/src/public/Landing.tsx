@@ -3,10 +3,11 @@ import { Link } from 'react-router-dom';
 import { CONTACT, ORIGIN, SITES, SITE_ORDER, isPending, siteUrl } from '@viboxs/shared/ecosystem';
 import { useAuth } from '../lib/auth';
 import { I } from '../ui/kit';
-import { FEATURES, HERO_FLOW, INVARIANTS, SCROLL_FLOW_A, SCROLL_FLOW_B, SECURITY, SHOWCASE, SOON, TILES } from './landing/content';
+import { FEATURES, INVARIANTS, SCROLL_FLOW_A, SCROLL_FLOW_B, SECURITY, SHOWCASE, SOON, TILES } from './landing/content';
 import { RevealText, reduced, useInView, useReveal } from './landing/motion';
 import Nav, { Roll } from './landing/Nav';
 import { PixelIcon, PixelTrail } from './landing/Pixel';
+import RoleLens from './landing/RoleLens';
 import Workflow from './landing/Workflow';
 
 /** studio.viboxs.com — landing publik. Bahasa visual sendiri: terang, dot-grid, node-graph. */
@@ -52,8 +53,8 @@ function Hero({ signedIn }: { signedIn: boolean }) {
         </div>
       </div>
       <div className="nx-wrap nx-hero__canvas" data-rv>
-        <Workflow flow={HERO_FLOW} label="Ilustrasi alur misi: lead dari Services, dikonversi Commander, ditawarkan ke Ranger terpilih, sampai payable." minW={820} />
-        <p className="nx-cap">Ilustrasi alur misi — bukan data nyata. Geser node, atau tekan + untuk langkah berikutnya.</p>
+        <RoleLens />
+        <p className="nx-cap">Ilustrasi — misi contoh tanpa data nyata. Pilih peran untuk melihat apa yang disaring server.</p>
       </div>
     </section>
   );

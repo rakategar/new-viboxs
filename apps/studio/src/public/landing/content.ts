@@ -36,25 +36,6 @@ export const TILES: { icon: IconKey; label: string }[] = [
 ];
 
 /* ---------------- workflow ilustrasi (koordinat viewBox) ---------------- */
-export const HERO_FLOW: Flow = {
-  w: 1200, h: 420,
-  nodes: [
-    { id: 'lead', kind: 'box', x: 40, y: 98, icon: 'lead', t: 'Lead', s: 'service.viboxs.com' },
-    { id: 'cmd', kind: 'agent', x: 186, y: 98, icon: 'shield', t: 'Commander', s: 'konversi & brief' },
-    { id: 'brief', kind: 'sub', x: 196, y: 288, icon: 'file', t: 'Brief', s: 'tersanitasi' },
-    { id: 'fw', kind: 'sub', x: 286, y: 288, icon: 'lock', t: 'Harga klien', s: 'privat' },
-    { id: 'aud', kind: 'sub', x: 376, y: 288, icon: 'eye', t: 'Audit', s: 'tiap aksi' },
-    { id: 'offer', kind: 'box', x: 500, y: 98, icon: 'target', t: 'Offer', s: 'Ranger terpilih' },
-    { id: 'bid', kind: 'box', x: 640, y: 98, icon: 'chat', t: 'Bid & kontrak', s: 'fee disepakati' },
-  ],
-  edges: [['lead', 'cmd'], ['cmd', 'offer'], ['offer', 'bid'], ['cmd', 'brief', 'sub'], ['cmd', 'fw', 'sub'], ['cmd', 'aud', 'sub']],
-  queue: [
-    { id: 'deliv', kind: 'box', x: 780, y: 98, icon: 'box', t: 'Deliverable', s: 'v1 → v2' },
-    { id: 'qc', kind: 'box', x: 920, y: 98, icon: 'check', t: 'Diterima', s: 'QC Commander' },
-    { id: 'pay', kind: 'box', x: 1060, y: 98, icon: 'wallet', t: 'Payable', s: 'dibayar ≠ diterima' },
-  ],
-};
-
 const f = (w: number, nodes: Flow["nodes"], edges: Flow["edges"]): Flow => ({ w, h: 350, nodes, edges });
 
 export const SHOWCASE: { k: string; tab: string; pix: string; h: string; d: string; cta: [string, string]; flow: Flow }[] = [

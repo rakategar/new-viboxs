@@ -4,7 +4,7 @@ import { ORIGIN } from '@viboxs/shared/ecosystem';
 import { useAuth } from '../lib/auth';
 import { ROLE, BUSINESS_ROLES } from '../lib/labels';
 import { sb, type Notification, type Role } from '../lib/sb';
-import { I, ToastHost, useToast, Badge } from '../ui/kit';
+import { I, ToastHost, useToast, Badge, ThemeToggle } from '../ui/kit';
 
 type NavItem = { to: string; label: string; icon: (p: { size?: number }) => JSX.Element; end?: boolean; count?: 'notif' };
 
@@ -169,6 +169,7 @@ function ShellIn({ children }: { children: ReactNode }) {
             <span className={`st-rt ${live ? 'is-live' : ''}`} title={live ? 'Notifikasi realtime tersambung' : 'Menyambungkan realtime…'}>
               <i aria-hidden="true" />{live ? 'Realtime' : 'Menyambung…'}
             </span>
+            <ThemeToggle />
             {role && <Badge tone="violet">{ROLE[role].short}</Badge>}
             <NavLink to="/notifications" className="st-icon st-bell" aria-label={`Notifikasi${unread ? `, ${unread} belum dibaca` : ''}`}>
               <I.bell />{unread > 0 && <em key={unread} className="st-bell__n">{unread > 9 ? '9+' : unread}</em>}

@@ -8,6 +8,10 @@
     <meta name="robots" content="noindex, nofollow" />
     <link rel="canonical" href="https://studio.viboxs.com/" />
     <meta name="theme-color" content="#FAFAFA" />
+    <script>
+      /* tema sebelum render agar tidak berkedip: pilihan tersimpan > preferensi sistem */
+      (function () { try { var s = localStorage.getItem('st-theme'); var d = s ? s === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches; document.documentElement.dataset.theme = d ? 'dark' : 'light'; if (d) document.querySelector('meta[name=theme-color]').content = '#0E0E0E'; } catch (e) {} })();
+    </script>
     <meta property="og:site_name" content="VIBOXS Studio" />
     <meta property="og:locale" content="id_ID" />
     <meta property="og:title" content="VIBOXS Studio" />

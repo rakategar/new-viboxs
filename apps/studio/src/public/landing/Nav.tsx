@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { ORIGIN, SITES, SITE_ORDER, siteUrl, isPending } from '@viboxs/shared/ecosystem';
-import { I } from '../../ui/kit';
+import { I, ThemeToggle } from '../../ui/kit';
 import { ROLES } from './content';
 
 /** Teks tombol yang "berguling": teks naik keluar, salinannya masuk dari bawah. */
@@ -62,6 +62,7 @@ export default function Nav({ signedIn }: { signedIn: boolean }) {
             <MenuBtn id="eko" menu={menu} setMenu={setMenu} onEnter={hover('eko')}>Ekosistem</MenuBtn>
           </nav>
           <div className="nx-act">
+            <ThemeToggle className="nx-theme" />
             {!signedIn && <Link to="/login" className="nx-signin">Masuk</Link>}
             <Link to={cta[0]} className="nx-btn nx-btn--pink"><Roll>{cta[1]}</Roll></Link>
             <button type="button" className="nx-burger" aria-label="Buka menu" aria-expanded={sheet} onClick={() => setSheet(true)}><I.menu size={20} /></button>
@@ -102,6 +103,7 @@ export default function Nav({ signedIn }: { signedIn: boolean }) {
       <div className={`nx-sheet ${sheet ? 'is-open' : ''}`} hidden={!sheet} role="dialog" aria-modal="true" aria-label="Menu">
         <div className="nx-sheet__top">
           <span className="nx-brand"><img src="/favicon.png" alt="" width={28} height={28} /><span className="nx-brand__tag">STUDIO</span></span>
+          <ThemeToggle className="nx-theme nx-theme--sheet" />
           <button type="button" className="nx-burger" aria-label="Tutup menu" onClick={() => setSheet(false)}><I.x size={20} /></button>
         </div>
         <nav className="nx-sheet__nav">

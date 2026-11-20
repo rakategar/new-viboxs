@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ORIGIN } from '@viboxs/shared/ecosystem';
 import { rpc, sb, errMsg, PRIVACY_VERSION } from '../lib/sb';
 import { useAuth, takeInvite } from '../lib/auth';
-import { I } from '../ui/kit';
+import { I, ThemeToggle } from '../ui/kit';
 
 const emailOk = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.trim());
 /** Pesan login generik — tidak membedakan "email tidak terdaftar" vs "password salah" (anti-enumeration). */
@@ -18,6 +18,7 @@ export function AuthFrame({ title, sub, children, aside }: { title: string; sub?
   return (
     <main className="au">
       <div className="au__dots dots-light" aria-hidden="true" />
+      <ThemeToggle className="st-icon au__theme" />
       <div className="au__wrap">
         <div className="au__card">
           <Link to="/" className="st-brand" aria-label="VIBOXS Studio"><img src="/assets/viboxs-wordmark-white.png" alt="VIBOXS" height={16} /><span>STUDIO</span></Link>
