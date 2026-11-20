@@ -28,6 +28,9 @@ export const ORIGIN: Record<SiteKey, string> = {
   services: env.VITE_SERVICES_ORIGIN || 'https://service.viboxs.com',
 };
 
+/** Studio = aplikasi operasional privat (bukan destinasi publik, tidak ada di switcher ekosistem). */
+export const STUDIO_ORIGIN = env.VITE_STUDIO_ORIGIN || 'https://studio.viboxs.com';
+
 export interface Site { key: SiteKey; name: string; role: string; domain: string }
 
 export const SITES: Record<SiteKey, Site> = {

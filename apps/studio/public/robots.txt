@@ -1,0 +1,3 @@
+# Studio adalah aplikasi operasional privat — tidak untuk diindeks.
+User-agent: *
+Disallow: /

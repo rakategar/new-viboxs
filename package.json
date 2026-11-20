@@ -1,7 +1,7 @@
 {
   "name": "viboxs-digital",
   "private": true,
-  "description": "Monorepo VIBOXS \u2014 satu repo, app terpisah per host (ADR-01).",
+  "description": "Monorepo VIBOXS — satu repo, app terpisah per host (ADR-01).",
   "workspaces": [
     "apps/*",
     "packages/*"
@@ -14,6 +14,8 @@
     "build:corporate": "npm run build -w apps/corporate",
     "build:services": "npm run build -w apps/services",
     "dev:edu": "npm run dev -w apps/edu",
-    "build:edu": "npm run build -w apps/edu"
+    "build:edu": "npm run build -w apps/edu",
+    "dev:studio": "npm run dev -w apps/studio",
+    "build:studio": "npm run build -w apps/studio"
   }
 }

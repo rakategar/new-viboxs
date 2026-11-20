@@ -8,6 +8,8 @@ Satu repo, beberapa app yang di-deploy terpisah, satu paket bersama (ADR-01 di `
 apps/
   corporate/   → viboxs.com           (VIBOXS Corporate.dc.html)
   services/    → services.viboxs.com  (VIBOXS Services.dc.html)
+  edu/         → edu.viboxs.com
+  studio/      → studio.viboxs.com    (ruang kerja privat — PRD Studio v1.0, 20 Nov 2026)
 packages/
   shared/      → @viboxs/shared: token & CSS dasar, motion (GSAP), efek (split/magnetic/spotlight/tilt),
                  ikon, cursor, marquee, konfigurasi ekosistem (origin + status LAUNCH)
@@ -33,6 +35,25 @@ npm run build               # build semua app → apps/*/dist
 Framework terdeteksi **Vite**; Vercel menginstal dari root (npm workspaces) secara otomatis.
 Setiap app punya `vercel.json` sendiri untuk SPA rewrite.
 Jika project corporate sudah terlanjur dibuat dengan root `/`, ubah **Settings → Build & Deployment → Root Directory** ke `apps/corporate`.
+
+## VIBOXS Studio (`apps/studio`)
+
+Ruang kerja privat multi-peran: Commander (Control Center), Ranger (Missions), EDU Contributor, EDU Learner,
+OPC Founder / Business Partner (VIBOXS Connect). Backend = Supabase project `viboxs`, skema di
+`supabase/migrations/20261120_studio.sql` (tabel `st_*`, RLS + RPC `st_*`).
+
+- **Akses**: Learner daftar sendiri (`/daftar`). Profesional hanya lewat undangan sekali pakai dari Commander
+  (`/invite/<token>`, token disimpan sebagai hash). Akun admin EDU (`admin@viboxs.com`) otomatis menjadi Commander.
+- **Firewall**: harga klien/margin ada di `st_mission_private` (Commander saja); peran Ranger tidak pernah lolos ke
+  Connect — dijaga RLS + konteks peran aktif di server (`st_switch_role`). Uji: `supabase/tests/studio_firewall.sql`.
+- **Integrasi**: lead “Start a Mission” (Services) dan pendaftar kolaborator EDU masuk otomatis (trigger pada `submissions`).
+  Program yang disetujui dikirim ke `edu_programs` sebagai **belum tayang**; status “Tayang” di Studio mengikuti EDU.
+- **Belum aktif (jujur di UI)**: order/enrollment EDU, konektor Universe, email undangan otomatis, upload file,
+  AI tools, affiliate, penukaran poin, investor network. Flag di `st_flags` (halaman Feature flags).
+
+Deploy Vercel: project baru, Root Directory `apps/studio`, domain `studio.viboxs.com`.
+Tambahkan `https://studio.viboxs.com/**` ke Supabase → Auth → URL Configuration (Redirect URLs) agar tautan
+verifikasi email & reset password kembali ke Studio.
 
 ## Konfigurasi yang perlu diubah saat sesuatu siap
 
