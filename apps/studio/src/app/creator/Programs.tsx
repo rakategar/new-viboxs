@@ -34,6 +34,7 @@ export default function Programs() {
                   <b>{p.title}</b>
                   <span className="st-small st-muted st-clamp">{p.summary || 'Belum ada ringkasan.'}</span>
                   {p.status === 'needs_revision' && p.review_note && <span className="st-alert st-alert--warn st-small">Catatan review: {p.review_note}</span>}
+                  {p.status === 'publish_queued' && <span className="st-alert st-alert--info st-small">Permintaan publikasi dikirim. Kami sedang memastikan produk berhasil tampil di EDU.</span>}
                   {p.status === 'publish_failed' && <span className="st-alert st-alert--err st-small">Belum terkirim ke EDU: {p.publish_error ?? 'kesalahan adapter'}. Commander akan mengirim ulang.</span>}
                   <span className="row-between"><span className="st-small st-muted">Diperbarui {ago(p.updated_at)}</span>
                     {['draft', 'needs_revision'].includes(p.status) ? <Btn size="sm" onClick={() => setEdit(p)}>Edit</Btn>

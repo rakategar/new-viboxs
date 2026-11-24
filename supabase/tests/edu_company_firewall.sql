@@ -1,4 +1,4 @@
--- Uji negatif Batch 2–6 (Runbook §6, QA COM-*, RAN-*, LEA-*, SHO-*). Satu transaksi lalu ROLLBACK — tidak meninggalkan data.
+-- Uji negatif Batch 2–6 + lowongan & AI (Runbook §6, QA COM-*, RAN-*, LEA-*, SHO-*). Hasil 2026-11-24: 39/39. Satu transaksi lalu ROLLBACK — tidak meninggalkan data.
 -- Jalankan lewat MCP execute_sql; tiap aktor disimulasikan dengan set local role authenticated + request.jwt.claims.
 begin;
 create temp table _r (t text, ok boolean, info text) on commit drop;
@@ -41,6 +41,7 @@ set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-00000000b001","e
 insert into _r select 'RAN active ranger opt-in rejected', r like '%Ranger aktif%', r from (select pg_temp.expect_fail($$insert into public.st_talent_profiles (person_id, opt_in, alias, skills) values ('00000000-0000-0000-0000-00000000b001', true, 'R', array['backend'])$$) r) q;
 insert into _r select 'RAN-016 ranger cannot call talent search', r like '%perusahaan terverifikasi%', r from (select pg_temp.expect_fail($$select * from public.st_company_talent_search('', '')$$) r) q;
 insert into _r select 'RAN-017 ranger sees no companies', count(*) = 0, count(*)::text from public.st_companies;
+insert into _r select 'RAN ranger sees no vacancies', count(*) = 0, count(*)::text from public.st_vacancies;
 
 -- Paksa baris opt-in Ranger (lewati trigger) untuk membuktikan filter server tetap menyaring (COM-005)
 reset role;
@@ -60,8 +61,13 @@ insert into _r select 'COM-010 company sees no payables', count(*) = 0, '' from 
 insert into _r select 'COM-009 company sees no tokens/stars', (select count(*) from public.st_token_ledger) + (select count(*) from public.st_star_events) = 0, '';
 insert into _r select 'company sees no edu orders', count(*) = 0, '' from public.edu_orders;
 insert into _r select 'invite to active ranger rejected', r like '%tidak tersedia%', r from (select pg_temp.expect_fail($$select public.st_hiring_invite('00000000-0000-0000-0000-00000000b001', 'Backend', 'Kami tertarik dengan pengalaman backend Anda untuk proyek internal.')$$) r) q;
-create temp table _inv as select public.st_hiring_invite('00000000-0000-0000-0000-00000000a001', 'Admin operasional', 'Kami membuka posisi admin operasional remote, tertarik berdiskusi?') id;
+insert into public.st_vacancies (company_id, title, skills, work_mode, contract_type, comp_range, show_comp, process, hr_contact)
+  values ('00000000-0000-0000-0000-0000000cc001', 'Admin operasional', array['spreadsheet'], 'remote', 'fulltime', 'Rp6-8 juta', false, 'Wawancara 2 tahap', 'hr-internal@satu.test');
+create temp table _inv as select public.st_hiring_invite_for('00000000-0000-0000-0000-00000000a001', (select id from public.st_vacancies where title = 'Admin operasional'), 'Kami membuka posisi admin operasional remote, tertarik berdiskusi?') id;
 grant select on _inv to authenticated;
+create temp table _vac as select id from public.st_vacancies; grant select on _vac to authenticated;
+insert into _r select 'VAC company sees own vacancy', count(*) = 1, '' from public.st_vacancies;
+insert into _r select 'VAC invite linked to vacancy', vacancy_id is not null, '' from public.st_hiring_invites where id = (select id from _inv);
 insert into _r select 'COM-011 contact hidden before acceptance', r like '%setelah kandidat menerima%', r from (select pg_temp.expect_fail($$select public.st_hiring_contact((select id from _inv))$$) r) q;
 insert into _r select 'COM-011 no message before acceptance', r <> 'NO ERROR', r from (select pg_temp.expect_fail($$insert into public.st_messages (thread_type, thread_id, body) values ('hiring', (select id from _inv), 'halo')$$) r) q;
 
@@ -69,10 +75,14 @@ insert into _r select 'COM-011 no message before acceptance', r <> 'NO ERROR', r
 set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-00000000d002","email":"hr2@x.test","role":"authenticated"}';
 insert into _r select 'COM-007 other company cannot see invites', count(*) = 0, count(*)::text from public.st_hiring_invites;
 insert into _r select 'COM-007 other company hiring_list empty', count(*) = 0, '' from public.st_hiring_list();
+insert into _r select 'VAC other company cannot read vacancies', count(*) = 0, count(*)::text from public.st_vacancies;
+insert into _r select 'VAC other company cannot invite via foreign vacancy', r like '%tidak ditemukan%', r from (select pg_temp.expect_fail($$select public.st_hiring_invite_for('00000000-0000-0000-0000-00000000a001', (select id from _vac), 'Pesan undangan yang cukup panjang untuk lolos validasi.')$$) r) q;
+insert into _r select 'VAC other company cannot read vacancy brief', r like '%Tidak berhak%', r from (select pg_temp.expect_fail($$select public.st_hiring_vacancy((select id from _inv))$$) r) q;
 insert into _r select 'COM-007 contact by guessed id denied', r <> 'NO ERROR', r from (select pg_temp.expect_fail($$select public.st_hiring_contact((select id from _inv))$$) r) q;
 
 -- Kandidat menerima → kontak & thread terbuka (COM-013)
 set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-00000000a001","email":"learner@x.test","role":"authenticated"}';
+insert into _r select 'VAC candidate sees brief w/o HR contact & hidden comp', not (v ? 'hr_contact') and not (v ? 'comp_range') and v ->> 'title' = 'Admin operasional', v::text from (select public.st_hiring_vacancy((select id from _inv)) v) q;
 select public.st_hiring_respond((select id from _inv), 'ACCEPTED');
 insert into public.st_messages (thread_type, thread_id, body) values ('hiring', (select id from _inv), 'Terima kasih, saya tertarik.');
 set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-00000000d001","email":"hr1@x.test","role":"authenticated"}';
@@ -89,6 +99,7 @@ insert into _r select 'AUT-013 learner cannot decide company', r like '%Hanya Co
 insert into _r select 'AUT-013 learner cannot refund', r like '%Hanya Commander%', r from (select pg_temp.expect_fail($$select public.edu_record_refund(gen_random_uuid(), 1000, 'percobaan tanpa hak akses')$$) r) q;
 insert into _r select 'TOK-019 token redeem denied', r like '%belum aktif%', r from (select pg_temp.expect_fail($$select public.st_token_redeem('EDU000000-00000000', 10)$$) r) q;
 insert into _r select 'learner cannot self-grant company role', r <> 'NO ERROR', r from (select pg_temp.expect_fail($$insert into public.st_role_grants (person_id, role) values ('00000000-0000-0000-0000-00000000a002', 'company_partner')$$) r) q;
+insert into _r select 'learner cannot read AI suggestions / runs of others', (select count(*) from public.st_attempt_ai_suggestions) + (select count(*) from public.st_ai_runs where person_id <> auth.uid()) = 0, '';
 
 -- RAN-002: Ranger baru tanpa riwayat Learner ditolak saat menerima undangan non-legacy
 reset role;
@@ -98,14 +109,12 @@ set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-00000000e001","e
 insert into _r select 'RAN-002 new ranger bypassing learner rejected', r like '%EDU Learner%', r from (select pg_temp.expect_fail($$select public.st_accept_invite('tok-new-ranger')$$) r) q;
 
 -- SHO-007 / SHO-003: showcase publik kosong & tanpa kolom privat
-set local role anon;
-set local request.jwt.claims = '{"role":"anon"}';
 reset role;
 insert into _r select 'SHO-007 no approved profile → empty', count(*) = 0, '' from public.edu_showcase();
 insert into _r select 'SHO-003 showcase API has no owner/contact columns', not exists (
   select 1 from information_schema.routines r join information_schema.parameters p on p.specific_name = r.specific_name
   where r.routine_name = 'edu_showcase' and p.parameter_mode = 'OUT' and p.parameter_name in ('owner_id','email','phone','fee')), '';
-insert into _r select 'anon cannot read talent/companies', not has_table_privilege('anon', 'public.st_talent_profiles', 'select') and not has_table_privilege('anon', 'public.st_companies', 'select'), '';
+insert into _r select 'anon cannot read talent/companies/vacancies', not has_table_privilege('anon', 'public.st_talent_profiles', 'select') and not has_table_privilege('anon', 'public.st_companies', 'select') and not has_table_privilege('anon', 'public.st_vacancies', 'select'), '';
 
 select * from _r;
 rollback;

@@ -45,14 +45,14 @@ export default function Recommendations() {
                   {ai.goal && <p className="st-small"><b>Arah:</b> {ai.goal}</p>}
                   {ai.current_gap && <p className="st-small"><b>Yang perlu dikuatkan:</b> {ai.current_gap}</p>}
                   {ai.recommended.length ? <ul className="st-reasons">{ai.recommended.map((r) => <li key={r.slug}><I.check size={12} /><a href={`${ORIGIN.edu}/programs/${r.slug}`} target="_blank" rel="noopener noreferrer">{r.title}</a>{r.reason && ` — ${r.reason}`}</li>)}</ul>
-                    : <p className="st-small st-muted">Belum ada kelas tayang yang sesuai. Kami tidak mengarang kelas.</p>}
+                    : <p className="st-small st-muted">Belum ada kelas yang sesuai. Kami tidak mengarang kelas.</p>}
                   {ai.alternative_actions.length > 0 && <p className="st-small st-muted">Langkah lain: {ai.alternative_actions.join(' · ')}</p>}
                   <small className="st-muted">{ai.model} · dapat keliru; ubah jawaban asesmen bila kurang tepat.</small>
                 </div>
               )}
             </section>
             {!d.recs.length ? (
-              <Empty title="Belum ada program tayang yang cocok" icon={I.book}>
+              <Empty title="Belum ada kelas yang sesuai" icon={I.book}>
                 <p>Kami tidak mengarang kelas. Coba ubah minat, atau jelajahi kategori umum: {Object.values(PROG_PATH).join(' · ')}.</p>
                 <a href={`${ORIGIN.edu}/programs`} className="st-btn st-btn--ghost st-btn--sm">Lihat semua program EDU<I.ext size={14} /></a>
               </Empty>

@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../lib/auth';
 import { useAction, useLoad } from '../../lib/hooks';
-import { ATTEMPT_STATUS, AVAIL, HIRE_STAGE, HIRE_STATUS, STAR_CODE, STAR_LEVELS, WORKPREF, fmtDate, starLevel } from '../../lib/labels';
-import { sb, must, rpc, type Attempt, type HiringRow, type StarEvent, type Talent, type TokenRow } from '../../lib/sb';
+import { ATTEMPT_STATUS, AVAIL, CONTRACT, HIRE_STAGE, HIRE_STATUS, STAR_CODE, STAR_LEVELS, WORKPREF, fmtDate, starLevel } from '../../lib/labels';
+import { sb, must, rpc, type Attempt, type HiringRow, type StarEvent, type Talent, type TokenRow, type VacancyBrief } from '../../lib/sb';
 import { Area, Badge, Btn, Card, Dialog, Empty, I, KV, Loaded, PageHead, Select, StatusBadge, TagInput, Text, Toggle, useToast } from '../../ui/kit';
 import Thread from '../Thread';
 
@@ -45,7 +45,8 @@ export function Report() {
                     <span><b>{d.list.find((a) => a.id === t.assessment_id)?.title ?? 'Asesmen'}</b><small>{fmtDate(t.created_at, false)}{t.mcq_total ? ` · PG ${t.mcq_correct}/${t.mcq_total}` : ''}{t.reviewed_at ? ` · ditinjau ${fmtDate(t.reviewed_at, false)}` : ''}{t.history.length ? ` · ${t.history.length} riwayat` : ''}</small></span>
                     <StatusBadge map={ATTEMPT_STATUS} value={t.status} />
                     <b className="st-mono">{t.score ?? '—'}</b>
-                    {t.status !== 'NEEDS_REVIEW' && <Btn size="sm" kind="quiet" onClick={() => setAppeal(t)}>Banding</Btn>}
+                    {t.status !== 'NEEDS_REVIEW' ? <Btn size="sm" kind="quiet" onClick={() => setAppeal(t)}>Banding</Btn>
+                      : <small className="st-muted">Jawabanmu sudah diterima dan sedang ditinjau. Hasil akan muncul setelah proses penilaian selesai.</small>}
                   </li>
                 ))}</ul>
               )}
@@ -85,7 +86,7 @@ export function TakeAssessment() {
     const a = p.questions.map((q, i) => (q.type === 'mcq' ? (typeof ans[i] === 'number' ? ans[i] : null) : String(ans[i] ?? '').trim()));
     if (a.some((x) => x === null || x === '')) throw new Error('Jawab semua soal.');
     return rpc<{ status: string; score: number | null }>('st_submit_attempt', { p_id: p.id, p_answers: a });
-  }, (r) => { toast(r?.status === 'NEEDS_REVIEW' ? 'Jawaban terkirim — esai dinilai reviewer.' : `Skor Anda: ${r?.score}.`); nav('/learn/report'); }, (e) => toast(e, 'err'));
+  }, (r) => { toast(r?.status === 'NEEDS_REVIEW' ? 'Jawabanmu sudah diterima dan sedang ditinjau. Hasil akan muncul setelah proses penilaian selesai.' : `Skor Anda: ${r?.score}.`); nav('/learn/report'); }, (e) => toast(e, 'err'));
   return (
     <div className="st-page-in">
       <PageHead eyebrow="Asesmen" title={s.data?.title ?? 'Asesmen'}><Link to="/learn/report" className="st-btn st-btn--quiet st-btn--sm"><I.back size={14} />Kembali</Link></PageHead>
@@ -152,7 +153,7 @@ export function Tokens() {
   return (
     <div className="st-page-in">
       <PageHead eyebrow="EDU Learner" title="Token Wallet" desc="1 token = manfaat potongan Rp10 pada transaksi yang memenuhi syarat. Bukan saldo uang: tidak bisa dicairkan, ditransfer, atau dibeli." />
-      <div className="st-alert st-alert--info">Penukaran token belum aktif. Kami menunggu persetujuan Legal & Finance; sampai saat itu tidak ada token yang diterbitkan atau dipakai.</div>
+      <div className="st-alert st-alert--info">Penukaran token belum tersedia. Saldo dan riwayat reward tetap dapat kamu lihat. Penerbitan dan penukaran menunggu persetujuan Legal &amp; Finance.</div>
       <Card title="Ledger">
         <Loaded state={s} empty={(d) => (d.length ? null : <Empty title="Belum ada token" icon={I.wallet}>Belum ada kampanye reward yang disetujui.</Empty>)}>
           {(d) => <ul className="st-list">{d.map((t) => <li key={t.id}><span><b>{t.source}</b><small>{t.state} · {fmtDate(t.created_at)}{t.expires_at ? ` · kedaluwarsa ${fmtDate(t.expires_at, false)}` : ''}</small></span><b className="st-mono">{t.delta}</b></li>)}</ul>}
@@ -192,7 +193,7 @@ export function Career() {
       <Loaded state={s}>
         {(d) => (
           <>
-            <Card title="Profil kandidat" desc={d.t?.opt_in ? 'Aktif — terlihat oleh perusahaan terverifikasi (tanpa email/telepon).' : 'Tidak aktif — tidak terlihat oleh perusahaan mana pun.'}
+            <Card title="Profil kandidat" desc={d.t?.opt_in ? 'Aktif — terlihat oleh perusahaan terverifikasi (tanpa email/telepon).' : 'Profilmu tidak ditampilkan kepada perusahaan. Kamu bisa mengubah pilihan ini di sini kapan saja.'}
               actions={d.t?.opt_in ? <Badge tone="ok">Opt-in aktif</Badge> : <Badge tone="muted">Tidak terlihat</Badge>}>
               {f && (
                 <div className="st-form">
@@ -218,7 +219,7 @@ export function Career() {
               {!d.inv.length ? <p className="st-muted st-small">Belum ada undangan.</p> : (
                 <ul className="st-list">{d.inv.map((h) => (
                   <li key={h.id}>
-                    <span><b>{h.vacancy_title} · {h.company}</b><small>{h.message}</small>{h.interview_at && <small>Interview {fmtDate(h.interview_at)}{h.interview_url ? ` · ${h.interview_url}` : ''}</small>}</span>
+                    <span><b>{h.vacancy_title} · {h.company}</b><small>{h.message}</small>{h.interview_at && <small>Interview {fmtDate(h.interview_at)}{h.interview_url ? ` · ${h.interview_url}` : ''}</small>}<VacancyLine invite={h.id} /></span>
                     <StatusBadge map={HIRE_STATUS} value={h.status} />
                     {h.stage && <Badge tone="violet">{HIRE_STAGE.find((x) => x[0] === h.stage)?.[1]}</Badge>}
                     {h.status === 'SENT' && <span className="st-row">
@@ -247,3 +248,11 @@ export function Career() {
   );
 }
 
+
+/** Ringkasan lowongan dari undangan (tanpa kontak HR internal; kompensasi hanya bila perusahaan memilih menampilkannya). */
+function VacancyLine({ invite }: { invite: string }) {
+  const v = useLoad(() => rpc<VacancyBrief | null>('st_hiring_vacancy', { p_invite: invite }), [invite]);
+  if (!v.data) return null;
+  const x = v.data;
+  return <small className="st-muted">{[WORKPREF[x.work_mode], CONTRACT[x.contract_type], x.location, x.comp_range, x.skills?.length ? x.skills.join(', ') : null].filter(Boolean).join(' · ')}{x.process ? ` — Proses: ${x.process}` : ''}</small>;
+}

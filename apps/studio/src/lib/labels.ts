@@ -141,6 +141,7 @@ export const HIRE_STATUS: Record<string, [string, Tone]> = {
 export const HIRE_STAGE: [string, string][] = [['SHORTLISTED', 'Shortlist'], ['INTERVIEW', 'Interview'], ['OFFER', 'Penawaran'], ['HIRED', 'Diterima kerja'], ['CLOSED', 'Ditutup']];
 export const AVAIL: Record<string, string> = { now: 'Siap sekarang', '1month': 'Dalam 1 bulan', '3months': 'Dalam 3 bulan', not_now: 'Belum mencari' };
 export const WORKPREF: Record<string, string> = { remote: 'Remote', hybrid: 'Hybrid', onsite: 'Onsite', any: 'Fleksibel' };
+export const CONTRACT: Record<string, string> = { fulltime: 'Penuh waktu', parttime: 'Paruh waktu', contract: 'Kontrak', internship: 'Magang', freelance: 'Lepas' };
 export const SHOWCASE_STATUS: Record<string, [string, Tone]> = {
   DRAFT: ['Draft', 'muted'], SUBMITTED: ['Menunggu review', 'violet'], PUBLIC_APPROVED: ['Tayang di EDU', 'ok'], REJECTED: ['Belum disetujui', 'danger'], WITHDRAWN: ['Ditarik', 'muted'],
 };

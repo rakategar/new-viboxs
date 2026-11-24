@@ -109,6 +109,8 @@ export interface Company {
   website: string | null; status: string; grants: string[]; review_note: string | null; verified_at: string | null; created_at: string;
 }
 export interface Talent { person_id: string; opt_in: boolean; alias: string | null; headline: string | null; skills: string[]; availability: string | null; work_pref: string | null; portfolio_url: string | null; show_star: boolean; show_assessments: boolean; opted_in_at: string | null }
+export interface Vacancy { id: string; company_id: string; title: string; skills: string[]; location: string | null; work_mode: string; contract_type: string; comp_range: string | null; show_comp: boolean; process: string | null; hr_contact: string | null; status: 'OPEN' | 'CLOSED'; created_at: string }
+export interface VacancyBrief { title: string; skills?: string[]; location?: string; work_mode: string; contract_type: string; process?: string; comp_range?: string }
 export interface HiringRow { id: string; side: 'company' | 'candidate'; company: string; candidate_alias: string | null; vacancy_title: string; message: string; status: string; stage: string | null; interview_at: string | null; interview_url: string | null; created_at: string }
 export interface Showcase {
   id: string; kind: 'ranger' | 'opc'; owner_id: string; display_name: string; specialization: string; summary: string; evidence: { label: string; url: string }[]; image_url: string | null; link: string | null;

@@ -3,9 +3,9 @@ import { Link } from 'react-router-dom';
 import { ORIGIN } from '@viboxs/shared/ecosystem';
 import { useAuth } from '../../lib/auth';
 import { useAction, useLoad } from '../../lib/hooks';
-import { AVAIL, COMPANY_STATUS, HIRE_STAGE, HIRE_STATUS, LEAD_STATUS, WORKPREF, fmtDate, fromLocalInput, toLocalInput } from '../../lib/labels';
-import { sb, must, rpc, type Company, type HiringRow } from '../../lib/sb';
-import { Area, Badge, Btn, Card, Check, Dialog, Empty, I, KV, Loaded, PageHead, Select, StatusBadge, Text, useToast } from '../../ui/kit';
+import { AVAIL, COMPANY_STATUS, CONTRACT, HIRE_STAGE, HIRE_STATUS, LEAD_STATUS, WORKPREF, fmtDate, fromLocalInput, toLocalInput } from '../../lib/labels';
+import { sb, must, rpc, type Company, type HiringRow, type Vacancy } from '../../lib/sb';
+import { Area, Badge, Btn, Card, Check, Dialog, Empty, I, KV, Loaded, PageHead, Select, StatusBadge, TagInput, Text, useToast } from '../../ui/kit';
 import Thread from '../Thread';
 
 const TERMS = 'company-terms-draft-2026-11';
@@ -106,17 +106,68 @@ export function Talent() {
 
 function InviteDialog({ c, onClose, onDone }: { c: Cand; onClose: () => void; onDone: () => void }) {
   const toast = useToast();
+  const vac = useLoad(async () => must(sb.from('st_vacancies').select('id, title').eq('status', 'OPEN').order('created_at', { ascending: false })) as Promise<Pick<Vacancy, 'id' | 'title'>[]>);
+  const [vid, setVid] = useState('');
   const [title, setTitle] = useState('');
   const [msg, setMsg] = useState('');
   const { busy, run } = useAction();
+  const send = () => run('i', () => vid ? rpc('st_hiring_invite_for', { p_candidate: c.candidate_id, p_vacancy: vid, p_message: msg })
+    : rpc('st_hiring_invite', { p_candidate: c.candidate_id, p_title: title, p_message: msg }), onDone, (e) => toast(e, 'err'));
   return (
     <Dialog open onClose={onClose} title={`Undang ${c.alias}`}>
       <div className="st-form">
-        <Text label="Posisi" value={title} onChange={setTitle} wide />
-        <Area label="Pesan" value={msg} onChange={setMsg} rows={4} hint="Jelaskan peran, lokasi/remote, proses seleksi. Maks. 20 undangan per hari." />
-        <div className="st-form__act"><Btn kind="primary" busy={busy === 'i'} onClick={() => run('i', () => rpc('st_hiring_invite', { p_candidate: c.candidate_id, p_title: title, p_message: msg }), onDone, (e) => toast(e, 'err'))}>Kirim undangan</Btn></div>
+        <Select label="Lowongan" value={vid} onChange={setVid} options={[['', 'Tanpa lowongan — tulis posisi'], ...(vac.data ?? []).map((v) => [v.id, v.title] as [string, string])]} wide />
+        {!vid && <Text label="Posisi" value={title} onChange={setTitle} wide />}
+        <Area label="Pesan" value={msg} onChange={setMsg} rows={4} hint="Jelaskan peran dan proses seleksi. Kandidat melihat ringkasan lowongan (tanpa kontak HR internal). Maks. 20 undangan per hari." />
+        <div className="st-form__act"><Btn kind="primary" busy={busy === 'i'} onClick={send}>Kirim undangan</Btn></div>
       </div>
     </Dialog>
+  );
+}
+
+const VBLANK = { title: '', skills: [] as string[], location: '', work_mode: 'remote', contract_type: 'fulltime', comp_range: '', show_comp: false, process: '', hr_contact: '' };
+
+/** Lowongan (PRD §09.3): milik perusahaan, tidak dipublikasikan; dipakai sebagai dasar undangan. */
+function Vacancies() {
+  const toast = useToast();
+  const s = useLoad(async () => must(sb.from('st_vacancies').select('*').order('status').order('created_at', { ascending: false })) as Promise<Vacancy[]>);
+  const [f, setF] = useState<(typeof VBLANK & { id?: string }) | null>(null);
+  const { busy, run } = useAction();
+  const save = () => run('v', async () => {
+    const { id, title, skills, work_mode, contract_type, show_comp } = f!;
+    const rest = { title: title.trim(), skills, work_mode, contract_type, show_comp, comp_range: f!.comp_range.trim() || null, location: f!.location.trim() || null, process: f!.process.trim() || null, hr_contact: f!.hr_contact.trim() || null };
+    if (id) await must(sb.from('st_vacancies').update(rest).eq('id', id));
+    else {
+      const cid = await rpc<string>('st_my_company', { p_grant: 'HIRING_MANAGE' });
+      if (!cid) throw new Error('Butuh akses kelola hiring dari Commander.');
+      await must(sb.from('st_vacancies').insert({ ...rest, company_id: cid }));
+    }
+  }, () => { toast('Lowongan disimpan.'); setF(null); s.reload(); }, (e) => toast(e, 'err'));
+  const close = (v: Vacancy) => run(v.id, () => must(sb.from('st_vacancies').update({ status: v.status === 'OPEN' ? 'CLOSED' : 'OPEN' }).eq('id', v.id)), () => s.reload(), (e) => toast(e, 'err'));
+  return (
+    <Card title="Lowongan" desc="Hanya terlihat oleh perusahaan Anda. Kandidat yang diundang melihat ringkasannya; kontak HR internal tidak pernah ditampilkan." actions={<Btn size="sm" onClick={() => setF({ ...VBLANK })}><I.plus size={14} />Lowongan</Btn>}>
+      <Loaded state={s} empty={(d) => (d.length ? null : <p className="st-muted st-small">Belum ada lowongan. Undangan tetap bisa dikirim dengan menulis posisi.</p>)}>
+        {(d) => <ul className="st-list">{d.map((v) => <li key={v.id}><span><b>{v.title}</b><small>{WORKPREF[v.work_mode]} · {CONTRACT[v.contract_type]}{v.location ? ` · ${v.location}` : ''}{v.skills.length ? ` · ${v.skills.join(', ')}` : ''}</small></span>
+          <Badge tone={v.status === 'OPEN' ? 'ok' : 'muted'}>{v.status === 'OPEN' ? 'Dibuka' : 'Ditutup'}</Badge>
+          <span className="st-row"><Btn size="sm" kind="quiet" onClick={() => setF({ id: v.id, title: v.title, skills: v.skills, work_mode: v.work_mode, contract_type: v.contract_type, show_comp: v.show_comp, location: v.location ?? '', comp_range: v.comp_range ?? '', process: v.process ?? '', hr_contact: v.hr_contact ?? '' })}>Edit</Btn><Btn size="sm" kind="quiet" busy={busy === v.id} onClick={() => close(v)}>{v.status === 'OPEN' ? 'Tutup' : 'Buka lagi'}</Btn></span></li>)}</ul>}
+      </Loaded>
+      {f && (
+        <Dialog open onClose={() => setF(null)} title={f.id ? 'Edit lowongan' : 'Lowongan baru'} wide>
+          <div className="st-form">
+            <Text label="Jabatan" value={f.title} onChange={(v) => setF({ ...f, title: v })} wide />
+            <TagInput label="Kebutuhan kemampuan" value={f.skills} onChange={(v) => setF({ ...f, skills: v })} />
+            <Text label="Lokasi" value={f.location} onChange={(v) => setF({ ...f, location: v })} placeholder="mis. Jakarta / Indonesia" />
+            <Select label="Mode kerja" value={f.work_mode} onChange={(v) => setF({ ...f, work_mode: v })} options={[['remote', 'Remote'], ['hybrid', 'Hybrid'], ['onsite', 'Onsite']]} />
+            <Select label="Jenis kontrak" value={f.contract_type} onChange={(v) => setF({ ...f, contract_type: v })} options={Object.entries(CONTRACT)} />
+            <Text label="Rentang kompensasi (opsional)" value={f.comp_range} onChange={(v) => setF({ ...f, comp_range: v })} placeholder="mis. Rp6–8 juta/bulan" />
+            <div className="st-field st-field--wide"><Check label="Tampilkan rentang kompensasi ke kandidat yang diundang" checked={f.show_comp} onChange={(v) => setF({ ...f, show_comp: v })} /></div>
+            <Area label="Proses seleksi" value={f.process} onChange={(v) => setF({ ...f, process: v })} rows={2} />
+            <Text label="Kontak HR internal" value={f.hr_contact} onChange={(v) => setF({ ...f, hr_contact: v })} hint="Untuk tim Anda saja — tidak ditampilkan ke kandidat." wide />
+            <div className="st-form__act"><Btn kind="primary" busy={busy === 'v'} onClick={save}>Simpan</Btn></div>
+          </div>
+        </Dialog>
+      )}
+    </Card>
   );
 }
 
@@ -127,6 +178,7 @@ export function Pipeline() {
   return (
     <div className="st-page-in">
       <PageHead eyebrow="Company Workspace" title="Pipeline hiring" />
+      <Vacancies />
       <Loaded state={s} empty={(d) => (d.length ? null : <Empty title="Belum ada undangan" icon={I.users}><Link to="/company/talent" className="st-btn st-btn--ghost st-btn--sm">Cari kandidat</Link></Empty>)}>
         {(d) => <ul className="st-list">{d.map((h) => <li key={h.id}><span><b>{h.candidate_alias ?? 'Kandidat'} · {h.vacancy_title}</b><small>Diundang {fmtDate(h.created_at, false)}{h.stage ? ` · ${HIRE_STAGE.find((x) => x[0] === h.stage)?.[1]}` : ''}</small></span><StatusBadge map={HIRE_STATUS} value={h.status} />{h.status === 'ACCEPTED' && <Btn size="sm" kind="primary" onClick={() => setSel(h)}>Kelola</Btn>}</li>)}</ul>}
       </Loaded>

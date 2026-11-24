@@ -7,12 +7,16 @@ import NotifyForm from '../components/NotifyForm';
 import { STUDIO_ORIGIN } from '@viboxs/shared/ecosystem';
 import { CATALOG_FILLED, PATHS, PROGRAMS, byDate } from '../lib/data';
 
-type Key = 'format' | 'path' | 'price' | 'time';
-const DEF: Record<Key, string> = { format: 'all', path: 'all', price: 'all', time: 'upcoming' };
+type Key = 'format' | 'path' | 'level' | 'price' | 'time';
+const DEF: Record<Key, string> = { format: 'all', path: 'all', level: 'all', price: 'all', time: 'upcoming' };
+/** Level di CMS berupa teks bebas ("Pemula–menengah", "Semua level") → dicocokkan per tingkat; "semua level" cocok ke semua. */
+const LEVEL_WORD: Record<string, string> = { beginner: 'pemula', intermediate: 'menengah', advanced: 'lanjut' };
+const levelMatch = (lv: string | undefined, want: string) => { const t = (lv ?? '').toLowerCase(); return t.includes('semua') || t.includes(LEVEL_WORD[want]); };
 // Dibangun saat render (bukan saat modul dimuat) agar jalur topik dari CMS ikut tampil.
 const groups = (): { key: Key; name: string; chips: [string, string][] }[] => [
   { key: 'format', name: 'Format', chips: [['all', 'Semua'], ['ebook', 'E-book'], ['webinar', 'Webinar'], ['workshop', 'Workshop']] },
   { key: 'path', name: 'Topik', chips: [['all', 'Semua'], ...PATHS.map((p) => [p.id, p.name] as [string, string])] },
+  { key: 'level', name: 'Level', chips: [['all', 'Semua'], ['beginner', 'Pemula'], ['intermediate', 'Menengah'], ['advanced', 'Lanjutan']] },
   { key: 'price', name: 'Biaya', chips: [['all', 'Semua'], ['free', 'Gratis'], ['paid', 'Berbayar']] },
   { key: 'time', name: 'Waktu', chips: [['upcoming', 'Mendatang'], ['past', 'Sudah lewat'], ['all', 'Semua']] },
 ];
@@ -53,13 +57,14 @@ export default function Programs() {
     if (s) L = L.filter((p) => `${p.title} ${p.summary} ${(p.tags || []).join(' ')}`.toLowerCase().includes(s));
     if (get('format') !== 'all') L = L.filter((p) => p.type === get('format'));
     if (get('path') !== 'all') L = L.filter((p) => p.path === get('path'));
+    if (get('level') !== 'all') L = L.filter((p) => levelMatch(p.level, get('level')));
     if (get('price') === 'free') L = L.filter((p) => p.free); else if (get('price') === 'paid') L = L.filter((p) => !p.free);
     if (get('time') === 'upcoming') L = L.filter((p) => !p.past); else if (get('time') === 'past') L = L.filter((p) => p.past);
     return L.sort(sort === 'new' ? (a, b) => b.added - a.added : byDate);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sp]);
 
-  const active = (['format', 'path', 'price'] as Key[]).filter((k) => get(k) !== 'all').length + (get('time') !== 'upcoming' ? 1 : 0) + (q ? 1 : 0);
+  const active = (['format', 'path', 'level', 'price'] as Key[]).filter((k) => get(k) !== 'all').length + (get('time') !== 'upcoming' ? 1 : 0) + (q ? 1 : 0);
   const msg = !CATALOG_FILLED ? 'Belum ada program yang tersedia.' : loading ? 'Memuat program…' : `${results.length} program ditemukan${q ? ` untuk “${q}”` : ''}`;
 
   return (
