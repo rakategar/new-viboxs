@@ -1,17 +1,18 @@
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { Check, Chevron, Close, Grid, IconSearch, Menu } from '@viboxs/shared/icons';
-import { SITES, SITE_ORDER, isPending } from '@viboxs/shared/ecosystem';
+import { SITES, SITE_ORDER, STUDIO_ORIGIN, isPending } from '@viboxs/shared/ecosystem';
 import EcoLink from './EcoLink';
 
+/** Header PRD v3.0 §02.1/§04.4: For Teams, Kolaborator, Help pindah ke footer. */
 export const NAV = [
-  { to: '/programs', label: 'Programs' },
-  { to: '/events', label: 'Events' },
-  { to: '/library', label: 'Digital Library' },
-  { to: '/corporate-training', label: 'For Teams' },
-  { to: '/kolaborator', label: 'Kolaborator' },
-  { to: '/help', label: 'Help' },
+  { to: '/', label: 'Beranda' },
+  { to: '/programs', label: 'Program' },
+  { to: '/events', label: 'Event' },
+  { to: '/digital-library', label: 'Digital Library' },
+  { to: '/edu-learner', label: 'EDU Learner' },
 ];
+const LOGIN = `${STUDIO_ORIGIN}/login`;
 
 export default function Header() {
   const [scrolled, setScrolled] = useState(false);
@@ -92,7 +93,7 @@ export default function Header() {
     setQ('');
   }
 
-  const isActive = (to: string) => loc.pathname === to || loc.pathname.startsWith(`${to}/`) || (to === '/events' && loc.pathname.startsWith('/events'));
+  const isActive = (to: string) => (to === '/' ? loc.pathname === '/' : loc.pathname === to || loc.pathname.startsWith(`${to}/`));
 
   const ecoList = (cls: string, mi: boolean) =>
     SITE_ORDER.map((k) => {
@@ -135,6 +136,7 @@ export default function Header() {
               <IconSearch size={16} />
               <input id="hdr-q" type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari program & topik" />
             </form>
+            <a href={LOGIN} className="btn btn--light btn--sm hdr__login">Masuk / Daftar</a>
             <button ref={ecoBtn} className="pill-btn" onClick={toggleEco} aria-haspopup="menu" aria-expanded={eco}>
               <Grid size={16} /> Ekosistem <Chevron size={14} className={`chev ${eco ? 'is-open' : ''}`} />
             </button>
@@ -146,7 +148,7 @@ export default function Header() {
             )}
           </div>
           <div className="hdr__mobile">
-            <Link to="/programs" className="btn btn--light btn--sm">Program</Link>
+            <a href={LOGIN} className="btn btn--light btn--sm">Masuk</a>
             <button ref={drawerBtnRef} className="icon-btn" onClick={openDrawer} aria-label="Buka menu" aria-expanded={drawer}>
               <Menu size={20} />
             </button>
@@ -177,7 +179,10 @@ export default function Header() {
           <div className="eyebrow">Jelajahi ekosistem</div>
           {ecoList('drawer__item', false)}
         </div>
-        <div className="drawer__cta"><Link to="/programs" className="btn btn--primary btn--block">Jelajahi Program</Link></div>
+        <div className="drawer__cta stack-8">
+          <a href={`${STUDIO_ORIGIN}/daftar`} className="btn btn--primary btn--block">Gabung EDU Learner</a>
+          <a href={LOGIN} className="btn btn--ghost btn--block">Masuk / Daftar</a>
+        </div>
       </div>
     </>
   );

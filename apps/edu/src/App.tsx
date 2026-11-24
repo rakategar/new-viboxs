@@ -1,5 +1,5 @@
 import { Suspense, lazy, useEffect, useLayoutEffect } from 'react';
-import { Route, Routes, useLocation } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation, useParams } from 'react-router-dom';
 import Cursor from '@viboxs/shared/cursor';
 import AgentSwarm from '@viboxs/shared/swarm';
 import { ScrollTrigger } from '@viboxs/shared/motion';
@@ -12,6 +12,7 @@ import Events from './pages/Events';
 import Library, { LibraryIndex } from './pages/Library';
 import Checkout from './pages/Checkout';
 import Collab from './pages/Collab';
+import { EduLearner, ForCompanies } from './pages/Audience';
 
 const Admin = lazy(() => import('./admin/Admin'));
 import { Help, NotFound, Policy, Teams } from './pages/Misc';
@@ -31,8 +32,8 @@ function RouteEffects() {
   }, [pathname, hash]);
   useEffect(() => {
     const p = bySlug(pathname.split('/')[2]);
-    const item = p && /^\/(programs|events|library)\//.test(pathname) ? p : undefined;
-    const policy = /^\/policies\/(purchase|refund|privacy|terms)$/.test(pathname);
+    const item = p && /^\/(programs|events|digital-library)\//.test(pathname) ? p : undefined;
+    const policy = /^\/policies\/(purchase|refund|privacy|terms|identity)$/.test(pathname);
     applySeo({
       origin: ORIGIN.edu, path: item ? hrefOf(item) : pathname, // /events/x → canonical /programs/x
       title: item ? `${item.title} — VIBOXS EDU` : TITLES[pathname] || (policy ? 'Kebijakan — VIBOXS EDU' : pathname.startsWith('/checkout/') ? 'Checkout — VIBOXS EDU' : 'Halaman tidak ditemukan — VIBOXS EDU'),
@@ -43,6 +44,12 @@ function RouteEffects() {
     return () => window.clearTimeout(t);
   }, [pathname]);
   return null;
+}
+
+/** URL lama /library/:slug (sudah terindeks) → alamat baru. */
+function LegacyLibrary() {
+  const { slug } = useParams();
+  return <Navigate to={`/digital-library/${slug ?? ''}`} replace />;
 }
 
 export default function App() {
@@ -61,10 +68,15 @@ export default function App() {
           <Route path="/programs/:slug" element={<Detail />} />
           <Route path="/events" element={<Events />} />
           <Route path="/events/:slug" element={<Detail from="events" />} />
-          <Route path="/library" element={<LibraryIndex />} />
-          <Route path="/library/:slug" element={<Library />} />
+          <Route path="/digital-library" element={<LibraryIndex />} />
+          <Route path="/digital-library/:slug" element={<Library />} />
+          <Route path="/library" element={<Navigate to="/digital-library" replace />} />
+          <Route path="/library/:slug" element={<LegacyLibrary />} />
           <Route path="/checkout/:slug" element={<Checkout />} />
-          <Route path="/corporate-training" element={<Teams />} />
+          <Route path="/edu-learner" element={<EduLearner />} />
+          <Route path="/for-companies" element={<ForCompanies />} />
+          <Route path="/for-teams" element={<Teams />} />
+          <Route path="/corporate-training" element={<Navigate to="/for-teams" replace />} />
           <Route path="/kolaborator" element={<Collab />} />
           <Route path="/help" element={<Help />} />
           <Route path="/policies/:kind" element={<Policy />} />

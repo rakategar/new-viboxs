@@ -4,7 +4,7 @@ import { ArrowRight, IconClock } from '@viboxs/shared/icons';
 import { Magnetic, useSpotlight, useTilt } from '@viboxs/shared/fx';
 import Marquee from '@viboxs/shared/marquee';
 import { gsap, reducedMotion, useMotion } from '@viboxs/shared/motion';
-import EcoLink from '../components/EcoLink';
+import { STUDIO_ORIGIN } from '@viboxs/shared/ecosystem';
 import DotField from '../components/DotField';
 import HeroJourney from '../components/HeroJourney';
 import ProgramCard from '../components/ProgramCard';
@@ -48,16 +48,19 @@ export default function Home() {
       )}
       <Hero />
       {on.marquee && HOME.marquee.length > 0 && <Marquee words={HOME.marquee} />}
-      {on.paths && <Paths />}
-      {(on.featured || on.formats || on.schedule) && (
+      {on.enroll && <Enroll />}
+      {on.learner && <Learner />}
+      {on.collab && <Collab />}
+      {on.opportunity && <Opportunity />}
+      {(on.featured || on.schedule || on.paths || on.formats) && (
         <div className="light">
           {on.featured && <Featured />}
-          {on.formats && <Formats />}
           {on.schedule && <Schedule />}
+          {on.formats && <Formats />}
         </div>
       )}
-      {on.enroll && <Enroll />}
-      {on.collab && <Collab />}
+      {on.paths && <Paths />}
+      {/* Showcase Ranger/OPC (PRD §11) sengaja tidak dirender: belum ada profil PUBLIC_APPROVED dengan bukti & consent. */}
       {on.bridges && <Bridges />}
       {on.closing && <Closing />}
     </div>
@@ -80,8 +83,8 @@ function Hero() {
           <h1 id="hero-h" className="h1 e-hero__h">{h.title}{h.accent && <> <span className="accent">{h.accent}</span></>}</h1>
           <p className="lead muted maxw-520">{h.lead}</p>
           <div className="row-12" data-build="Tombol · CTA">
-            <Magnetic><Link to="/programs" className="btn btn--primary btn--lg">{h.cta1} <ArrowRight /></Link></Magnetic>
-            <Magnetic><Link to="/events" className="btn btn--ghost btn--lg"><IconClock size={16} />{h.cta2}</Link></Magnetic>
+            <Magnetic><a href={`${STUDIO_ORIGIN}/daftar`} className="btn btn--primary btn--lg">{h.cta1} <ArrowRight /></a></Magnetic>
+            <Magnetic><Link to="/programs" className="btn btn--ghost btn--lg">{h.cta2}</Link></Magnetic>
           </div>
           {h.note && <span className="xs-13 muted">{h.note}</span>}
         </div>
@@ -134,18 +137,19 @@ function Featured() {
             <span className="eyebrow">{HOME.featured.eyebrow}</span>
             <h2 className="h2">{HOME.featured.title}</h2>
           </div>
-          {CATALOG_FILLED && <Link to="/programs" className="btn btn--ink-ghost btn--sm">Semua program <ArrowRight size={14} /></Link>}
+          {CATALOG_FILLED && FEATURED.length > 0 && <Link to="/programs" className="btn btn--ink-ghost btn--sm">Semua program <ArrowRight size={14} /></Link>}
         </div>
-        {CATALOG_FILLED ? (
+        {CATALOG_FILLED && FEATURED.length > 0 ? (
           <div className="card-grid card-grid--lg">
-            {FEATURED.map((s) => bySlug(s)).filter((p) => !!p).map((p) => <ProgramCard key={p!.slug} p={p!} showPath build />)}
+            {FEATURED.map((s) => bySlug(s)).filter((p) => !!p).map((p) => <ProgramCard key={p!.slug} p={p!} build />)}
           </div>
         ) : (
           <div className="empty-feature" data-build="Blok · Katalog kosong">
             <div className="stack-16">
-              <span className="mono-label ink-muted">KATALOG SEDANG DISIAPKAN</span>
-              <p className="h3-lg">Program pertama EDU sedang disusun — materi, fasilitator, jadwal, dan ketentuannya akan tampil lengkap di sini sebelum pendaftaran dibuka.</p>
-              <p className="body ink-muted">Kami tidak menampilkan program sebelum detailnya pasti. Tinggalkan email bila ingin tahu lebih dulu.</p>
+              <span className="mono-label ink-muted">PROGRAM SEDANG DISIAPKAN</span>
+              <p className="h3-lg">Program berikutnya sedang disiapkan. Kamu tetap bisa bergabung sebagai EDU Learner untuk memulai pemetaan tujuan belajarmu.</p>
+              <p className="body ink-muted">Kami tidak menampilkan program sebelum materi, kontributor, jadwal, dan ketentuannya pasti.</p>
+              <a href={`${STUDIO_ORIGIN}/daftar`} className="btn btn--ink btn--sm self-start">Gabung EDU Learner ↗</a>
             </div>
             <div className="empty-feature__form stack-12">
               <span className="strong">Beri tahu saya saat program dibuka</span>
@@ -160,10 +164,10 @@ function Featured() {
 
 /* ---------------- E05 Format chooser ---------------- */
 function Formats() {
-  const [tab, setTab] = useState(1);
+  const [tab, setTab] = useState(0);
   const [fade, setFade] = useState(false);
   const f = FORMATS[tab];
-  const card = bySlug(f.card) || PROGRAMS.find((p) => p.type === f.id);
+  const card = CATALOG_FILLED ? PROGRAMS.find((p) => p.type === f.id && !p.past) : undefined;
   const float = useTilt<HTMLAnchorElement>(5);
 
   function pick(i: number) {
@@ -201,17 +205,12 @@ function Formats() {
             <div className="stack-16">
               <span className="h3-lg">{f.name}</span>
               <p className="body-16 ink-muted">{f.desc}</p>
-              {CATALOG_FILLED ? (
-                <>
-                  <dl className="spec">{f.spec.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>
-                  <span className="mono xs ink-muted">Nilai di atas: [contoh]</span>
-                </>
-              ) : <div className="dashed-note">{f.fallback}</div>}
+              {!card && <div className="dashed-note">Belum ada {f.name.toLowerCase()} yang terbit. Tombol beli hanya muncul setelah materi, jadwal, dan harganya disetujui.</div>}
             </div>
             <div className="fmt__stage">
-              {CATALOG_FILLED && card ? (
+              {card ? (
                 <Link ref={float} to={hrefOf(card)} className="fmt__card">
-                  <span className="row-between"><span className="pcard__type">{TYPE[card.type]} · [contoh]</span><Status code={card.status} size="sm" still /></span>
+                  <span className="row-between"><span className="pcard__type">{TYPE[card.type]}</span><Status code={card.status} size="sm" still /></span>
                   <span className="strong lg-18">{card.title}</span>
                   <span className="small ink-muted">{whenOf(card)} · {timeOf(card)}</span>
                   <span className="row-between fmt__card-foot"><b>{priceOf(card)}</b><span className="pcard__cta">{ctaFor(card)}<ArrowRight size={14} /></span></span>
@@ -230,7 +229,7 @@ function Formats() {
 
 /* ---------------- E06 Upcoming ---------------- */
 function Schedule() {
-  const sched = PROGRAMS.filter((p) => ['OPEN', 'FULL', 'RESCHEDULED'].includes(p.status)).sort(byDate);
+  const sched = PROGRAMS.filter((p) => p.type !== 'ebook' && !p.past && ['OPEN', 'FULL', 'RESCHEDULED', 'ANNOUNCED'].includes(p.status)).sort(byDate).slice(0, 5);
   return (
     <section className="pb-section-xl">
       <div className="container split-2 align-start">
@@ -248,7 +247,7 @@ function Schedule() {
                 <span className="tl__date"><b>{p.dShort}</b><span>{p.mShort}</span></span>
                 <Link to={hrefOf(p, 'events')} className="tl__card">
                   <span className="row-between"><span className="strong">{p.title}</span><Status code={p.status} size="sm" /></span>
-                  <span className="small ink-muted">{whenOf(p)} · {p.time}</span>
+                  <span className="small ink-muted">{[whenOf(p), p.time].filter(Boolean).join(' · ')}</span>
                   {p.status === 'RESCHEDULED' && <span className="pcard__resched">Jadwal baru · sebelumnya <s>{p.prevDate}</s></span>}
                 </Link>
               </li>
@@ -257,7 +256,7 @@ function Schedule() {
         ) : (
           <div className="empty-box">
             <span className="h4">Jadwal berikutnya belum diumumkan.</span>
-            <span className="body ink-muted">Event hanya tampil setelah topik, fasilitator, tanggal, dan platformnya pasti.</span>
+            <span className="body ink-muted">Event hanya tampil setelah topik, kontributor, tanggal, dan platformnya pasti.</span>
             <a href="#e04" className="link-arrow ink">Aktifkan pemberitahuan <ArrowRight size={14} /></a>
           </div>
         )}
@@ -308,7 +307,7 @@ function Collab() {
             <span className="h3">{c.title}</span>
             <span className="body muted maxw-620">{c.desc}</span>
           </div>
-          <div className="collab-cta__roles" aria-hidden="true"><span className="tag">Trainer</span><span className="tag">Educator</span><span className="tag">Partnership</span></div>
+          <div className="collab-cta__roles" aria-hidden="true"><span className="tag">Trainer</span><span className="tag">Educator</span><span className="tag">Training center</span></div>
           <Magnetic><Link to="/kolaborator" className="btn btn--primary">{c.cta} <ArrowRight size={16} /></Link></Magnetic>
         </div>
       </div>
@@ -316,22 +315,72 @@ function Collab() {
   );
 }
 
-/* ---------------- E08 Bridges ---------------- */
+/* ---------------- Learner (PRD §15.1/15.2) ---------------- */
+function Learner() {
+  const c = HOME.learner;
+  const BEN = ['Peta belajar personal', 'Riwayat pembelajaran', 'Assessment dan feedback', 'Bintang progres & token reward sesuai ketentuan', 'Akses pengajuan peluang profesional'];
+  return (
+    <section className="pb-section">
+      <div className="container split-2 align-center">
+        <div className="stack-16">
+          <span className="eyebrow">{c.eyebrow}</span>
+          <h2 className="h2">{c.title}</h2>
+          <p className="body-17 muted maxw-520">{c.desc}</p>
+          <div className="row-12 flex-wrap">
+            <Magnetic><a href={`${STUDIO_ORIGIN}/daftar`} className="btn btn--primary">{c.cta} <ArrowRight size={16} /></a></Magnetic>
+            <Link to="/edu-learner" className="btn btn--ghost">Pelajari manfaatnya</Link>
+          </div>
+          <span className="xs-13 muted">Gratis untuk membuat akun. Pendaftaran tidak menjamin diterima bekerja atau menjadi Ranger.</span>
+        </div>
+        <ul className="benefit-list" data-build="Daftar · Manfaat Learner">
+          {BEN.map((b, i) => <li key={b}><span className="mono xs c-acc2">0{i + 1}</span><span className="strong">{b}</span></li>)}
+        </ul>
+      </div>
+    </section>
+  );
+}
+
+/* ---------------- Jalur kesempatan (tanpa janji) ---------------- */
+function Opportunity() {
+  const c = HOME.opportunity;
+  const LANES: [string, string][] = [
+    ['Seleksi Rangers', 'Jalur internal VIBOXS melalui rekam belajar, assessment, wawancara, dan uji proyek.'],
+    ['Perusahaan partner', 'Pembelajar yang memilih tersedia dapat ditemukan perusahaan terverifikasi.'],
+    ['Membangun bisnis', 'Langkah membangun usaha melalui ekosistem VIBOXS sesuai kesiapan program.'],
+  ];
+  return (
+    <section className="pb-section">
+      <div className="container stack-32">
+        <div className="sec-head">
+          <div className="sec-head__copy"><span className="eyebrow">{c.eyebrow}</span><h2 className="h2">{c.title}</h2></div>
+          <p className="body muted maxw-420">{c.desc}</p>
+        </div>
+        <div className="lane-grid">
+          {LANES.map(([t, d]) => <div key={t} className="lane" data-build={`Kartu · ${t}`}><span className="h4">{t}</span><span className="small muted">{d}</span></div>)}
+        </div>
+        <span className="xs-13 muted">Semua kesempatan bersifat selektif dan tidak dijamin.</span>
+      </div>
+    </section>
+  );
+}
+
+/* ---------------- Untuk Perusahaan & Program Tim ---------------- */
 function Bridges() {
+  const c = HOME.companies;
   return (
     <section className="pb-section">
       <div className="container bridge-grid">
-        <div className="bridge bridge--u" data-build="Kartu · Universe">
-          <span className="mono xs ls-08 c-acc2">UNIVERSE · KOMUNITAS OPC</span>
-          <span className="h3">Anggota Universe? Periksa manfaat yang berlaku untuk program ini.</span>
-          <span className="body muted">Manfaat anggota ditampilkan di halaman masing-masing program, bila berlaku.</span>
-          <EcoLink k="universe" className="btn btn--ghost btn--sm self-start">Jelajahi Universe ↗</EcoLink>
+        <div className="bridge bridge--u" data-build="Kartu · Perusahaan">
+          <span className="mono xs ls-08 c-acc2">{c.eyebrow.toUpperCase()}</span>
+          <span className="h3">{c.title}</span>
+          <span className="body muted">{c.desc}</span>
+          <Link to="/for-companies" className="btn btn--ghost btn--sm self-start">{c.cta} <ArrowRight size={14} /></Link>
         </div>
-        <div className="bridge bridge--s" data-build="Kartu · Services">
-          <span className="mono xs ls-08 acc-soft">SERVICES · TRAINING TIM</span>
+        <div className="bridge bridge--s" data-build="Kartu · Program Tim">
+          <span className="mono xs ls-08 acc-soft">PROGRAM TIM · SERVICES</span>
           <span className="h3">Ingin program khusus tim atau instansi? Diskusikan kebutuhanmu.</span>
-          <span className="body muted">Training custom untuk organisasi ditangani VIBOXS Services lewat proposal tersendiri.</span>
-          <Link to="/corporate-training" className="btn btn--ghost btn--sm self-start">Training untuk tim <ArrowRight size={14} /></Link>
+          <span className="body muted">Pelatihan custom untuk organisasi ditangani VIBOXS Services lewat proposal tersendiri.</span>
+          <Link to="/for-teams" className="btn btn--ghost btn--sm self-start">Program untuk tim <ArrowRight size={14} /></Link>
         </div>
       </div>
     </section>
@@ -347,13 +396,13 @@ function Closing() {
           <h2 className="h2 h2--xl">{HOME.closing.title}</h2>
           <p className="body-17 muted maxw-460">{HOME.closing.desc}</p>
           <div className="row-12" data-build="Tombol · CTA akhir">
-            <Magnetic><Link to="/programs" className="btn btn--primary btn--lg">{HOME.closing.cta1}</Link></Magnetic>
-            <Link to="/corporate-training" className="btn btn--ghost btn--lg">{HOME.closing.cta2}</Link>
+            <Magnetic><a href={`${STUDIO_ORIGIN}/daftar`} className="btn btn--primary btn--lg">{HOME.closing.cta1}</a></Magnetic>
+            <Link to="/programs" className="btn btn--ghost btn--lg">{HOME.closing.cta2}</Link>
           </div>
         </div>
         <div className="stack-8">
           <span className="eyebrow">Pertanyaan umum</span>
-          <Accordion items={FAQ.slice(0, 3).map((f) => ({ q: f.q, a: f.a }))} defaultOpen={null} />
+          <Accordion items={FAQ.slice(0, 4).map((f) => ({ q: f.q, a: f.a }))} defaultOpen={null} />
           <Link to="/help" className="link-arrow mt-8">Bantuan &amp; semua FAQ <ArrowRight size={14} /></Link>
         </div>
       </div>

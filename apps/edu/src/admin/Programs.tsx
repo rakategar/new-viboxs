@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { DEFAULT_PROGRAMS, PATHS, STATUS, TYPE, priceOf, type ProgType, type Program, type StatusCode } from '../lib/data';
+import { PATHS, STATUS, TYPE, priceOf, type ProgType, type Program, type StatusCode } from '../lib/data';
 import { getContent, sb, setContent, type ProgramRow } from './sb';
 import { Area, Card, Empty, I, PageHead, Select, StringList, Text, Toggle, ago, useToast } from './ui';
 import type { HomeContent } from '../lib/data';
 
 const slugify = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 80);
-const BLANK: Program = { slug: '', type: 'webinar', path: 'ai', title: '', summary: '', forWho: '', level: 'Pemula', status: 'ANNOUNCED', free: true, sortDate: '', added: 0, tags: [], mode: 'Online', loc: 'Zoom — link dikirim lewat email', cap: '[Kapasitas]', dur: '90 menit' };
+const BLANK: Program = { slug: '', type: 'webinar', path: 'ai', title: '', summary: '', forWho: '', level: 'Pemula', status: 'ANNOUNCED', free: true, sortDate: '', added: 0, tags: [], mode: 'Online', loc: 'Zoom — link dikirim lewat email', dur: '90 menit' };
 const STATUS_OPTS = (t: ProgType) => (Object.keys(STATUS) as StatusCode[]).filter((k) => (t === 'ebook' ? ['AVAILABLE', 'ANNOUNCED', 'CLOSED'].includes(k) : k !== 'AVAILABLE')).map((k) => [k, STATUS[k].label] as [StatusCode, string]);
 const ID_DAYS = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
 const ID_MONTHS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
@@ -39,11 +39,6 @@ export default function Programs() {
 
   const list = useMemo(() => (rows ?? []).filter((r) => (ft === 'all' || r.data.type === ft) && (!q || `${r.data.title} ${r.slug} ${r.data.tags?.join(' ')}`.toLowerCase().includes(q.toLowerCase()))), [rows, ft, q]);
 
-  async function seed() {
-    const payload = DEFAULT_PROGRAMS.map((p, i) => ({ slug: p.slug, data: p, published: true, position: i }));
-    const { error } = await sb.from('edu_programs').upsert(payload);
-    if (error) toast(error.message, 'err'); else { toast(`${payload.length} program bawaan diimpor.`); load(); }
-  }
   async function togglePub(r: ProgramRow) {
     const { error } = await sb.from('edu_programs').update({ published: !r.published }).eq('slug', r.slug);
     if (error) toast(error.message, 'err'); else { toast(r.published ? 'Disembunyikan dari situs.' : 'Ditayangkan di situs.'); load(); }
@@ -101,10 +96,9 @@ export default function Programs() {
         <button type="button" className="adm-btn adm-btn--primary" onClick={() => setEdit({ p: structuredClone(BLANK), published: false, isNew: true })}><I.plus size={16} />Program baru</button>
       </PageHead>
       {rows === null ? <div className="adm-skel" /> : rows.length === 0 ? (
-        <Card title="Katalog masih kosong di database">
-          <Empty title="Situs saat ini memakai data bawaan.">
-            Impor {DEFAULT_PROGRAMS.length} program bawaan (berlabel contoh) agar bisa diedit dari dashboard, atau buat program baru dari nol.
-            <div className="adm-quick"><button type="button" className="adm-btn adm-btn--primary adm-btn--sm" onClick={seed}>Impor katalog bawaan</button></div>
+        <Card title="Katalog masih kosong">
+          <Empty title="Situs menampilkan empty state yang jujur.">
+            Belum ada program di database. Buat program baru dari nol — program contoh tidak lagi bisa diimpor ke produksi (PRD v3.0 §02.1).
           </Empty>
         </Card>
       ) : (
@@ -147,7 +141,7 @@ export default function Programs() {
             </table>
             {list.length === 0 && <Empty title="Tidak ada yang cocok dengan filter." />}
           </div>
-          <p className="adm-hint">Urutan di tabel = urutan di katalog. Ikon mata = tayang/tersembunyi; bintang = tampil di “Program pilihan” beranda. Harga mengikuti aturan PRICE HOLD: hanya “Gratis” atau “[Harga]”.</p>
+          <p className="adm-hint">Urutan di tabel = urutan di katalog. Ikon mata = tayang/tersembunyi; bintang = tampil di “Program pilihan” beranda. Harga hanya tampil bila diisi; program berbayar tanpa harga tampil “Harga belum diumumkan”. Checkout berbayar tetap nonaktif sampai gateway pembayaran terpasang.</p>
         </>
       )}
     </div>
@@ -173,7 +167,7 @@ function Editor({ edit, setEdit, onSave }: { edit: EditState; setEdit: (e: EditS
         <Card title="Dasar">
           <div className="adm-form">
             <Text wide label="Judul" value={p.title} onChange={(v) => set({ title: v, ...(edit.isNew ? { slug: slugify(v) } : {}) })} />
-            <Text label="Slug (alamat URL)" value={p.slug} onChange={(v) => set({ slug: v })} hint={`${ebook ? '/library/' : '/programs/'}${slugify(p.slug || p.title) || '…'}`} />
+            <Text label="Slug (alamat URL)" value={p.slug} onChange={(v) => set({ slug: v })} hint={`${ebook ? '/digital-library/' : '/programs/'}${slugify(p.slug || p.title) || '…'}`} />
             <Select label="Tipe" value={p.type} onChange={(v) => set({ type: v, status: v === 'ebook' ? 'AVAILABLE' : p.status === 'AVAILABLE' ? 'OPEN' : p.status })} options={Object.entries(TYPE) as [ProgType, string][]} />
             <Select label="Jalur belajar" value={p.path} onChange={(v) => set({ path: v })} options={PATHS.map((x) => [x.id, x.name] as [string, string])} />
             <Select label="Status" value={p.status} onChange={(v) => set({ status: v })} options={STATUS_OPTS(p.type)} hint={STATUS[p.status]?.note} />
@@ -181,10 +175,12 @@ function Editor({ edit, setEdit, onSave }: { edit: EditState; setEdit: (e: EditS
             <Text label="Untuk siapa" value={p.forWho} onChange={(v) => set({ forWho: v })} />
             <Text label="Level" value={p.level} onChange={(v) => set({ level: v })} />
             <StringList label="Tag (untuk pencarian)" items={p.tags ?? []} onChange={(v) => set({ tags: v })} />
+            {!p.free && <Text label="Harga (Rupiah)" type="number" value={p.price ? String(p.price) : ''} onChange={(v) => { const n = Math.round(Number(v)); set({ price: Number.isFinite(n) && n > 0 ? n : undefined }); }} hint="Bilangan bulat tanpa titik, mis. 150000. Hanya harga yang sudah disetujui." />}
+            <Text label="Nama kontributor" value={p.facilitator} onChange={(v) => set({ facilitator: v })} hint="Isi hanya setelah kontributor menyetujui publikasi namanya." />
           </div>
           <div className="adm-toggles">
             <Toggle label="Tayang di situs" checked={edit.published} onChange={(v) => setEdit({ ...edit, published: v })} />
-            <Toggle label="Gratis" checked={p.free} onChange={(v) => set({ free: v })} hint={p.free ? 'Ditampilkan “Gratis”.' : 'Ditampilkan “[Harga]” sampai harga disetujui (PRICE HOLD).'} />
+            <Toggle label="Gratis" checked={p.free} onChange={(v) => set({ free: v })} hint={p.free ? 'Ditampilkan “Gratis”.' : 'Isi harga final di bawah; kosong = “Harga belum diumumkan”.'} />
             {!ebook && <Toggle label="Sesi sudah lewat (arsip)" checked={!!p.past} onChange={(v) => set({ past: v })} />}
           </div>
         </Card>
@@ -192,13 +188,13 @@ function Editor({ edit, setEdit, onSave }: { edit: EditState; setEdit: (e: EditS
         {!ebook ? (
           <Card title="Jadwal & tempat" desc="Pilih tanggal — hari dan format tanggal Indonesia terisi otomatis.">
             <div className="adm-form">
-              <Text label="Tanggal" type="date" value={/^\d{4}-\d{2}-\d{2}$/.test(p.sortDate) ? p.sortDate : ''} onChange={(v) => set(fromIso(v))} hint="Kosongkan bila belum pasti." />
+              <Text label="Mulai (WIB)" type="datetime-local" value={p.startsAt?.endsWith('+07:00') ? p.startsAt.slice(0, 16) : ''} onChange={(v) => set(v ? { startsAt: `${v}:00+07:00`, ...fromIso(v.slice(0, 10)) } : { startsAt: undefined, sortDate: '' })} hint="Waktu Jakarta. Dipakai kalender Event; sesi otomatis masuk arsip setelah lewat." />
               <Text label="Teks tanggal" value={p.date} onChange={(v) => set({ date: v })} hint="Contoh: 3 Desember 2026 / Tanggal menyusul" />
               <Text label="Jam" value={p.time} onChange={(v) => set({ time: v })} placeholder="19.00–20.30 WIB" />
               <Text label="Durasi" value={p.dur} onChange={(v) => set({ dur: v })} />
               <Text label="Mode" value={p.mode} onChange={(v) => set({ mode: v })} placeholder="Online / Offline" />
               <Text label="Lokasi / platform" value={p.loc} onChange={(v) => set({ loc: v })} />
-              <Text label="Kapasitas" value={p.cap} onChange={(v) => set({ cap: v })} />
+              <Text label="Kapasitas" value={p.cap} onChange={(v) => set({ cap: v })} hint="Kosongkan bila belum pasti (tidak ditampilkan)." />
               {p.status === 'RESCHEDULED' && <Text label="Jadwal sebelumnya" value={p.prevDate} onChange={(v) => set({ prevDate: v })} />}
             </div>
           </Card>
@@ -210,13 +206,14 @@ function Editor({ edit, setEdit, onSave }: { edit: EditState; setEdit: (e: EditS
               <Text label="Versi" value={p.version} onChange={(v) => set({ version: v })} />
               <Text label="Jumlah halaman" value={p.pages} onChange={(v) => set({ pages: v })} />
               <Text wide label="Penulis" value={p.author} onChange={(v) => set({ author: v })} />
+              <Text wide label="URL sampul" value={p.cover} onChange={(v) => set({ cover: v })} hint="Gambar berhak pakai (https). Kosong = sampul tipografi." />
               <StringList label="Daftar isi" items={p.toc ?? []} onChange={(v) => set({ toc: v })} />
             </div>
           </Card>
         )}
 
         {!ebook && (
-          <Card title="Materi" desc="Kosongkan untuk memakai teks standar webinar.">
+          <Card title="Materi" desc="Bagian yang kosong tidak ditampilkan di situs (tidak ada teks pengganti otomatis).">
             <div className="adm-form">
               <StringList label="Yang akan kamu kuasai" items={p.outcomes ?? []} onChange={(v) => set({ outcomes: v })} />
               <Area label="Agenda (satu baris per sesi: Materi | durasi)" rows={5} value={agendaTxt} onChange={(v) => set({ agenda: v.split('\n').map((l) => l.split('|').map((x) => x.trim())).filter((x) => x[0]).map((x) => [x[0], x[1] ?? ''] as [string, string]) })} />

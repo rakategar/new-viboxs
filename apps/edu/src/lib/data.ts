@@ -1,7 +1,8 @@
 /**
- * Katalog EDU — port bertipe dari edu-data.js (Claude Design).
- * SEMUA item berlabel [contoh]: belum ada produk/jadwal/harga yang approved.
- * Harga selalu "[Harga]" atau "Gratis" — PRICE HOLD, jangan menulis angka.
+ * Katalog EDU. Sumber kebenaran = tabel `edu_programs` (published) di Supabase.
+ * PRD v3.0 §02.1: produksi TIDAK pernah menampilkan produk contoh — katalog kosong adalah keadaan jujur.
+ * Data contoh (DEMO_PROGRAMS) hanya untuk dev lokal dengan VITE_EDU_CATALOG=example.
+ * Harga hanya tampil bila diisi CMS (`price`, IDR); selain itu "Harga belum diumumkan".
  */
 
 export type StatusCode = 'ANNOUNCED' | 'OPEN' | 'FULL' | 'CLOSED' | 'RESCHEDULED' | 'CANCELLED' | 'COMPLETED' | 'AVAILABLE';
@@ -40,15 +41,17 @@ export interface Program {
   mode?: string; loc?: string; cap?: string; sortDate: string; added: number; tags: string[];
   outcomes?: string[]; agenda?: [string, string][]; receive?: string[]; access?: string; lang?: string;
   fileFmt?: string; version?: string; author?: string; pages?: string; toc?: string[];
+  /** Harga dalam Rupiah (bilangan bulat). Kosong = belum diumumkan. Diabaikan bila `free`. */
+  price?: number;
+  /** Waktu mulai ISO 8601 dengan offset (mis. 2026-12-03T19:00:00+07:00). Dipakai kalender & status otomatis. */
+  startsAt?: string;
+  /** Nama fasilitator — hanya diisi setelah ia menyetujui publikasi profil. */
+  facilitator?: string;
+  /** URL sampul berhak pakai (e-book). */
+  cover?: string;
 }
 
-const D_WEB = {
-  outcomes: ['Memahami konsep inti topik dengan contoh dari pekerjaan sehari-hari', 'Mempraktikkan satu alur kerja langsung selama sesi', 'Membawa pulang worksheet untuk dipakai ulang'],
-  agenda: [['Pembuka & konteks', '10 menit'], ['Konsep inti dengan contoh', '30 menit'], ['Praktik terpandu', '35 menit'], ['Tanya jawab', '15 menit']] as [string, string][],
-  receive: ['Link sesi dikirim ke email setelah registrasi', 'Worksheet PDF', 'Replay — [belum dipastikan]'],
-  access: 'Link sesi dikirim H-1 dan 1 jam sebelum sesi. Worksheet dapat diunduh setelah sesi.',
-};
-
+/** Data contoh untuk pengembangan lokal saja (tidak pernah ikut ke produksi). */
 const RAW: Program[] = [
   { slug: 'dasar-ai-kerja-harian', type: 'webinar', path: 'ai', title: 'Dasar AI untuk Kerja Harian', summary: 'Kenali cara memakai asisten AI untuk merangkum, menyusun draf, dan merapikan dokumen kerja — dengan batasan yang jelas.', forWho: 'Profesional dan founder yang baru mulai memakai AI', level: 'Pemula · tanpa prasyarat', status: 'OPEN', free: true, day: 'Kamis', date: '3 Desember 2026', dShort: '03', mShort: 'DES', time: '19.00–20.30 WIB', dur: '90 menit', mode: 'Online', loc: 'Zoom — link dikirim lewat email', cap: '[Kapasitas]', sortDate: '2026-12-03', added: 6, tags: ['ai', 'prompt', 'dokumen', 'produktivitas'],
     outcomes: ['Menulis instruksi (prompt) yang jelas untuk merangkum dan menyusun draf', 'Memeriksa ulang hasil AI sebelum dipakai di pekerjaan', 'Mengenali data apa yang tidak boleh dimasukkan ke alat AI'],
@@ -69,43 +72,66 @@ const RAW: Program[] = [
 ];
 
 
-/** Normalisasi program: webinar/workshop mendapat default outcomes/agenda/receive/access. */
-export const normalizeProgram = (p: Program): Program =>
-  p.type === 'ebook' ? p : { ...p, outcomes: p.outcomes?.length ? p.outcomes : D_WEB.outcomes, agenda: p.agenda?.length ? p.agenda : D_WEB.agenda, receive: p.receive?.length ? p.receive : D_WEB.receive, access: p.access || D_WEB.access, lang: p.lang || 'Bahasa Indonesia' };
+const TZ = 'Asia/Jakarta';
+const fmt = (o: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat('id-ID', { timeZone: TZ, ...o });
 
-/** Data bawaan (dipakai sebagai seed CMS & fallback bila database tidak terjangkau). */
-export const DEFAULT_PROGRAMS: Program[] = RAW;
-export const PROGRAMS: Program[] = RAW.map((p) => normalizeProgram(p));
+/** Tanggal lokal Jakarta (YYYY-MM-DD) dari ISO — kunci kalender, tidak bergantung zona waktu perangkat. */
+export const jktDay = (iso: string) => new Intl.DateTimeFormat('en-CA', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(iso));
 
-/** Katalog terisi atau kosong. Diatur dari CMS (settings.catalogFilled); env hanya default. */
-export let CATALOG_FILLED = (import.meta.env.VITE_EDU_CATALOG ?? 'example') !== 'empty';
+/**
+ * Normalisasi program dari CMS. TIDAK mengarang outcome/agenda: field kosong tetap kosong dan bagiannya disembunyikan.
+ * Bila `startsAt` diisi, label tanggal diturunkan darinya (WIB) dan sesi yang sudah lewat otomatis masuk arsip.
+ */
+export const normalizeProgram = (p: Program): Program => {
+  const n: Program = { ...p, tags: p.tags || [], lang: p.lang || 'Bahasa Indonesia' };
+  if (p.type !== 'ebook' && p.startsAt && !Number.isNaN(Date.parse(p.startsAt))) {
+    const d = new Date(p.startsAt);
+    n.day = fmt({ weekday: 'long' }).format(d);
+    n.date = fmt({ day: 'numeric', month: 'long', year: 'numeric' }).format(d);
+    n.dShort = fmt({ day: '2-digit' }).format(d);
+    n.mShort = fmt({ month: 'short' }).format(d).replace('.', '').toUpperCase();
+    n.sortDate = jktDay(p.startsAt);
+    if (!p.time) n.time = `${fmt({ hour: '2-digit', minute: '2-digit' }).format(d).replace(':', '.')} WIB`;
+    const end = d.getTime() + 3 * 3600e3; // sesi dianggap lewat 3 jam setelah mulai bila tidak ditandai lain
+    if (Date.now() > end) n.past = true;
+  } else if (p.type !== 'ebook' && /^\d{4}-\d{2}-\d{2}$/.test(p.sortDate || '') && p.sortDate < jktDay(new Date().toISOString())) {
+    n.past = true; // hanya tanggal (tanpa jam): lewat setelah hari itu berakhir di WIB
+  }
+  if (n.past && ['OPEN', 'FULL', 'RESCHEDULED', 'ANNOUNCED', 'CLOSED'].includes(n.status)) n.status = 'COMPLETED';
+  return n;
+};
+
+/** Data contoh — hanya untuk pengembangan lokal (`VITE_EDU_CATALOG=example`) dan tombol impor dev di CMS. */
+export const DEMO_PROGRAMS: Program[] = RAW;
+const DEV_DEMO = import.meta.env.DEV && import.meta.env.VITE_EDU_CATALOG === 'example';
+export const PROGRAMS: Program[] = DEV_DEMO ? RAW.map(normalizeProgram) : [];
+
+/** Katalog terisi bila ada program terpublikasi (dan CMS tidak menutupnya lewat settings.catalogFilled=false). */
+export let CATALOG_FILLED = PROGRAMS.length > 0;
 
 export const bySlug = (slug?: string) => PROGRAMS.find((p) => p.slug === slug);
-export let FEATURED = ['dasar-ai-kerja-harian', 'sop-bisnis-satu-orang', 'panduan-prompt-operasional', 'distribusi-konten-opc', 'komunikasi-tertulis-kerja', 'otomasi-spreadsheet-ai'];
+export let FEATURED: string[] = DEV_DEMO ? ['dasar-ai-kerja-harian', 'sop-bisnis-satu-orang', 'panduan-prompt-operasional'] : [];
 
 export const FORMATS = [
-  { id: 'ebook', name: 'E-book', kicker: 'Digital Guides', desc: 'Panduan digital yang bisa dibaca kapan saja. Kamu tahu format file, isi, dan cara aksesnya sebelum membeli.', card: 'panduan-prompt-operasional',
-    spec: [['Format file', 'PDF & EPUB'], ['Ringkasan isi', '7 bab · pola prompt & contoh'], ['Cara akses', 'Link unduhan dikirim ke email'], ['Harga', '[Harga]']],
-    fallback: 'Belum tersedia. Tombol beli hanya muncul setelah file final, hak distribusi, dan harga disetujui.' },
-  { id: 'webinar', name: 'Live Webinar', kicker: 'Sesi langsung', desc: 'Sesi online terjadwal dengan fasilitator. Jadwal selalu ditulis lengkap dalam WIB.', card: 'dasar-ai-kerja-harian',
-    spec: [['Hari & tanggal', 'Kamis, 3 Desember 2026'], ['Jam', '19.00–20.30 WIB'], ['Durasi', '90 menit'], ['Online / offline', 'Online · Zoom'], ['Harga', 'Gratis']],
-    fallback: 'Jadwal webinar berikutnya belum diumumkan. Aktifkan pemberitahuan untuk kabar pertama.' },
-  { id: 'workshop', name: 'Workshop', kicker: 'Praktik terpandu', desc: 'Sesi praktik lebih panjang dengan kapasitas terbatas dan output yang jelas di akhir sesi.', card: 'sop-bisnis-satu-orang',
-    spec: [['Modus', 'Online · Zoom'], ['Kapasitas', '[Kapasitas] peserta'], ['Lokasi / joining', 'Link dikirim setelah pembayaran'], ['Output', '1 SOP siap pakai']],
-    fallback: 'Workshop tampil setelah kapasitas dan penyelenggara pasti.' },
+  { id: 'webinar', name: 'Live Webinar', kicker: 'Sesi langsung', desc: 'Sesi online terjadwal bersama kontributor. Jadwal ditulis lengkap dalam WIB; tautan sesi hanya dikirim ke peserta terdaftar.' },
+  { id: 'workshop', name: 'Workshop', kicker: 'Praktik terpandu', desc: 'Sesi praktik lebih panjang dengan kapasitas terbatas dan hasil kerja yang jelas di akhir sesi.' },
+  { id: 'ebook', name: 'E-book', kicker: 'Digital Library', desc: 'Panduan digital yang bisa dibaca kapan saja. Daftar isi, format file, dan lisensinya tertulis sebelum membeli.' },
 ];
 
+/** Cara EDU bekerja (PRD v3.0 §15.1). */
 export const STEPS: [string, string][] = [
-  ['Pilih program', 'Pastikan statusnya “Pendaftaran dibuka” atau “Tersedia”.'],
-  ['Periksa detailnya', 'Materi, durasi, harga, dan ketentuan tertulis sebelum kamu mendaftar.'],
-  ['Isi identitas seperlunya', 'Nama dan email. Persetujuan pemasaran terpisah dan opsional.'],
-  ['Bayar atau konfirmasi', 'Program gratis cukup dikonfirmasi. Program berbayar lewat penyedia pembayaran.'],
-  ['Terima bukti & akses', 'Tiket, link, atau file dikirim ke email — beserta jalur bantuan.'],
+  ['Kenali posisi awalmu', 'Ceritakan tujuan, kemampuan saat ini, dan waktu belajarmu di Studio. Bukan tes kepribadian.'],
+  ['Ikuti pembelajaran yang relevan', 'Pilih webinar, workshop, atau e-book yang sesuai kebutuhan — hanya program yang benar-benar terbit.'],
+  ['Ukur pemahamanmu', 'Assessment dan refleksi tertulis membantu melihat apa yang sudah kamu kuasai.'],
+  ['Lihat perkembanganmu', 'Riwayat belajar dan progres tersimpan di akunmu, terpisah dari sertifikasi profesi.'],
+  ['Jajaki peluang berikutnya', 'Ajukan diri ke jalur yang tersedia. Setiap jalur punya kriteria dan seleksi masing-masing.'],
 ];
 
 export interface Faq { g: string; q: string; a: string }
 export const FAQ: Faq[] = [
   { g: 'Pendaftaran', q: 'Apakah saya perlu membuat akun untuk melihat program?', a: 'Tidak. Semua informasi program bisa dibaca tanpa login. Data diri hanya diminta saat kamu mendaftar.' },
+  { g: 'Pendaftaran', q: 'Apa bedanya membeli sebagai tamu dan sebagai EDU Learner?', a: 'Kamu tetap bisa membeli tanpa akun. Sebagai EDU Learner (gratis), riwayat belajar, peta pembelajaran, dan assessment tersimpan di VIBOXS Studio.' },
+  { g: 'Pendaftaran', q: 'Apakah menjadi EDU Learner menjamin pekerjaan atau diterima sebagai Ranger?', a: 'Tidak. Pendaftaran tidak menjamin diterima bekerja, mendapat proyek, atau menjadi Ranger. Setiap jalur punya kriteria dan proses seleksi tersendiri.' },
   { g: 'Pendaftaran', q: 'Bagaimana saya tahu pendaftaran sudah berhasil?', a: 'Kamu menerima email konfirmasi berisi nomor registrasi atau order, beserta petunjuk akses. Jika tidak masuk dalam 15 menit, periksa folder spam lalu hubungi bantuan.' },
   { g: 'Pembayaran', q: 'Saya sudah membayar, tetapi status masih menunggu.', a: 'Verifikasi bisa memerlukan waktu sesuai penyedia pembayaran. Jangan membayar ulang sebelum status diperbarui — hubungi bantuan dengan nomor order bila status tidak berubah.' },
   { g: 'Pembayaran', q: 'Apakah ada biaya tambahan?', a: 'Total biaya, termasuk pajak atau biaya layanan bila ada, ditampilkan di ringkasan order sebelum kamu membayar.' },
@@ -125,42 +151,54 @@ export const SUPPORT: [string, string][] = [
 ];
 
 /* ---------- turunan tampilan ---------- */
+const rupiah = (n: number) => `Rp${Math.round(n).toLocaleString('id-ID')}`;
 const CTA: Record<StatusCode, (p: Program) => string> = {
   OPEN: (p) => (p.free ? 'Daftar gratis' : 'Lihat detail & daftar'), AVAILABLE: () => 'Lihat detail e-book', FULL: () => 'Lihat sesi',
   ANNOUNCED: () => 'Dapatkan pemberitahuan', CLOSED: () => 'Lihat detail', RESCHEDULED: () => 'Lihat jadwal baru',
   CANCELLED: () => 'Info pembatalan', COMPLETED: () => 'Lihat arsip',
 };
 export const ctaFor = (p: Program) => CTA[p.status](p);
-export const priceOf = (p: Program) => (p.free ? 'Gratis' : '[Harga]');
-export const whenOf = (p: Program) => (p.type === 'ebook' ? `${p.fileFmt} · ${p.lang}` : p.day ? `${p.day}, ${p.date}` : p.date || '');
-export const timeOf = (p: Program) => (p.type === 'ebook' ? 'Link unduhan dikirim ke email' : `${p.time} · ${p.mode}`);
+export const priceOf = (p: Program) => (p.free ? 'Gratis' : typeof p.price === 'number' && p.price > 0 ? rupiah(p.price) : 'Harga belum diumumkan');
+/**
+ * Gateway pembayaran (Midtrans) belum terpasang → checkout berbayar OFF di semua halaman.
+ * Dinyalakan di Batch 2 bersama order server + webhook terverifikasi; jangan dinyalakan tanpa itu.
+ */
+export const PAYMENTS_ENABLED = false;
+/** Program berbayar tanpa harga final tidak boleh masuk checkout. */
+export const hasPrice = (p: Program) => p.free || (typeof p.price === 'number' && p.price > 0);
+export const whenOf = (p: Program) => (p.type === 'ebook' ? [p.fileFmt, p.lang].filter(Boolean).join(' · ') : p.day ? `${p.day}, ${p.date}` : p.date || 'Jadwal menyusul');
+export const timeOf = (p: Program) => (p.type === 'ebook' ? 'Akses dikirim setelah pembelian terverifikasi' : [p.time, p.mode].filter(Boolean).join(' · '));
 export const pathName = (id: string) => PATHS.find((x) => x.id === id)?.name || '';
 export const lcFirst = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
 export const hrefOf = (p: Program, from: 'programs' | 'events' = 'programs') =>
-  p.type === 'ebook' ? `/library/${p.slug}` : from === 'events' ? `/events/${p.slug}` : `/programs/${p.slug}`;
+  p.type === 'ebook' ? `/digital-library/${p.slug}` : from === 'events' ? `/events/${p.slug}` : `/programs/${p.slug}`;
 
-export const byDate = (a: Program, b: Program) => a.sortDate.localeCompare(b.sortDate);
+export const byDate = (a: Program, b: Program) => (a.sortDate || '9999').localeCompare(b.sortDate || '9999');
 export const emailOk = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.trim());
 export const rid = () => Math.random().toString(36).slice(2, 8).toUpperCase();
 
 export const DESCS: Record<string, string> = {
-  '/': 'VIBOXS EDU: webinar, workshop, dan e-book praktis tentang AI, bisnis, dan karier. Jadwal, harga, dan ketentuan tertulis jelas sebelum mendaftar.',
-  '/programs': 'Katalog program VIBOXS EDU: webinar, workshop, dan panduan digital tentang AI untuk kerja, bisnis satu orang, dan karier.',
-  '/events': 'Jadwal webinar dan workshop VIBOXS EDU. Semua waktu dalam WIB, dengan status pendaftaran yang selalu diperbarui.',
-  '/library': 'Digital Library VIBOXS EDU: e-book dan panduan praktis yang bisa langsung dipakai untuk kerja dan bisnis.',
-  '/corporate-training': 'Pelatihan AI dan produktivitas untuk tim perusahaan dari VIBOXS EDU, disesuaikan dengan kebutuhan organisasi Anda.',
-  '/kolaborator': 'Daftar sebagai trainer, educator, atau partner VIBOXS EDU. Ajukan e-book atau webinar kategori AI untuk dipublikasikan di edu.viboxs.com.',
+  '/': 'VIBOXS EDU: belajar AI dengan arah yang jelas. Temukan pembelajaran sesuai kebutuhan, ukur perkembangan, dan bangun rekam belajar untuk langkah berikutnya.',
+  '/programs': 'Katalog program VIBOXS EDU: webinar, workshop, dan e-book tentang AI untuk kerja, karier, dan bisnis. Hanya program yang benar-benar terbit.',
+  '/events': 'Kalender webinar dan workshop VIBOXS EDU. Semua waktu dalam WIB (Asia/Jakarta).',
+  '/digital-library': 'Digital Library VIBOXS EDU: e-book dan kit praktis tentang AI, lengkap dengan daftar isi, format, dan lisensi.',
+  '/edu-learner': 'Gabung EDU Learner gratis: peta belajar personal, riwayat pembelajaran, assessment, dan akses pengajuan peluang profesional.',
+  '/for-companies': 'Temukan talenta AI dari pembelajar yang memilih tersedia untuk peluang kerja, dalam workspace perusahaan terverifikasi VIBOXS.',
+  '/for-teams': 'Program pelatihan AI dan produktivitas untuk tim perusahaan, disusun bersama VIBOXS Services.',
+  '/kolaborator': 'Jadi kontributor VIBOXS EDU: terbitkan webinar, workshop, atau e-book AI. Kelola jadwal, materi, dan laporan pendapatan dalam satu dashboard.',
   '/help': 'Pusat bantuan VIBOXS EDU: pendaftaran, pembayaran, akses materi, dan perubahan jadwal. Hubungi admin@viboxs.com.',
 };
 
 export const TITLES: Record<string, string> = {
-  '/': 'VIBOXS EDU — Webinar, Workshop & E-book Praktis tentang AI dan Bisnis',
+  '/': 'VIBOXS EDU — Belajar AI dengan Arah yang Jelas',
   '/programs': 'Katalog program — VIBOXS EDU',
-  '/events': 'Jadwal event — VIBOXS EDU',
-  '/corporate-training': 'Training untuk tim — VIBOXS EDU',
+  '/events': 'Kalender event — VIBOXS EDU',
+  '/digital-library': 'Digital Library — VIBOXS EDU',
+  '/edu-learner': 'EDU Learner — VIBOXS EDU',
+  '/for-companies': 'Untuk Perusahaan — VIBOXS EDU',
+  '/for-teams': 'Program Tim — VIBOXS EDU',
+  '/kolaborator': 'Jadi Kontributor — VIBOXS EDU',
   '/help': 'Bantuan & FAQ — VIBOXS EDU',
-  '/library': 'Digital Library — VIBOXS EDU',
-  '/kolaborator': 'Jadi kolaborator — Trainer, Educator & Partner AI · VIBOXS EDU',
 };
 
 /* ================= Konten halaman utama (dikelola CMS /admin) ================= */
@@ -174,39 +212,58 @@ export interface HomeContent {
   schedule: { eyebrow: string; title: string; desc: string };
   enroll: { eyebrow: string; title: string; desc: string };
   collab: { eyebrow: string; title: string; desc: string; cta: string };
+  learner: { eyebrow: string; title: string; desc: string; cta: string };
+  opportunity: { eyebrow: string; title: string; desc: string };
+  companies: { eyebrow: string; title: string; desc: string; cta: string };
   closing: { title: string; desc: string; cta1: string; cta2: string };
   sections: Record<SectionKey, boolean>;
 }
-export type SectionKey = 'marquee' | 'paths' | 'featured' | 'formats' | 'schedule' | 'enroll' | 'collab' | 'bridges' | 'closing';
+export type SectionKey = 'marquee' | 'enroll' | 'learner' | 'collab' | 'opportunity' | 'featured' | 'schedule' | 'paths' | 'formats' | 'bridges' | 'closing';
+/** Urutan blok beranda mengikuti PRD v3.0 §04.2. */
 export const SECTION_LABEL: Record<SectionKey, string> = {
-  marquee: 'Marquee topik', paths: 'Jalur belajar', featured: 'Program pilihan', formats: 'Pilih format', schedule: 'Jadwal terdekat',
-  enroll: 'Cara pendaftaran', collab: 'Ajakan kolaborator', bridges: 'Universe & Services', closing: 'Penutup & FAQ',
+  marquee: 'Marquee topik', enroll: 'Cara EDU bekerja', learner: 'Ajakan EDU Learner', collab: 'Ajakan kontributor', opportunity: 'Jalur kesempatan',
+  featured: 'Program pilihan', schedule: 'Jadwal terdekat', paths: 'Jalur topik', formats: 'Penjelasan format', bridges: 'Perusahaan & Program Tim', closing: 'Penutup & FAQ',
 };
 
+/** Copy PRD v3.0 §15 (Public Copy Deck). Tidak menjanjikan pekerjaan, proyek, atau penghasilan. */
 export const DEFAULT_HOME: HomeContent = {
   announcement: { on: false, text: '', link: '', linkLabel: 'Lihat' },
   hero: {
-    chip: 'BELAJAR PRAKTIS · VIBOXS', title: 'Belajar keterampilan yang bisa langsung', accent: 'dipraktikkan.',
-    lead: 'Jelajahi panduan digital, webinar, dan program praktis dari ekosistem VIBOXS. Lihat format, jadwal, dan ketentuannya sebelum mendaftar.',
-    cta1: 'Jelajahi Program', cta2: 'Lihat Jadwal', note: 'Tanpa login untuk membaca program. Harga dan ketentuan tertulis sebelum kamu mendaftar.',
+    chip: 'EDU LEARNER · VIBOXS', title: 'Belajar AI dengan Arah yang Jelas.', accent: 'Buka Peluang Nyata untuk Berkembang.',
+    lead: 'Temukan pembelajaran yang sesuai kebutuhanmu, ukur perkembangan kemampuan, dan bangun rekam belajar yang bisa mendukung langkah berikutnya dalam karier atau bisnis.',
+    cta1: 'Gabung EDU Learner', cta2: 'Jelajahi Program', note: 'Gratis untuk membuat akun. Produk tertentu berbayar.',
   },
-  marquee: ['Prompting dasar', 'SOP & operasional', 'Distribusi konten', 'Komunikasi tertulis', 'Riset pasar', 'AI untuk dokumen', 'Produktivitas', 'Spreadsheet'],
-  paths: { eyebrow: 'Jalur belajar', title: 'Mulai dari tujuanmu.', desc: 'Jalur belajar adalah cara memfilter topik — bukan program sertifikasi.' },
+  marquee: ['Prompting dasar', 'AI untuk dokumen', 'Otomasi kerja', 'SOP & operasional', 'Distribusi konten', 'Riset pasar', 'Komunikasi tertulis', 'Produktivitas'],
+  paths: { eyebrow: 'Jalur topik', title: 'Mulai dari tujuanmu.', desc: 'Jalur topik adalah cara memfilter program — bukan program sertifikasi.' },
   featured: { eyebrow: 'Program pilihan', title: 'Yang bisa kamu ikuti sekarang.', slugs: [...FEATURED] },
-  formats: { eyebrow: 'Pilih format', title: 'Cara belajar yang sesuai ritmemu.', note: 'Kursus on-demand belum tersedia dan akan tampil setelah platform belajarnya siap.' },
+  formats: { eyebrow: 'Format belajar', title: 'Cara belajar yang sesuai ritmemu.', note: 'Kursus on-demand belum tersedia dan akan tampil setelah platform belajarnya siap.' },
   schedule: { eyebrow: 'Jadwal terdekat', title: 'Sesi yang sudah terkonfirmasi.', desc: 'Semua jam dalam WIB. Sesi yang sudah lewat tidak tampil di sini.' },
-  enroll: { eyebrow: 'Cara pendaftaran', title: 'Lima langkah, tanpa kejutan.', desc: 'Sebelum membayar, kamu tahu apa yang dibeli, apa yang diterima, total biaya, cara akses, dan jalur bantuan.' },
-  collab: {
-    eyebrow: 'Kolaborator EDU', title: 'Punya keahlian di bidang AI? Publikasikan e-book atau webinarmu di VIBOXS EDU.',
-    desc: 'Trainer, educator, dan partner bisa mengajukan produk belajar kategori AI. Tim kami meninjau setiap pengajuan dan membalas lewat email.',
-    cta: 'Ajukan kolaborasi',
+  enroll: { eyebrow: 'Cara EDU bekerja', title: 'Dari tujuan, ke pembelajaran, ke langkah berikutnya.', desc: 'Discovery, belajar, assessment, perkembangan, lalu kesempatan — setiap tahap tercatat dan bisa kamu lihat sendiri.' },
+  learner: {
+    eyebrow: 'EDU Learner', title: 'Lebih dari sekadar membeli kelas.',
+    desc: 'Setiap perjalanan belajar punya tujuan, riwayat, dan langkah berikutnya. Sebagai EDU Learner kamu mendapat peta belajar, riwayat pembelajaran, assessment, dan akses pengajuan peluang profesional.',
+    cta: 'Gabung EDU Learner',
   },
-  closing: { title: 'Siap mulai belajar?', desc: 'Lihat program yang sedang dibuka, atau tanyakan dulu hal yang belum jelas.', cta1: 'Lihat Program yang Tersedia', cta2: 'Butuh pelatihan untuk tim?' },
-  sections: { marquee: true, paths: true, featured: true, formats: true, schedule: true, enroll: true, collab: true, bridges: true, closing: true },
+  collab: {
+    eyebrow: 'Kontributor EDU', title: 'Fokus mengajar. VIBOXS membantu materimu menemukan pembelajar yang tepat.',
+    desc: 'Trainer, educator, dan training center dapat menerbitkan webinar, workshop, atau e-book AI lewat dashboard kontributor. Setiap pengajuan dikurasi; eksposur tidak menjamin penjualan.',
+    cta: 'Ajukan Menjadi Kontributor',
+  },
+  opportunity: {
+    eyebrow: 'Jalur kesempatan', title: 'Kembangkan kemampuan untuk langkah berikutnya.',
+    desc: 'Kembangkan kemampuan untuk menjajaki seleksi Rangers, kesempatan perusahaan partner, atau langkah membangun bisnis melalui ekosistem VIBOXS. Semua jalur memiliki kriteria, proses seleksi, dan ketersediaan masing-masing.',
+  },
+  companies: {
+    eyebrow: 'Untuk perusahaan', title: 'Temukan talenta AI yang relevan dengan kebutuhan tim Anda.',
+    desc: 'Hanya pembelajar yang memilih tersedia untuk peluang kerja yang dapat ditemukan, melalui workspace perusahaan terverifikasi.',
+    cta: 'Pelajari untuk perusahaan',
+  },
+  closing: { title: 'Mulai dari kemampuanmu hari ini.', desc: 'Gabung EDU Learner untuk memetakan tujuan belajarmu, atau lihat program yang sudah terbit.', cta1: 'Gabung EDU Learner', cta2: 'Jelajahi Program' },
+  sections: { marquee: true, enroll: true, learner: true, collab: true, opportunity: true, featured: true, schedule: true, paths: false, formats: false, bridges: true, closing: true },
 };
 
 export interface Settings { catalogFilled: boolean; seoTitle: string; seoDesc: string }
-export const DEFAULT_SETTINGS: Settings = { catalogFilled: CATALOG_FILLED, seoTitle: TITLES['/'], seoDesc: DESCS['/'] };
+export const DEFAULT_SETTINGS: Settings = { catalogFilled: true, seoTitle: TITLES['/'], seoDesc: DESCS['/'] };
 
 /** Objek hidup yang dibaca halaman. Diisi ulang dari database saat aplikasi dimuat. */
 export const HOME: HomeContent = structuredClone(DEFAULT_HOME);
@@ -227,15 +284,19 @@ function mergeHome(v: Partial<HomeContent>) {
 export interface RemoteContent { programs?: Program[]; home?: Partial<HomeContent>; paths?: Path[]; faq?: Faq[]; steps?: [string, string][]; settings?: Partial<Settings> }
 /** Terapkan konten dari CMS ke data hidup. Data yang kosong/hilang tetap memakai bawaan. */
 export function applyRemote(c: RemoteContent) {
-  if (c.programs?.length) PROGRAMS.splice(0, PROGRAMS.length, ...c.programs.map(normalizeProgram));
+  // Daftar dari server adalah kebenaran — termasuk bila kosong (tidak ada fallback ke data contoh).
+  if (Array.isArray(c.programs) && !DEV_DEMO) PROGRAMS.splice(0, PROGRAMS.length, ...c.programs.filter((p) => p && p.slug && p.title).map(normalizeProgram));
   if (c.home) mergeHome(c.home);
   fill(PATHS, c.paths);
   fill(FAQ, c.faq);
   fill(STEPS, c.steps);
   if (c.settings) {
-    if (typeof c.settings.catalogFilled === 'boolean') CATALOG_FILLED = c.settings.catalogFilled;
+    if (c.settings.catalogFilled === false) CATALOG_FILLED = false;
     if (c.settings.seoTitle) TITLES['/'] = c.settings.seoTitle;
     if (c.settings.seoDesc) DESCS['/'] = c.settings.seoDesc;
   }
+  if (c.settings?.catalogFilled !== false) CATALOG_FILLED = PROGRAMS.length > 0;
   FEATURED = HOME.featured.slugs.filter((s) => bySlug(s));
+  // Tanpa pilihan manual: tampilkan program aktif terdekat (dinamis, bukan hard-code).
+  if (!FEATURED.length) FEATURED = PROGRAMS.filter((p) => !p.past && ['OPEN', 'AVAILABLE', 'RESCHEDULED', 'ANNOUNCED'].includes(p.status)).sort(byDate).slice(0, 6).map((p) => p.slug);
 }

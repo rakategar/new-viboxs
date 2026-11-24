@@ -1,7 +1,8 @@
 import { SUPABASE_KEY, SUPABASE_URL } from '@viboxs/shared/backend';
 import { applyRemote, type Program, type RemoteContent } from './data';
 
-const CACHE = 'edu-content-v1';
+// v2: cache v1 bisa berisi 9 program contoh lama — jangan pernah dibaca lagi.
+const CACHE = 'edu-content-v2';
 const H = { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` };
 
 async function fetchRemote(signal: AbortSignal): Promise<RemoteContent> {
@@ -18,12 +19,13 @@ async function fetchRemote(signal: AbortSignal): Promise<RemoteContent> {
 }
 
 /**
- * Ambil konten CMS sebelum render pertama (maks ~2,5 dtk). Gagal/timeout → cache terakhir → data bawaan.
+ * Ambil konten CMS sebelum render pertama (maks ~2,5 dtk). Gagal/timeout → cache terakhir → katalog kosong (bukan data contoh).
  * Halaman membaca data secara sinkron, jadi cukup diterapkan sekali di sini.
  */
 export async function loadContent() {
   const ac = new AbortController();
   const t = window.setTimeout(() => ac.abort(), 2500);
+  try { localStorage.removeItem('edu-content-v1'); } catch { /* abaikan */ }
   try {
     const c = await fetchRemote(ac.signal);
     applyRemote(c);

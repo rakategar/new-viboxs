@@ -19,4 +19,3 @@ export default function Status({ code, size = 'md', still }: { code: StatusCode;
   );
 }
 
-export const Sample = ({ inline }: { inline?: boolean }) => <span className={inline ? 'sample sample--inline' : 'sample'}>[contoh]</span>;

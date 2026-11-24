@@ -6,11 +6,11 @@ import { submitForm } from '@viboxs/shared/backend';
 import { CONTACT } from '@viboxs/shared/ecosystem';
 import { emailOk } from '../lib/data';
 
-type Role = 'Trainer' | 'Educator' | 'Partnership';
+type Role = 'Trainer' | 'Educator' | 'Training center';
 const ROLES: { k: Role; d: string }[] = [
   { k: 'Trainer', d: 'Praktisi yang ingin membawakan webinar atau menulis e-book praktis.' },
   { k: 'Educator', d: 'Pengajar, dosen, atau kreator edukasi yang ingin mempublikasikan materi.' },
-  { k: 'Partnership', d: 'Lembaga atau perusahaan yang ingin bekerja sama mempublikasikan produk AI.' },
+  { k: 'Training center', d: 'Lembaga pelatihan atau organisasi yang ingin menerbitkan program AI.' },
 ];
 const PRODUK_INDIVIDU = ['E-book', 'Webinar'];
 const PRODUK_PARTNER = ['E-book', 'Webinar', 'Workshop', 'Paket / bundel produk AI', 'Lainnya'];
@@ -31,7 +31,7 @@ function validate(f: F) {
   if (!emailOk(f.email)) e.email = 'Isi email yang valid, contoh nama@domain.com';
   const w = f.wa.replace(/[\s-]/g, '');
   if (!/^(\+?62|0)8\d{7,12}$/.test(w)) e.wa = 'Isi nomor WhatsApp yang valid, contoh 0812 3456 7890';
-  if (f.role === 'Partnership' && !f.instansi.trim()) e.instansi = 'Isi nama lembaga / perusahaan';
+  if (f.role === 'Training center' && !f.instansi.trim()) e.instansi = 'Isi nama lembaga / perusahaan';
   if (f.judul.trim().length < 5) e.judul = 'Isi judul produk (minimal 5 karakter)';
   const d = f.deskripsi.trim().length;
   if (d < 50) e.deskripsi = `Ceritakan produkmu lebih detail — minimal 50 karakter (sekarang ${d})`;
@@ -57,7 +57,7 @@ export default function Collab() {
     const soc = SOCIAL.includes(k);
     setErr((e) => { if (!e[k] && !(soc && e.instagram)) return e; const n = { ...e }; delete n[k]; if (soc) delete n.instagram; return n; });
   };
-  const produkList = f.role === 'Partnership' ? PRODUK_PARTNER : PRODUK_INDIVIDU;
+  const produkList = f.role === 'Training center' ? PRODUK_PARTNER : PRODUK_INDIVIDU;
 
   async function submit(ev: FormEvent) {
     ev.preventDefault();
@@ -82,18 +82,22 @@ export default function Collab() {
     <div ref={ref}>
       <section className="section page-top--glow">
         <div className="container stack-40">
-          <nav aria-label="Breadcrumb" className="crumbs"><Link to="/">EDU</Link><span>/</span><span aria-current="page">Kolaborator</span></nav>
+          <nav aria-label="Breadcrumb" className="crumbs"><Link to="/">EDU</Link><span>/</span><span aria-current="page">Jadi Kontributor</span></nav>
           <div className="collab-grid">
             <aside className="stack-24 collab-aside">
-              <span className="mono-label">KOLABORATOR · KATEGORI AI</span>
-              <h1 className="h1-sm" data-anim="up">Publikasikan e-book atau webinar AI-mu di VIBOXS EDU.</h1>
-              <p className="lead muted" data-anim="up">Trainer, educator, dan partner bisa mengajukan produk belajar. Setiap pengajuan ditinjau tim EDU sebelum dipublikasikan.</p>
+              <span className="mono-label">KONTRIBUTOR EDU · KATEGORI AI</span>
+              <h1 className="h1-sm" data-anim="up">Fokus Mengajar. VIBOXS Membantu Materimu Menemukan Pembelajar yang Tepat.</h1>
+              <p className="lead muted" data-anim="up">Terbitkan webinar, workshop, atau e-book melalui dashboard kontributor. Kelola jadwal, materi, dan laporan pendapatan dalam satu tempat, sementara sistem rekomendasi EDU membantu pembelajar menemukan materi berdasarkan kebutuhan mereka.</p>
               <ol className="collab-steps" data-anim="stagger">
-                <li><span>1</span><span><b>Kirim pengajuan</b> — identitas, judul, deskripsi, dan media sosialmu.</span></li>
-                <li><span>2</span><span><b>Kurasi tim EDU</b> — kami meninjau relevansi, kualitas, dan kesiapan materi.</span></li>
-                <li><span>3</span><span><b>Diskusi & kesepakatan</b> — format, jadwal, harga, dan bagi hasil disepakati tertulis.</span></li>
-                <li><span>4</span><span><b>Publikasi</b> — produk tampil di katalog EDU setelah semua detail final.</span></li>
+                <li><span>1</span><span><b>Ajukan profil</b> — identitas, kompetensi, rencana produk, dan portofolio.</span></li>
+                <li><span>2</span><span><b>Kurasi</b> — Commander meninjau relevansi, kualitas, dan hak atas materi.</span></li>
+                <li><span>3</span><span><b>Siapkan produk</b> — lewat undangan ke dashboard kontributor di VIBOXS Studio.</span></li>
+                <li><span>4</span><span><b>Review &amp; publish</b> — produk tampil di EDU setelah disetujui dan terbit.</span></li>
+                <li><span>5</span><span><b>Jalankan pembelajaran</b> — sesi, ringkasan materi, dan assessment.</span></li>
+                <li><span>6</span><span><b>Lihat laporan &amp; pencairan</b> — penjualan dan pendapatan produkmu sendiri.</span></li>
               </ol>
+              <p className="small muted"><b>Fairness.</b> Distribusi mengikuti kecocokan kebutuhan pembelajar, kualitas produk, dan ketersediaan. Kesempatan eksposur tidak menjamin penjualan.</p>
+              <p className="small muted"><b>Token.</b> Kontributor dapat memilih menerima token untuk masing-masing produk. Porsi tunai dan token, manfaat penukaran, serta batasnya ditampilkan sebelum produk dipublikasikan. Penukaran token belum aktif.</p>
               <span className="xs-13 muted">Pertanyaan? Email <a href={`mailto:${CONTACT.email}`} className="u-link">{CONTACT.email}</a> atau DM Instagram <a href={CONTACT.instagramUrl} target="_blank" rel="noopener noreferrer" className="u-link">@{CONTACT.instagram}</a>.</span>
             </aside>
 
@@ -134,7 +138,7 @@ export default function Collab() {
 
                   {f.role && (
                     <fieldset className="field" id="k-produk">
-                      <legend>{f.role === 'Partnership' ? 'Bentuk kerja sama' : 'Produk yang diajukan'}</legend>
+                      <legend>{f.role === 'Training center' ? 'Bentuk kerja sama' : 'Produk yang diajukan'}</legend>
                       <div className="chip-pick">
                         {produkList.map((x) => (
                           <label key={x} className={`pick-chip ${f.produk === x ? 'is-on' : ''}`}><input type="radio" name="produk" value={x} checked={f.produk === x} onChange={() => set('produk', x)} />{x}</label>
@@ -151,7 +155,7 @@ export default function Collab() {
                     <div className="field"><label htmlFor="k-email">Email</label><input id="k-email" type="email" autoComplete="email" value={f.email} onChange={(e) => set('email', e.target.value)} aria-invalid={!!err.email} placeholder="nama@domain.com" />{fe('email')}</div>
                     <div className="field"><label htmlFor="k-wa">WhatsApp</label><input id="k-wa" type="tel" autoComplete="tel" value={f.wa} onChange={(e) => set('wa', e.target.value)} aria-invalid={!!err.wa} placeholder="0812 3456 7890" />{fe('wa')}</div>
                     <div className="field"><label htmlFor="k-kota">Kota <span className="muted">(opsional)</span></label><input id="k-kota" autoComplete="address-level2" value={f.kota} onChange={(e) => set('kota', e.target.value)} /></div>
-                    <div className="field"><label htmlFor="k-instansi">{f.role === 'Partnership' ? 'Lembaga / perusahaan' : 'Instansi / perusahaan'} {f.role !== 'Partnership' && <span className="muted">(opsional)</span>}</label><input id="k-instansi" autoComplete="organization" value={f.instansi} onChange={(e) => set('instansi', e.target.value)} aria-invalid={!!err.instansi} />{fe('instansi')}</div>
+                    <div className="field"><label htmlFor="k-instansi">{f.role === 'Training center' ? 'Lembaga / perusahaan' : 'Instansi / perusahaan'} {f.role !== 'Training center' && <span className="muted">(opsional)</span>}</label><input id="k-instansi" autoComplete="organization" value={f.instansi} onChange={(e) => set('instansi', e.target.value)} aria-invalid={!!err.instansi} />{fe('instansi')}</div>
                     <div className="field"><label htmlFor="k-jabatan">Jabatan / profesi <span className="muted">(opsional)</span></label><input id="k-jabatan" autoComplete="organization-title" value={f.jabatan} onChange={(e) => set('jabatan', e.target.value)} /></div>
                   </div>
 

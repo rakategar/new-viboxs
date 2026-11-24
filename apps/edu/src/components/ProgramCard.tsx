@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { ArrowRight } from '@viboxs/shared/icons';
 import { useSpotlight } from '@viboxs/shared/fx';
-import Status, { Sample } from './Status';
+import Status from './Status';
 import { TYPE, ctaFor, hrefOf, lcFirst, pathName, priceOf, timeOf, whenOf, type Program } from '../lib/data';
 
 const DIM = ['CLOSED', 'CANCELLED', 'COMPLETED'];
@@ -16,7 +16,7 @@ export default function ProgramCard({ p, from = 'programs', showPath, build }: {
         <Status code={p.status} size="sm" />
       </span>
       <span className="pcard__title">{p.title}</span>
-      <span className="pcard__who">Untuk {lcFirst(p.forWho)}</span>
+      {p.forWho && <span className="pcard__who">Untuk {lcFirst(p.forWho)}</span>}
       <span className="pcard__when">
         <span className="strong">{whenOf(p)}</span>
         <span className="ink-muted">{timeOf(p)}</span>
@@ -26,7 +26,6 @@ export default function ProgramCard({ p, from = 'programs', showPath, build }: {
         <span className="pcard__price">{priceOf(p)}</span>
         <span className="pcard__cta">{ctaFor(p)}<ArrowRight size={14} /></span>
       </span>
-      <Sample />
     </Link>
   );
 }

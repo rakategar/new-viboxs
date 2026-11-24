@@ -1,3 +1,4 @@
+import { STUDIO_ORIGIN } from '@viboxs/shared/ecosystem';
 import { createClient, type PostgrestError } from '@supabase/supabase-js';
 import { SUPABASE_KEY, SUPABASE_URL } from '@viboxs/shared/backend';
 
@@ -77,3 +78,11 @@ export async function must<T>(q: PromiseLike<{ data: T | null; error: PostgrestE
 }
 
 export const PRIVACY_VERSION = 'learner-privacy-draft-2026-11';
+
+/**
+ * Origin untuk semua tautan email (verifikasi, reset, undangan). Jangan pakai location.origin di produksi:
+ * tautan yang dibuat dari dev server/preview akan menunjuk ke host itu (bug P00-005 "localhost").
+ * Hanya dev lokal yang memakai origin-nya sendiri.
+ */
+export const authOrigin = () =>
+  /^(localhost|127\.0\.0\.1)$/.test(location.hostname) ? location.origin : STUDIO_ORIGIN;

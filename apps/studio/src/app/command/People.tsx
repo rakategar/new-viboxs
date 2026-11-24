@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react';
 import { useAction, useLoad } from '../../lib/hooks';
 import { ROLE, INVITE_STATUS, GRANT_STATUS, ago, fmtDate } from '../../lib/labels';
-import { sb, must, rpc, type Grant, type Invite, type Profile, type Role } from '../../lib/sb';
+import { sb, must, rpc, authOrigin, type Grant, type Invite, type Profile, type Role } from '../../lib/sb';
 import { Area, Btn, Chips, Copy, Dialog, Empty, I, Loaded, PageHead, Select, StatusBadge, Tabs, Text, useToast } from '../../ui/kit';
 
-export const inviteUrl = (token: string) => `${location.origin}/invite/${token}`;
+export const inviteUrl = (token: string) => `${authOrigin()}/invite/${token}`;
 const PRO: Role[] = ['ranger', 'trainer', 'opc_founder', 'business_partner', 'collaborator'];
 
 /** CMD-01: undangan sekali pakai + peran per orang (tambah / tangguhkan / cabut). */

@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { rpc, sb, type Role } from '../lib/sb';
+import { rpc, sb, authOrigin, type Role } from '../lib/sb';
 import { useAuth, rememberInvite } from '../lib/auth';
 import { ROLE, fmtDate } from '../lib/labels';
 import { I } from '../ui/kit';
@@ -42,7 +42,7 @@ export default function Invite() {
     setBusy(true);
     rememberInvite(token);
     const res = mode === 'signup'
-      ? await sb.auth.signUp({ email: email.trim(), password: pw, options: { emailRedirectTo: `${location.origin}/invite/${token}` } })
+      ? await sb.auth.signUp({ email: email.trim(), password: pw, options: { emailRedirectTo: `${authOrigin()}/invite/${token}` } })
       : await sb.auth.signInWithPassword({ email: email.trim(), password: pw });
     setBusy(false);
     if (res.error) { setErr(/invalid login/i.test(res.error.message) ? 'Email atau password tidak cocok.' : res.error.message); return; }

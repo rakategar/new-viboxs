@@ -17,7 +17,8 @@ export function Teams() {
       <section className="section page-top--glow">
         <div className="container stack-40">
           <div className="stack-20 maxw-760">
-            <span className="eyebrow">For Teams</span>
+            <nav aria-label="Breadcrumb" className="crumbs"><Link to="/">EDU</Link><span>/</span><span aria-current="page">Program Tim</span></nav>
+            <span className="eyebrow">Program Tim</span>
             <h1 className="h1-sm">Belajar sendiri, atau pelatihan untuk seluruh tim?</h1>
             <p className="lead muted">EDU menyediakan kelas publik yang bisa diikuti siapa saja. Untuk pelatihan yang disusun khusus bagi satu organisasi, VIBOXS Services yang menanganinya.</p>
           </div>
@@ -25,7 +26,7 @@ export function Teams() {
             <div className="bridge bridge--light" data-build="Kartu · Kelas publik">
               <span className="mono-label ink-muted">KELAS PUBLIK · EDU</span>
               <span className="h3">Daftar sebagai individu</span>
-              <ul className="bullets"><li>Jadwal, materi, dan harga sudah ditentukan</li><li>Daftar dan bayar langsung di EDU</li><li>Peserta dari berbagai latar belakang</li></ul>
+              <ul className="bullets"><li>Jadwal, materi, dan harga ditentukan sebelum pendaftaran</li><li>Daftar langsung di EDU</li><li>Peserta dari berbagai latar belakang</li></ul>
               <Link to="/programs" className="btn btn--ink self-start">Jelajahi Program</Link>
             </div>
             <div className="bridge bridge--s" data-build="Kartu · Training custom">
@@ -52,7 +53,7 @@ export function Help() {
     <div ref={ref}>
       <section className="page-top">
         <div className="container stack-16">
-          <nav aria-label="Breadcrumb" className="crumbs"><Link to="/">EDU</Link><span>/</span><span aria-current="page">Help</span></nav>
+          <nav aria-label="Breadcrumb" className="crumbs"><Link to="/">EDU</Link><span>/</span><span aria-current="page">Bantuan</span></nav>
           <h1 className="h1-sm">Ada yang bisa dibantu?</h1>
           <p className="body-17 muted maxw-620">Pendaftaran, pembayaran, akses materi, dan perubahan jadwal.</p>
         </div>
@@ -135,18 +136,40 @@ function HelpForm() {
 }
 
 /* ---------------- /policies/:kind ---------------- */
-const POL: Record<string, string> = { purchase: 'Kebijakan pembelian', refund: 'Refund & reschedule', privacy: 'Kebijakan privasi', terms: 'Ketentuan layanan' };
+const POL: Record<string, string> = { purchase: 'Kebijakan pembelian', refund: 'Refund & reschedule', privacy: 'Kebijakan privasi', terms: 'Syarat dan ketentuan', identity: 'Identitas PT EPH' };
 export function Policy() {
   const { kind = '' } = useParams();
   const t = POL[kind];
   if (!t) return <NotFound />;
+  if (kind === 'identity') return <Identity />;
   return (
     <section className="section page-top--glow">
       <div className="container stack-20 maxw-760">
         <nav aria-label="Breadcrumb" className="crumbs"><Link to="/">EDU</Link><span>/</span><span>Kebijakan</span><span>/</span><span aria-current="page">{t}</span></nav>
         <h1 className="h1-sm">{t}</h1>
-        <p className="lead muted">Dokumen ini sedang ditinjau tim hukum. Pembayaran berbayar tidak dibuka sebelum kebijakan final dipublikasikan di halaman ini.</p>
+        <p className="lead muted">Dokumen ini sedang ditinjau tim hukum. Pembayaran untuk program berbayar tidak dibuka sebelum kebijakan final dipublikasikan di halaman ini.</p>
         <div className="slot slot--lg">[Isi {t.toLowerCase()} — menunggu review hukum]</div>
+        <Link to="/help" className="link-arrow">Pusat bantuan <ArrowRight size={14} /></Link>
+      </div>
+    </section>
+  );
+}
+
+/* Identitas penyelenggara — hanya fakta yang sudah pasti; tidak mengarang alamat atau nomor izin. */
+function Identity() {
+  return (
+    <section className="section page-top--glow">
+      <div className="container stack-20 maxw-760">
+        <nav aria-label="Breadcrumb" className="crumbs"><Link to="/">EDU</Link><span>/</span><span>Kebijakan</span><span>/</span><span aria-current="page">Identitas PT EPH</span></nav>
+        <h1 className="h1-sm">Identitas penyelenggara</h1>
+        <p className="lead muted">VIBOXS EDU dioperasikan oleh VIBOXS, unit usaha PT Ekosistem Pelosok Hub.</p>
+        <dl className="kv">
+          <div><dt>Badan usaha</dt><dd>PT Ekosistem Pelosok Hub</dd></div>
+          <div><dt>Unit usaha</dt><dd>VIBOXS</dd></div>
+          <div><dt>Situs</dt><dd>edu.viboxs.com · www.viboxs.com</dd></div>
+          <div><dt>Kontak resmi</dt><dd><a href={`mailto:${CONTACT.email}`}>{CONTACT.email}</a></dd></div>
+          <div><dt>Alamat &amp; nomor izin usaha</dt><dd>Dipublikasikan setelah verifikasi dokumen legal.</dd></div>
+        </dl>
         <Link to="/help" className="link-arrow">Pusat bantuan <ArrowRight size={14} /></Link>
       </div>
     </section>

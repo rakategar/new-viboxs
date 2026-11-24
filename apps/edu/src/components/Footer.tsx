@@ -13,30 +13,28 @@ export default function Footer() {
         <div className="ftr__grid" data-anim="stagger">
           <div className="ftr__brand">
             <span className="row-10"><img src="/assets/viboxs-wordmark-white.png" alt="VIBOXS" height={20} /><span className="strong muted small">· EDU</span></span>
-            <p>Katalog program belajar publik dari ekosistem VIBOXS, unit AI Venture Studio di bawah PT Ekosistem Pelosok Hub.</p>
+            <p>Pembelajaran AI yang terarah dari ekosistem VIBOXS, unit usaha PT Ekosistem Pelosok Hub. Semua kesempatan bersifat selektif dan tidak dijamin.</p>
           </div>
           <nav aria-label="EDU">
             <span className="eyebrow">EDU</span>
-            <Link to="/programs">Programs</Link>
-            <Link to="/events">Events</Link>
-            <Link to="/library">Digital Library</Link>
-            <Link to="/corporate-training">For Teams</Link>
-            <Link to="/kolaborator">Jadi kolaborator</Link>
+            <Link to="/for-companies">Untuk Perusahaan</Link>
+            <Link to="/kolaborator">Jadi Kontributor</Link>
+            <Link to="/for-teams">Program Tim</Link>
+            <Link to="/help">Bantuan</Link>
           </nav>
           <nav aria-label="Ekosistem">
             <span className="eyebrow">Ekosistem</span>
             <EcoLink k="corporate">VIBOXS</EcoLink>
-            <EcoLink k="universe">Universe</EcoLink>
             <Link to="/" aria-current="page">EDU</Link>
             <EcoLink k="services">Services</EcoLink>
           </nav>
           <nav aria-label="Kebijakan">
             <span className="eyebrow">Kebijakan</span>
-            <Link to="/policies/purchase">Kebijakan pembelian</Link>
-            <Link to="/policies/refund">Refund &amp; reschedule</Link>
-            <Link to="/policies/privacy">Kebijakan privasi</Link>
-            <Link to="/policies/terms">Ketentuan layanan</Link>
-            <span className="small muted">Konten menunggu review hukum</span>
+            <Link to="/policies/privacy">Kebijakan Privasi</Link>
+            <Link to="/policies/terms">Syarat dan Ketentuan</Link>
+            <Link to="/policies/refund">Refund</Link>
+            <Link to="/policies/identity">Identitas PT EPH</Link>
+            <span className="small muted">Draf — menunggu review hukum</span>
           </nav>
           <div className="ftr__contact">
             <span className="eyebrow">Bantuan</span>

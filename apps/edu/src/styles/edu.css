@@ -577,3 +577,47 @@
 .help-form { display: grid; gap: 16px; padding: clamp(20px, 3vw, 32px); border-radius: 20px; background: #fff; border: 1px solid var(--v-light-line); color: var(--v-ink); }
 .help-form .field input:not([type=checkbox]), .help-form .field textarea, .help-form .field select { background: #fff; color: var(--v-ink); border-color: var(--v-light-line); }
 .field select { height: 48px; padding: 0 12px; border-radius: 8px; background: var(--v-bg); color: var(--v-text); border: 1px solid var(--v-line-strong); font: inherit; font-size: 16px; }
+
+/* ===== Revisi PRD v3.0 (24 Nov 2026): header login, learner, jalur, kalender, modal guest ===== */
+.hdr__login { white-space: nowrap; }
+.hdr__actions { gap: 8px; }
+
+.benefit-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.benefit-list li { display: flex; align-items: baseline; gap: 14px; padding: 16px 20px; border-radius: 16px; border: 1px solid var(--v-line); background: var(--v-surface); }
+
+.lane-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 16px; }
+.lane { display: grid; gap: 10px; align-content: start; padding: 24px; border-radius: 18px; border: 1px solid var(--v-line); background: var(--v-surface); }
+.lane-grid--light .lane { background: #fff; border-color: var(--v-light-line); color: var(--v-ink); }
+.lane-grid--light .lane svg { color: var(--v-accent-deep); flex: none; }
+
+.steps--light .step { background: #fff; border-color: var(--v-light-line); color: var(--v-ink); min-height: 0; }
+.steps--light .step__n { background: var(--v-ink); color: #fff; }
+.steps--light .step__rule { background: var(--v-light-line); }
+
+/* kalender event — tanggal tanpa sesi bukan tombol */
+.cal-wrap { display: grid; grid-template-columns: minmax(0, 420px) minmax(0, 1fr); gap: 24px; align-items: start; }
+@media (max-width: 860px) { .cal-wrap { grid-template-columns: 1fr; } }
+.cal { padding: 20px; border-radius: 20px; background: #fff; border: 1px solid var(--v-light-line); }
+.cal__bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.cal__m { margin: 0; text-transform: capitalize; }
+.cal__grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.cal__dow { font-family: var(--font-mono); font-size: 11px; letter-spacing: .06em; color: var(--v-light-muted); text-align: center; padding: 6px 0; }
+.cal__d { position: relative; aspect-ratio: 1; display: grid; place-items: center; border-radius: 12px; font-size: 14px; color: var(--v-light-muted); border: 1px solid transparent; background: none; font: inherit; }
+.cal__d.is-today { border-color: var(--v-light-line); color: var(--v-ink); font-weight: 600; }
+.cal__d.has { cursor: pointer; color: var(--v-ink); font-weight: 600; background: color-mix(in oklab, var(--v-accent) 9%, #fff); transition: background var(--fast), transform 80ms; }
+.cal__d.has:hover { background: color-mix(in oklab, var(--v-accent) 18%, #fff); }
+.cal__d.has:active { transform: scale(.95); }
+.cal__d.has:focus-visible { outline: 2px solid var(--v-accent-deep); outline-offset: 2px; }
+.cal__d.is-sel { background: var(--v-ink); color: #fff; }
+.cal__dot { position: absolute; bottom: 6px; width: 5px; height: 5px; border-radius: 999px; background: var(--v-accent); }
+.cal__d.is-sel .cal__dot { background: #fff; }
+.cal__list { display: grid; gap: 12px; align-content: start; }
+
+.cover--img { padding: 0; }
+.cover--img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+/* modal guest checkout (non-blocking: bisa ditutup, Esc, klik luar) */
+.gmodal { position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; padding: 16px; background: rgba(9, 11, 20, .55); animation: fadeUp 200ms var(--ease) both; }
+.gmodal__card { display: grid; gap: 14px; width: min(100%, 520px); padding: clamp(22px, 4vw, 32px); border-radius: 22px; background: #fff; color: var(--v-ink); box-shadow: 0 30px 80px rgba(9, 11, 20, .35); }
+@media (prefers-reduced-motion: reduce) { .gmodal { animation: none; } }
+.hdr__link { white-space: nowrap; }

@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ORIGIN } from '@viboxs/shared/ecosystem';
-import { rpc, sb, errMsg, PRIVACY_VERSION } from '../lib/sb';
+import { rpc, sb, errMsg, PRIVACY_VERSION, authOrigin } from '../lib/sb';
 import { useAuth, takeInvite } from '../lib/auth';
 import { I, ThemeToggle } from '../ui/kit';
 
@@ -13,6 +13,47 @@ const authMsg = (m: string) =>
       : /rate limit|too many/i.test(m) ? 'Terlalu banyak percobaan. Tunggu sebentar lalu coba lagi.'
         : /already registered|already been registered/i.test(m) ? 'Jika email ini belum terdaftar, akun dibuat. Jika sudah, silakan masuk.'
           : errMsg(m);
+
+/**
+ * Tautan email kedaluwarsa/sudah dipakai: Supabase kembali dengan `#error_code=otp_expired`.
+ * Tampilkan pemulihan (kirim ulang) alih-alih halaman kosong (AUT-003).
+ */
+function linkError(): string | null {
+  const h = new URLSearchParams(location.hash.replace(/^#/, ''));
+  const code = h.get('error_code') || new URLSearchParams(location.search).get('error_code');
+  if (!code && !h.get('error')) return null;
+  return code === 'otp_expired'
+    ? 'Tautan verifikasi sudah kedaluwarsa atau sudah pernah dipakai.'
+    : 'Tautan verifikasi tidak valid.';
+}
+
+function ResendVerify({ msg }: { msg: string }) {
+  const [email, setEmail] = useState('');
+  const [state, setState] = useState<'idle' | 'busy' | 'sent'>('idle');
+  const [err, setErr] = useState('');
+  async function send(e: FormEvent) {
+    e.preventDefault();
+    if (!emailOk(email)) { setErr('Masukkan email yang valid.'); return; }
+    setState('busy'); setErr('');
+    const { error } = await sb.auth.resend({ type: 'signup', email: email.trim(), options: { emailRedirectTo: `${authOrigin()}/daftar` } });
+    if (error && !/already|confirmed/i.test(error.message)) { setErr(authMsg(error.message)); setState('idle'); return; }
+    setState('sent');
+  }
+  return (
+    <div className="au__form" role="alert">
+      <div className="st-alert st-alert--err">{msg} Jika akun Anda sudah terverifikasi, cukup <Link to="/login">masuk</Link>. Jika belum, kirim ulang tautan:</div>
+      {state === 'sent' ? (
+        <div className="st-alert st-alert--ok" role="status">Jika email terdaftar dan belum diverifikasi, tautan baru sudah dikirim.</div>
+      ) : (
+        <form onSubmit={send} noValidate className="au__form">
+          {err && <span className="st-ferr">{err}</span>}
+          <div className="st-field"><label htmlFor="rv-e">Email</label><input id="rv-e" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} /></div>
+          <button type="submit" className="st-btn st-btn--ghost st-btn--block" disabled={state === 'busy'}>{state === 'busy' ? 'Mengirim…' : 'Kirim ulang tautan verifikasi'}</button>
+        </form>
+      )}
+    </div>
+  );
+}
 
 export function AuthFrame({ title, sub, children, aside }: { title: string; sub?: ReactNode; children: ReactNode; aside?: ReactNode }) {
   return (
@@ -52,6 +93,7 @@ export function Login() {
   const [mode, setMode] = useState<'login' | 'forgot'>('login');
   const [sent, setSent] = useState(false);
   const next = sp.get('next') || '/workspace';
+  const [linkErr] = useState(linkError);
 
   useEffect(() => { if (ready && session) { const t = takeInvite(); nav(t ? `/invite/${t}` : next, { replace: true }); } }, [ready, session, nav, next]);
 
@@ -61,7 +103,7 @@ export function Login() {
     if (!emailOk(email)) { setErr('Masukkan email yang valid.'); return; }
     if (mode === 'forgot') {
       setBusy(true);
-      await sb.auth.resetPasswordForEmail(email.trim(), { redirectTo: `${location.origin}/reset` });
+      await sb.auth.resetPasswordForEmail(email.trim(), { redirectTo: `${authOrigin()}/reset` });
       setBusy(false); setSent(true);
       return;
     }
@@ -76,6 +118,7 @@ export function Login() {
     <AuthFrame title={mode === 'login' ? 'Masuk ke Studio' : 'Atur ulang password'}
       sub={mode === 'login' ? 'Ruang kerja privat ekosistem VIBOXS. Akses profesional hanya melalui undangan Commander.' : 'Kami kirim tautan atur ulang bila email terdaftar.'}
       aside={<LoginAside />}>
+      {linkErr && !session && <ResendVerify msg={linkErr} />}
       {sent ? (
         <div className="st-alert st-alert--ok" role="status">Jika email terdaftar, tautan atur ulang sudah dikirim. Periksa inbox dan folder spam.</div>
       ) : (
@@ -129,6 +172,7 @@ export function Register() {
   const [state, setState] = useState<'form' | 'verify' | 'done'>('form');
   const [points, setPoints] = useState(false);
   const signedIn = !!session;
+  const [linkErr] = useState(linkError);
 
   // Sudah login (mis. kembali dari verifikasi email) → selesaikan pendaftaran Learner di server.
   useEffect(() => {
@@ -136,7 +180,10 @@ export function Register() {
     if (me?.roles.includes('learner')) { nav('/workspace', { replace: true }); return; }
     let pending: { name: string; marketing: boolean } | null = null;
     try { pending = JSON.parse(localStorage.getItem('viboxs-studio-learner') || 'null'); } catch { /* abaikan */ }
-    if (!pending) return;
+    // Tautan verifikasi bisa dibuka di device/tab lain (localStorage kosong) → pakai niat yang disimpan di metadata akun.
+    const meta = session.user.user_metadata as { learner_intent?: boolean; display_name?: string; learner_marketing?: boolean } | undefined;
+    if (!pending && meta?.learner_intent) pending = { name: meta.display_name || '', marketing: !!meta.learner_marketing };
+    if (!pending || pending.name.trim().length < 2) return;
     (async () => {
       try {
         const r = await rpc<{ early_points: boolean }>('st_register_learner', { p_name: pending!.name, p_privacy_version: PRIVACY_VERSION, p_marketing: pending!.marketing });
@@ -167,7 +214,7 @@ export function Register() {
       return;
     }
     try { localStorage.setItem('viboxs-studio-learner', JSON.stringify({ name: name.trim(), marketing })); } catch { /* abaikan */ }
-    const { data, error } = await sb.auth.signUp({ email: email.trim(), password: pw, options: { emailRedirectTo: `${location.origin}/daftar`, data: { display_name: name.trim() } } });
+    const { data, error } = await sb.auth.signUp({ email: email.trim(), password: pw, options: { emailRedirectTo: `${authOrigin()}/daftar`, data: { display_name: name.trim(), learner_intent: true, learner_marketing: marketing } } });
     setBusy(false);
     if (error) { setErr({ form: authMsg(error.message) }); return; }
     if (!data.session) setState('verify');
@@ -198,6 +245,7 @@ export function Register() {
   return (
     <AuthFrame title="Daftar EDU Learner" sub="Gratis. Untuk asesmen awal, rekomendasi program EDU yang tersedia, dan riwayat belajar Anda."
       aside={<RegisterAside />}>
+      {linkErr && !signedIn && <ResendVerify msg={linkErr} />}
       <form className="au__form" onSubmit={submit} noValidate>
         {err.form && <div className="st-alert st-alert--err" role="alert">{err.form}</div>}
         {Object.keys(err).filter((k) => k !== 'form').length > 1 && (

@@ -4,11 +4,13 @@ import { IconSearch } from '@viboxs/shared/icons';
 import { useMotion } from '@viboxs/shared/motion';
 import ProgramCard from '../components/ProgramCard';
 import NotifyForm from '../components/NotifyForm';
+import { STUDIO_ORIGIN } from '@viboxs/shared/ecosystem';
 import { CATALOG_FILLED, PATHS, PROGRAMS, byDate } from '../lib/data';
 
 type Key = 'format' | 'path' | 'price' | 'time';
 const DEF: Record<Key, string> = { format: 'all', path: 'all', price: 'all', time: 'upcoming' };
-const GROUPS: { key: Key; name: string; chips: [string, string][] }[] = [
+// Dibangun saat render (bukan saat modul dimuat) agar jalur topik dari CMS ikut tampil.
+const groups = (): { key: Key; name: string; chips: [string, string][] }[] => [
   { key: 'format', name: 'Format', chips: [['all', 'Semua'], ['ebook', 'E-book'], ['webinar', 'Webinar'], ['workshop', 'Workshop']] },
   { key: 'path', name: 'Topik', chips: [['all', 'Semua'], ...PATHS.map((p) => [p.id, p.name] as [string, string])] },
   { key: 'price', name: 'Biaya', chips: [['all', 'Semua'], ['free', 'Gratis'], ['paid', 'Berbayar']] },
@@ -48,7 +50,7 @@ export default function Programs() {
   const results = useMemo(() => {
     let L = PROGRAMS.slice();
     const s = q.trim().toLowerCase();
-    if (s) L = L.filter((p) => `${p.title} ${p.summary} ${p.tags.join(' ')}`.toLowerCase().includes(s));
+    if (s) L = L.filter((p) => `${p.title} ${p.summary} ${(p.tags || []).join(' ')}`.toLowerCase().includes(s));
     if (get('format') !== 'all') L = L.filter((p) => p.type === get('format'));
     if (get('path') !== 'all') L = L.filter((p) => p.path === get('path'));
     if (get('price') === 'free') L = L.filter((p) => p.free); else if (get('price') === 'paid') L = L.filter((p) => !p.free);
@@ -58,13 +60,13 @@ export default function Programs() {
   }, [sp]);
 
   const active = (['format', 'path', 'price'] as Key[]).filter((k) => get(k) !== 'all').length + (get('time') !== 'upcoming' ? 1 : 0) + (q ? 1 : 0);
-  const msg = !CATALOG_FILLED ? 'Belum ada program yang dipublikasikan.' : loading ? 'Memuat program…' : `${results.length} program ditemukan${q ? ` untuk “${q}”` : ''}`;
+  const msg = !CATALOG_FILLED ? 'Belum ada program yang tersedia.' : loading ? 'Memuat program…' : `${results.length} program ditemukan${q ? ` untuk “${q}”` : ''}`;
 
   return (
     <div ref={ref}>
       <section className="page-top">
         <div className="container stack-24">
-          <nav aria-label="Breadcrumb" className="crumbs"><Link to="/">EDU</Link><span>/</span><span aria-current="page">Programs</span></nav>
+          <nav aria-label="Breadcrumb" className="crumbs"><Link to="/">EDU</Link><span>/</span><span aria-current="page">Program</span></nav>
           <h1 className="h1-sm">Katalog program</h1>
           <form role="search" className="bigsearch" onSubmit={(e) => { e.preventDefault(); set({ q: qInput.trim() }); }}>
             <label htmlFor="cat-q" className="xs-13 strong muted">Cari judul, ringkasan, atau topik</label>
@@ -81,7 +83,7 @@ export default function Programs() {
         <div className="container catalog">
           <aside aria-label="Filter" className="filters">
             <div className="row-between"><span className="strong">Filter</span><button type="button" className="chip-btn" onClick={resetAll}>Reset semua{active > 0 && ` (${active})`}</button></div>
-            {GROUPS.map((g) => (
+            {groups().map((g) => (
               <fieldset key={g.key} className="filters__g">
                 <legend>{g.name}</legend>
                 <div className="row-8">
@@ -101,8 +103,9 @@ export default function Programs() {
             </div>
             {!CATALOG_FILLED ? (
               <div className="empty-box maxw-720">
-                <span className="h4">Belum ada program yang dipublikasikan.</span>
-                <span className="body ink-muted">Program tampil di sini setelah materi, jadwal, harga, dan ketentuannya pasti.</span>
+                <span className="h4">Belum ada program yang tersedia saat ini.</span>
+                <span className="body ink-muted">Kamu bisa bergabung sebagai EDU Learner dan kami akan menampilkan program baru ketika sudah diterbitkan.</span>
+                <a href={`${STUDIO_ORIGIN}/daftar`} className="btn btn--ink btn--sm self-start">Gabung EDU Learner ↗</a>
                 <NotifyForm label="Email untuk pemberitahuan" consent="Saya setuju menerima email pemberitahuan program EDU." />
               </div>
             ) : loading ? (

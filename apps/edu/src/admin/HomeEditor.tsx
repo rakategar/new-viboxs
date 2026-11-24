@@ -98,8 +98,8 @@ export default function HomeEditor() {
               <Text label="Kata aksen (berwarna)" value={home.hero.accent} onChange={(v) => up('hero', { accent: v })} hint="Ditampilkan setelah judul dengan warna aksen." />
               <div className="adm-preview adm-field"><span className="adm-label">Pratinjau judul</span><span className="adm-preview__h">{home.hero.title} <em>{home.hero.accent}</em></span></div>
               <Area label="Paragraf pembuka" value={home.hero.lead} onChange={(v) => up('hero', { lead: v })} />
-              <Text label="Tombol utama" value={home.hero.cta1} onChange={(v) => up('hero', { cta1: v })} hint="Menuju /programs" />
-              <Text label="Tombol kedua" value={home.hero.cta2} onChange={(v) => up('hero', { cta2: v })} hint="Menuju /events" />
+              <Text label="Tombol utama" value={home.hero.cta1} onChange={(v) => up('hero', { cta1: v })} hint="Menuju pendaftaran EDU Learner di Studio (/daftar)" />
+              <Text label="Tombol kedua" value={home.hero.cta2} onChange={(v) => up('hero', { cta2: v })} hint="Menuju /programs" />
               <Text wide label="Catatan kecil" value={home.hero.note} onChange={(v) => up('hero', { note: v })} />
             </div>
           </Card>
@@ -175,12 +175,38 @@ export default function HomeEditor() {
             <button type="button" className="adm-btn adm-btn--ghost adm-btn--sm" onClick={() => setSteps([...steps, ['', '']])}><I.plus size={15} />Tambah langkah</button>
           </Card>
 
-          <Card id="h-collab" title="Ajakan kolaborator" desc="Panel yang mengarah ke form /kolaborator.">
+          <Card id="h-collab" title="Ajakan kontributor" desc="Panel yang mengarah ke form /kolaborator.">
             <div className="adm-form">
               <Text label="Label" value={home.collab.eyebrow} onChange={(v) => up('collab', { eyebrow: v })} />
               <Text label="Tombol" value={home.collab.cta} onChange={(v) => up('collab', { cta: v })} />
               <Area label="Judul" rows={2} value={home.collab.title} onChange={(v) => up('collab', { title: v })} />
               <Area label="Deskripsi" rows={2} value={home.collab.desc} onChange={(v) => up('collab', { desc: v })} />
+            </div>
+          </Card>
+
+          <Card id="h-learner" title="Ajakan EDU Learner" desc="Tombol menuju pendaftaran Studio. Jangan menjanjikan pekerjaan atau penghasilan.">
+            <div className="adm-form">
+              <Text label="Label" value={home.learner.eyebrow} onChange={(v) => up('learner', { eyebrow: v })} />
+              <Text label="Tombol" value={home.learner.cta} onChange={(v) => up('learner', { cta: v })} />
+              <Area label="Judul" rows={2} value={home.learner.title} onChange={(v) => up('learner', { title: v })} />
+              <Area label="Deskripsi" rows={3} value={home.learner.desc} onChange={(v) => up('learner', { desc: v })} />
+            </div>
+          </Card>
+
+          <Card id="h-opp" title="Jalur kesempatan" desc="Rangers, perusahaan partner, bisnis — selalu dengan kata “berpeluang/dapat mengajukan”.">
+            <div className="adm-form">
+              <Text label="Label" value={home.opportunity.eyebrow} onChange={(v) => up('opportunity', { eyebrow: v })} />
+              <Area label="Judul" rows={2} value={home.opportunity.title} onChange={(v) => up('opportunity', { title: v })} />
+              <Area label="Deskripsi" rows={3} value={home.opportunity.desc} onChange={(v) => up('opportunity', { desc: v })} />
+            </div>
+          </Card>
+
+          <Card id="h-comp" title="Untuk perusahaan" desc="Kartu menuju /for-companies.">
+            <div className="adm-form">
+              <Text label="Label" value={home.companies.eyebrow} onChange={(v) => up('companies', { eyebrow: v })} />
+              <Text label="Tombol" value={home.companies.cta} onChange={(v) => up('companies', { cta: v })} />
+              <Area label="Judul" rows={2} value={home.companies.title} onChange={(v) => up('companies', { title: v })} />
+              <Area label="Deskripsi" rows={2} value={home.companies.desc} onChange={(v) => up('companies', { desc: v })} />
             </div>
           </Card>
 

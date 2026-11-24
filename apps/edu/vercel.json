@@ -1,3 +1,8 @@
 {
+  "redirects": [
+    { "source": "/library", "destination": "/digital-library", "permanent": true },
+    { "source": "/library/:slug", "destination": "/digital-library/:slug", "permanent": true },
+    { "source": "/corporate-training", "destination": "/for-teams", "permanent": true }
+  ],
   "rewrites": [{ "source": "/((?!assets/).*)", "destination": "/index.html" }]
 }
