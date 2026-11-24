@@ -10,7 +10,7 @@ export const sb = createClient(SUPABASE_URL, SUPABASE_KEY, {
   auth: { persistSession: true, autoRefreshToken: true, storageKey: 'viboxs-studio', detectSessionInUrl: true },
 });
 
-export type Role = 'commander' | 'operator' | 'ranger' | 'trainer' | 'learner' | 'opc_founder' | 'business_partner' | 'collaborator';
+export type Role = 'commander' | 'operator' | 'ranger' | 'trainer' | 'learner' | 'opc_founder' | 'business_partner' | 'collaborator' | 'company_partner';
 
 export interface Profile { id: string; display_name: string; email: string | null; headline: string | null; skills: string[]; created_at: string }
 export interface Me { roles: Role[]; active_role: Role | null; is_commander: boolean; profile: Profile }
@@ -33,12 +33,14 @@ export interface Bid { id: string; mission_id: string; ranger_id: string; kind: 
 export interface Assignment { id: string; mission_id: string; ranger_id: string; agreed_fee: number; payout_schedule: string; agreement_terms: string; agreement_version: number; agreement_state: string; accepted_at: string | null; created_at: string }
 export interface Deliverable { id: string; mission_id: string; ranger_id: string; version: number; url: string; note: string | null; status: string; review_note: string | null; reviewed_at: string | null; created_at: string }
 export interface Payable { id: string; beneficiary_id: string; source_type: string; source_id: string | null; label: string; amount: number; currency: string; schedule: string | null; status: string; note: string | null; approved_at: string | null; created_at: string }
-export interface Payment { id: string; payable_id: string; amount: number; reference: string; paid_at: string; created_at: string }
+export interface Payment { id: string; payable_id: string; amount: number; reference: string; paid_at: string; created_at: string; method: string | null; proof_path: string | null }
 export interface Message { id: string; thread_type: string; thread_id: string; ranger_id: string | null; author_id: string; author_name: string | null; acting_as: string | null; body: string; created_at: string }
 export interface ProgramDraft {
   id: string; owner_id: string; title: string; slug: string; type: 'ebook' | 'webinar' | 'workshop' | 'ecourse'; path: 'ai' | 'biz' | 'career';
   pricing: 'free' | 'paid' | 'invitation' | 'sponsored'; summary: string; for_who: string; level: string; outcomes: string[]; tags: string[];
   schedule_at: string | null; duration: string | null; capacity: number | null; rights_declared: boolean; status: string; review_note: string | null; edu_slug: string | null; updated_at: string;
+  price: number | null; accepts_tokens: boolean; public_name: string | null; toc: string[]; cover_url: string | null; refund_terms: string | null; support_contact: string | null;
+  edu_program_id: string | null; publish_error: string | null;
 }
 export interface LearnerProfile { person_id: string; goal: string | null; level: string | null; hours: string | null; interests: string[]; formats: string[]; answers: Record<string, unknown>; updated_at: string }
 export interface Points { id: string; campaign: string; reason: string; points: number; note: string | null; created_at: string }
@@ -86,3 +88,29 @@ export const PRIVACY_VERSION = 'learner-privacy-draft-2026-11';
  */
 export const authOrigin = () =>
   /^(localhost|127\.0\.0\.1)$/.test(location.hostname) ? location.origin : STUDIO_ORIGIN;
+
+/* ---------- Batch 2–6: EDU commerce, learner engine, company, showcase ---------- */
+export interface EduOrder {
+  id: string; order_no: string; order_source: 'EDU_PUBLIC_GUEST' | 'STUDIO_MEMBER'; buyer_id: string | null; email: string; buyer_name: string; program_id: string; program_slug: string;
+  product: { title: string; type: string; free: boolean; price?: number; startsAt?: string; qa?: boolean }; cash_charged: number; refunded_amount: number; status: string; status_reason: string | null;
+  gateway_env: string | null; payment_type: string | null; paid_at: string | null; created_at: string; access_email_status: string;
+}
+export interface Entitlement { id: string; order_id: string; program_id: string; program_slug: string; buyer_id: string | null; granted_at: string; revoked_at: string | null; revoke_reason: string | null }
+export interface StarEvent { id: string; code: string; units: number; source_ref: string; created_at: string }
+export interface TokenRow { id: string; wallet: string; delta: number; state: string; source: string; expires_at: string | null; created_at: string }
+export interface Question { type: 'mcq' | 'essay'; prompt: string; options?: string[]; answer?: number; rubric?: string; source: string }
+export interface Assessment { id: string; program_id: string; kind: 'webinar' | 'ebook'; title: string; questions: Question[]; pass_score: number; status: string; version: number; author_id: string; review_note: string | null; released_at: string | null; updated_at: string }
+export interface Attempt { id: string; assessment_id: string; person_id: string; answers: unknown[]; mcq_correct: number; mcq_total: number; status: string; score: number | null; feedback: string | null; history: Record<string, unknown>[]; created_at: string; reviewed_at: string | null }
+export interface CreatorSale { program_id: string; slug: string; title: string; published: boolean; kind: string; starts_at: string | null; paid_orders: number; free_orders: number; refunded_orders: number; active_participants: number; basis: number; contributor_share: number; token_value: number; contributor_cash: number; released: number }
+export interface Company {
+  id: string; ref: string; owner_id: string; legal_name: string; nib: string | null; business_domain: string | null; business_email: string; pic_name: string; pic_role: string; hiring_needs: string;
+  website: string | null; status: string; grants: string[]; review_note: string | null; verified_at: string | null; created_at: string;
+}
+export interface Talent { person_id: string; opt_in: boolean; alias: string | null; headline: string | null; skills: string[]; availability: string | null; work_pref: string | null; portfolio_url: string | null; show_star: boolean; show_assessments: boolean; opted_in_at: string | null }
+export interface HiringRow { id: string; side: 'company' | 'candidate'; company: string; candidate_alias: string | null; vacancy_title: string; message: string; status: string; stage: string | null; interview_at: string | null; interview_url: string | null; created_at: string }
+export interface Showcase {
+  id: string; kind: 'ranger' | 'opc'; owner_id: string; display_name: string; specialization: string; summary: string; evidence: { label: string; url: string }[]; image_url: string | null; link: string | null;
+  product_status: string | null; consent_at: string | null; consent_version: string | null; income_consent: boolean; income_amount: number | null; income_from: string | null; income_to: string | null;
+  status: string; review_note: string | null; approved_at: string | null; review_due: string | null; updated_at: string;
+}
+export interface RangerStatus { person_id: string; origin: string; status: string; request_reason: string | null; requested_at: string | null; clearance_note: string | null; decided_at: string | null }

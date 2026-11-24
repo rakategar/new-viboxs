@@ -125,6 +125,7 @@ export function NoRole() {
         <p>Masuk sebagai <b>{me?.profile.email}</b>. Akses profesional diberikan lewat undangan Commander; peran yang dicabut atau ditangguhkan tidak lagi tampil.</p>
         <div className="st-row">
           <Link to="/daftar" className="st-btn st-btn--primary">Daftar sebagai EDU Learner</Link>
+          <Link to="/company" className="st-btn st-btn--ghost">Daftarkan perusahaan (hiring)</Link>
           <Btn onClick={() => signOut()}>Keluar</Btn>
         </div>
       </Empty>

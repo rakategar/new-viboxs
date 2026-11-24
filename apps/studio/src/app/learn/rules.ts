@@ -20,7 +20,7 @@ export const INTERESTS: [string, string][] = [
   ['spreadsheet', 'Spreadsheet'], ['komunikasi', 'Komunikasi kerja'], ['otomasi', 'Otomasi'],
 ];
 
-export interface EduProgram { slug: string; type: string; path: string; title: string; summary: string; level?: string; status: string; free: boolean; date?: string; tags: string[] }
+export interface EduProgram { slug: string; type: string; path: string; title: string; summary: string; level?: string; status: string; free: boolean; date?: string; tags: string[]; price?: number; startsAt?: string; forWho?: string; time?: string; outcomes?: string[]; toc?: string[]; facilitator?: string }
 
 /** Ambil katalog EDU yang benar-benar tayang (published) — sumber kanonis adalah EDU. */
 export async function fetchCatalog(): Promise<EduProgram[]> {

@@ -68,6 +68,7 @@ const RAW: Program[] = [
   { slug: 'otomasi-spreadsheet-ai', type: 'workshop', path: 'ai', title: 'Otomasi Spreadsheet dengan Bantuan AI', summary: 'Merapikan data, membuat rumus, dan laporan sederhana di spreadsheet dengan bantuan AI.', forWho: 'Admin, staf operasional, dan founder', level: 'Pemula', status: 'ANNOUNCED', free: false, day: '', date: 'Tanggal menyusul', dShort: '—', mShort: 'TBA', time: 'Jam menyusul', dur: '3 jam', mode: 'Online', loc: 'Diumumkan bersama jadwal', cap: '[Kapasitas]', sortDate: '9990', added: 7, tags: ['spreadsheet', 'otomasi', 'ai', 'data'] },
   { slug: 'laporan-keuangan-sederhana', type: 'webinar', path: 'biz', title: 'Membaca Laporan Keuangan Sederhana', summary: 'Memahami laba rugi dan arus kas untuk keputusan bisnis harian.', forWho: 'Founder dan pelaku usaha kecil', level: 'Pemula', status: 'CLOSED', free: true, day: 'Jumat', date: '20 November 2026', dShort: '20', mShort: 'NOV', time: '19.00–20.00 WIB', dur: '60 menit', mode: 'Online', loc: 'Zoom', cap: '[Kapasitas]', sortDate: '2026-11-20', added: 1, tags: ['keuangan', 'bisnis'] },
   { slug: 'etika-ai-kantor', type: 'webinar', path: 'ai', title: 'Etika Penggunaan AI di Kantor', summary: 'Batasan, kerahasiaan data, dan atribusi saat memakai AI untuk pekerjaan.', forWho: 'Karyawan dan pimpinan tim', level: 'Semua level', status: 'CANCELLED', free: true, day: 'Selasa', date: '17 November 2026', dShort: '17', mShort: 'NOV', time: '15.00–16.00 WIB', dur: '60 menit', mode: 'Online', loc: 'Zoom', cap: '[Kapasitas]', sortDate: '2026-11-17', added: 0, tags: ['etika', 'ai', 'data'] },
+  { slug: 'qa-sandbox-webinar', type: 'webinar', path: 'ai', title: '[QA] Webinar uji pembayaran sandbox', summary: 'Fixture lokal untuk menguji checkout Midtrans sandbox end-to-end. Tidak pernah tayang di produksi.', forWho: 'Tim QA', level: '-', status: 'OPEN', free: false, price: 15000, startsAt: '2030-01-15T19:00:00+07:00', sortDate: '2030-01-15', added: 8, tags: ['ai'] },
   { slug: 'riset-pasar-opc', type: 'webinar', path: 'biz', title: 'Pengantar Riset Pasar untuk OPC', summary: 'Cara sederhana memvalidasi ide sebelum membangun produk.', forWho: 'Calon founder dan OPC', level: 'Pemula', status: 'COMPLETED', past: true, free: true, day: 'Kamis', date: '5 November 2026', dShort: '05', mShort: 'NOV', time: '19.00–20.30 WIB', dur: '90 menit', mode: 'Online', loc: 'Zoom', cap: '[Kapasitas]', sortDate: '2026-11-05', added: -1, tags: ['riset', 'pasar', 'validasi'] },
 ];
 
@@ -151,7 +152,7 @@ export const SUPPORT: [string, string][] = [
 ];
 
 /* ---------- turunan tampilan ---------- */
-const rupiah = (n: number) => `Rp${Math.round(n).toLocaleString('id-ID')}`;
+export const rupiah = (n: number) => `Rp${Math.round(n).toLocaleString('id-ID')}`;
 const CTA: Record<StatusCode, (p: Program) => string> = {
   OPEN: (p) => (p.free ? 'Daftar gratis' : 'Lihat detail & daftar'), AVAILABLE: () => 'Lihat detail e-book', FULL: () => 'Lihat sesi',
   ANNOUNCED: () => 'Dapatkan pemberitahuan', CLOSED: () => 'Lihat detail', RESCHEDULED: () => 'Lihat jadwal baru',
@@ -160,12 +161,17 @@ const CTA: Record<StatusCode, (p: Program) => string> = {
 export const ctaFor = (p: Program) => CTA[p.status](p);
 export const priceOf = (p: Program) => (p.free ? 'Gratis' : typeof p.price === 'number' && p.price > 0 ? rupiah(p.price) : 'Harga belum diumumkan');
 /**
- * Gateway pembayaran (Midtrans) belum terpasang → checkout berbayar OFF di semua halaman.
- * Dinyalakan di Batch 2 bersama order server + webhook terverifikasi; jangan dinyalakan tanpa itu.
+ * Pembayaran online dibuka hanya bila server menyalakan flag `edu_payments_enabled` (Commander, setelah QA sandbox lulus).
+ * Nilai ini cuma menentukan tampilan tombol — edge function edu-checkout tetap menolak bila flag OFF.
  */
-export const PAYMENTS_ENABLED = false;
+export let PAYMENTS_ENABLED = false;
+export const setPaymentsEnabled = (v: boolean) => { PAYMENTS_ENABLED = v; };
 /** Program berbayar tanpa harga final tidak boleh masuk checkout. */
 export const hasPrice = (p: Program) => p.free || (typeof p.price === 'number' && p.price > 0);
+/** Fixture QA sandbox (slug `qa-…`) hanya ada di dev lokal; server memprosesnya lewat jalur QA terpisah. */
+export const isQa = (p: Program) => import.meta.env.DEV && p.slug.startsWith('qa-');
+/** Bisa masuk checkout sekarang? Gratis selalu; berbayar bila harga final & pembayaran dibuka (atau fixture QA di dev). */
+export const canPay = (p: Program) => p.free || (hasPrice(p) && (PAYMENTS_ENABLED || isQa(p)));
 export const whenOf = (p: Program) => (p.type === 'ebook' ? [p.fileFmt, p.lang].filter(Boolean).join(' · ') : p.day ? `${p.day}, ${p.date}` : p.date || 'Jadwal menyusul');
 export const timeOf = (p: Program) => (p.type === 'ebook' ? 'Akses dikirim setelah pembelian terverifikasi' : [p.time, p.mode].filter(Boolean).join(' · '));
 export const pathName = (id: string) => PATHS.find((x) => x.id === id)?.name || '';

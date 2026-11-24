@@ -1,30 +1,42 @@
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Check } from '@viboxs/shared/icons';
 import { STUDIO_ORIGIN } from '@viboxs/shared/ecosystem';
+import { callEdge } from '@viboxs/shared/backend';
 import { NotFound } from './Misc';
 import NotifyForm from '../components/NotifyForm';
-import { PAYMENTS_ENABLED, TYPE, bySlug, emailOk, hasPrice, hrefOf, priceOf, whenOf } from '../lib/data';
-import { submitForm } from '@viboxs/shared/backend';
+import { TYPE, bySlug, canPay, emailOk, hrefOf, isQa, priceOf, whenOf } from '../lib/data';
+import { saveOrderToken } from './Order';
 
-type Step = 'summary' | 'data' | 'recorded';
-const STEPPER = ['Ringkasan', 'Data diri', 'Selesai'];
-const stepIdx = (s: Step) => ({ summary: 0, data: 1, recorded: 2 })[s];
+type Step = 'summary' | 'data';
+const STEPPER = ['Ringkasan', 'Data diri', 'Konfirmasi'];
+const stepIdx = (s: Step) => ({ summary: 0, data: 1 })[s];
 const OPEN = ['OPEN', 'RESCHEDULED', 'AVAILABLE'];
 
+/** Satu kunci idempotensi per program + email di tab ini: klik ganda / retry tidak membuat order kedua. */
+function idemKey(slug: string, email: string) {
+  const k = `edu-idem:${slug}:${email.trim().toLowerCase()}`;
+  try {
+    const v = sessionStorage.getItem(k);
+    if (v) return v;
+    const n = crypto.randomUUID();
+    sessionStorage.setItem(k, n);
+    return n;
+  } catch { return crypto.randomUUID(); }
+}
+
 /**
- * Checkout publik EDU (guest). Batch 1: hanya program GRATIS yang bisa didaftarkan — dicatat sebagai
- * registrasi (`submissions`, kind=register) lalu diverifikasi tim. Tidak ada status "terkonfirmasi/terbayar"
- * di sisi klien (QA CHE-008). Program berbayar menunggu order server + webhook Midtrans (Batch 2).
+ * Checkout publik EDU (guest). Order dibuat server (edu-checkout) dari harga di database; program berbayar diteruskan
+ * ke halaman pembayaran Midtrans. Status lunas TIDAK pernah ditentukan di klien — halaman /order membaca server (CHE-008).
  */
 export default function Checkout() {
   const { slug } = useParams();
+  const nav = useNavigate();
   const p = bySlug(slug);
   const [step, setStep] = useState<Step>('summary');
   const [f, setF] = useState({ nama: '', email: '', wa: '', terms: false, marketing: false, hp: '' });
   const [err, setErr] = useState<Record<string, string>>({});
-  const [busy, setBusy] = useState(false);
-  const [ref, setRef] = useState('');
+  const [busy, setBusy] = useState<'' | 'order' | 'redirect'>('');
   const [modal, setModal] = useState(true);
   const dlg = useRef<HTMLDivElement>(null);
 
@@ -37,7 +49,7 @@ export default function Checkout() {
   }, [modal]);
 
   if (!p || !OPEN.includes(p.status) || p.past) return <NotFound />;
-  const paidBlocked = !p.free && !(PAYMENTS_ENABLED && hasPrice(p));
+  const paidBlocked = !canPay(p);
 
   const go = (s: Step) => { setStep(s); window.scrollTo(0, 0); };
   const field = (k: keyof typeof f) => (e: ChangeEvent<HTMLInputElement>) => {
@@ -48,21 +60,28 @@ export default function Checkout() {
     e.preventDefault();
     if (busy) return;
     const er: Record<string, string> = {};
-    if (!f.nama.trim()) er.nama = 'Tulis nama lengkapmu.';
-    if (!emailOk(f.email)) er.email = 'Masukkan email yang valid — detail akses dikirim ke sini.';
+    if (f.nama.trim().length < 2) er.nama = 'Tulis nama lengkapmu.';
+    if (!emailOk(f.email)) er.email = p!.free ? 'Masukkan email yang valid — detail akses dikirim ke sini.' : 'Masukkan email yang valid — bukti bayar & akses dikirim ke sini.';
     if (!f.terms) er.terms = 'Persetujuan ketentuan wajib untuk melanjutkan.';
     setErr(er);
     if (Object.keys(er).length) { window.setTimeout(() => document.getElementById(`co-${Object.keys(er)[0]}`)?.focus(), 0); return; }
-    setBusy(true);
+    setBusy('order');
     try {
-      const r = await submitForm('register', 'edu', {
-        program: p!.title, slug: p!.slug, jenis: p!.type, jadwal: whenOf(p!), harga: priceOf(p!), order_source: 'EDU_PUBLIC_GUEST',
-        nama: f.nama.trim(), email: f.email.trim(), wa: f.wa.trim(), marketing: f.marketing, terms: f.terms, _hp: f.hp,
+      const { status, data } = await callEdge<{ order_no: string; access_token?: string; redirect_url?: string | null }>('edu-checkout', {
+        slug: p!.slug, name: f.nama.trim(), email: f.email.trim(), phone: f.wa.trim(), idempotency_key: idemKey(p!.slug, f.email),
+        marketing: f.marketing, terms_version: 'edu-terms-draft-2026-11', privacy_version: 'edu-privacy-draft-2026-11', qa: isQa(p!), _hp: f.hp,
       });
-      setRef(r); go('recorded');
-    } catch (x) {
-      setErr({ form: (x as Error).message });
-    } finally { setBusy(false); }
+      if (status === 200 && data.order_no) {
+        if (data.access_token) saveOrderToken(data.order_no, data.access_token);
+        if (data.redirect_url) { setBusy('redirect'); window.location.assign(data.redirect_url); return; }
+        nav(`/order/${data.order_no}`);
+        return;
+      }
+      setErr({ form: data.code === 'ALREADY_OWNED' ? 'Email ini sudah memiliki akses ke program ini. Buka email akses sebelumnya, atau hubungi bantuan untuk kirim ulang.' : data.error || 'Order belum bisa dibuat. Coba lagi.' });
+    } catch {
+      setErr({ form: 'Order belum bisa dibuat. Coba lagi sebentar.' });
+    }
+    setBusy('');
   }
   const cur = stepIdx(step);
 
@@ -98,11 +117,11 @@ export default function Checkout() {
                 {step === 'summary' && (
                   <section className="co-card">
                     <h1 className="co-h">Ringkasan pendaftaran</h1>
-                    <p className="body ink-muted">Periksa dulu apa yang kamu daftarkan. Program ini gratis — tidak ada tagihan.</p>
+                    <p className="body ink-muted">{p.free ? 'Periksa dulu apa yang kamu daftarkan. Program ini gratis — tidak ada tagihan.' : `Total yang dibayar ${priceOf(p)}. Pembayaran diproses Midtrans; akses terbuka setelah server menerima konfirmasi pembayaran.`}</p>
                     <ul className="ticks ticks--plain">
                       <li><Check size={18} />Yang kamu terima tertulis di halaman program</li>
-                      <li><Check size={18} />Detail akses dikirim ke email yang kamu isi setelah pendaftaran diverifikasi</li>
-                      <li><Check size={18} />Tautan sesi bersifat privat, tidak dipublikasikan</li>
+                      <li><Check size={18} />{p.free ? 'Detail akses tampil di halaman konfirmasi dan dikirim ke emailmu' : 'Akses dibuka otomatis setelah pembayaran terverifikasi server'}</li>
+                      <li><Check size={18} />Tautan sesi bersifat privat, hanya untuk pemilik pendaftaran</li>
                     </ul>
                     <button type="button" className="btn btn--ink btn--lg self-start" onClick={() => go('data')}>Lanjut isi data →</button>
                   </section>
@@ -110,7 +129,7 @@ export default function Checkout() {
                 {step === 'data' && (
                   <form className="co-card" onSubmit={submit} noValidate>
                     <h1 className="co-h">Data diri</h1>
-                    <p className="body ink-muted">Hanya yang diperlukan untuk mengirim detail akses.</p>
+                    <p className="body ink-muted">Hanya yang diperlukan untuk mengirim detail akses{p.free ? '' : ' dan bukti pembayaran'}.</p>
                     <div className="fld">
                       <label htmlFor="co-nama">Nama lengkap</label>
                       <input id="co-nama" value={f.nama} onChange={field('nama')} autoComplete="name" aria-invalid={!!err.nama} aria-describedby={err.nama ? 'co-nama-e' : undefined} />
@@ -134,24 +153,10 @@ export default function Checkout() {
                     </div>
                     {err.form && <span role="alert" className="field-err">{err.form}</span>}
                     <div className="row-12">
-                      <button type="submit" className="btn btn--ink btn--lg" disabled={busy}>{busy && <span className="spin-sm spin-sm--light" aria-hidden="true" />}{busy ? 'Mengirim…' : 'Kirim pendaftaran'}</button>
+                      <button type="submit" className="btn btn--ink btn--lg" disabled={!!busy}>{busy && <span className="spin-sm spin-sm--light" aria-hidden="true" />}{busy === 'redirect' ? 'Membuka halaman pembayaran…' : busy ? 'Membuat order…' : p.free ? 'Daftar sekarang' : `Bayar ${priceOf(p)}`}</button>
                       <button type="button" className="btn btn--ink-ghost btn--lg" onClick={() => go('summary')}>Kembali</button>
                     </div>
                   </form>
-                )}
-                {step === 'recorded' && (
-                  <section role="status" className="co-card co-card--ok">
-                    <span className="okmark"><Check size={26} /></span>
-                    <h1 className="co-h">Pendaftaranmu sudah kami terima.</h1>
-                    <p className="body-16">Tim EDU memverifikasi pendaftaran lalu mengirim detail akses ke <strong>{f.email}</strong>. Pendaftaran belum final sampai kamu menerima email tersebut.</p>
-                    <dl className="kv">
-                      <div><dt>Nomor referensi</dt><dd className="mono">{ref}</dd></div>
-                      <div><dt>Program</dt><dd>{p.title}</dd></div>
-                      <div><dt>{p.type === 'ebook' ? 'Format' : 'Jadwal'}</dt><dd>{p.type === 'ebook' ? p.fileFmt || 'E-book' : [whenOf(p), p.time].filter(Boolean).join(' · ')}</dd></div>
-                    </dl>
-                    <span className="small ink-muted">Belum ada email dalam 1×24 jam? Periksa folder spam, lalu <Link to="/help" className="strong ink">hubungi bantuan</Link> dengan nomor referensi di atas.</span>
-                    <a href={`${STUDIO_ORIGIN}/daftar`} className="link-arrow ink">Simpan riwayat belajarmu: gabung EDU Learner (gratis) ↗</a>
-                  </section>
                 )}
               </div>
               <aside aria-label="Item" className="co-item">
@@ -162,6 +167,7 @@ export default function Checkout() {
                   <div><dt>Harga</dt><dd>{priceOf(p)}</dd></div>
                   <div className="is-total"><dt>Total</dt><dd>{priceOf(p)}</dd></div>
                 </dl>
+                {!p.free && <span className="xs-13 ink-muted">Dibayar lewat Midtrans (VA, e-wallet, QRIS, kartu). Jangan bayar ulang bila status masih menunggu — periksa di halaman order.</span>}
                 <Link to="/policies/refund" className="xs-13 strong">Kebijakan refund &amp; reschedule</Link>
               </aside>
             </div>
@@ -179,6 +185,7 @@ export default function Checkout() {
               <a href={`${STUDIO_ORIGIN}/daftar`} className="btn btn--primary">Gabung EDU Learner ↗</a>
               <button type="button" className="btn btn--ink-ghost" onClick={() => setModal(false)}>Lanjut Tanpa Akun</button>
             </div>
+            <a href={`${STUDIO_ORIGIN}/learn/checkout/${p.slug}`} className="xs-13 strong">Sudah punya akun? Checkout lewat Studio agar langsung masuk My Learning ↗</a>
             <span className="xs-13 ink-muted">Gratis untuk membuat akun. Pendaftaran tidak menjamin diterima bekerja atau menjadi Ranger.</span>
           </div>
         </div>

@@ -1,5 +1,4 @@
-import { Link, useNavigate } from 'react-router-dom';
-import { ORIGIN } from '@viboxs/shared/ecosystem';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { useLoad } from '../lib/hooks';
 import { ROLE, ENTITY, ago, rupiah, PROG_STATUS, BUSINESS_ROLES } from '../lib/labels';
@@ -18,7 +17,7 @@ export default function Workspace() {
   return (
     <div className="st-page-in">
       <PageHead eyebrow={ROLE[role].label} title={`${greet()}${name ? `, ${name}` : ''}.`} desc={ROLE[role].desc} />
-      {role === 'commander' ? <CommanderHome /> : role === 'ranger' ? <RangerHome /> : role === 'trainer' ? <TrainerHome /> : role === 'learner' ? <LearnerHome /> : BUSINESS_ROLES.includes(role) ? <BusinessHome /> : <Empty title="Belum ada modul untuk peran ini" />}
+      {role === 'commander' ? <CommanderHome /> : role === 'ranger' ? <RangerHome /> : role === 'trainer' ? <TrainerHome /> : role === 'learner' ? <LearnerHome /> : role === 'company_partner' ? <Navigate to="/company" replace /> : BUSINESS_ROLES.includes(role) ? <BusinessHome /> : <Empty title="Belum ada modul untuk peran ini" />}
     </div>
   );
 }
@@ -169,11 +168,12 @@ function LearnerHome() {
           <Link to="/learn/apply" className="st-btn st-btn--ghost st-btn--sm">Ajukan aplikasi</Link>
         </Card>
       </div>
-      <Card title="My Learning" desc="Program yang Anda miliki dan jadwal Anda, bersumber dari EDU.">
-        <Empty title="Integrasi enrollment EDU belum aktif" icon={I.book}>
-          <p>Kami tidak menampilkan kepemilikan atau progres sampai EDU mengirim data terverifikasi. Pembelian di EDU tetap memakai email Anda.</p>
-          <a href={`${ORIGIN.edu}/programs`} className="st-btn st-btn--ghost st-btn--sm">Jelajahi program EDU<I.ext size={14} /></a>
-        </Empty>
+      <Card title="My Learning" desc="Program dengan akses terverifikasi server EDU — dibeli di Studio maupun sebagai tamu dengan email yang sama.">
+        <div className="st-row">
+          <Link to="/learn/my" className="st-btn st-btn--primary st-btn--sm"><I.book size={14} />Buka My Learning</Link>
+          <Link to="/learn/catalog" className="st-btn st-btn--ghost st-btn--sm"><I.search size={14} />Cari program</Link>
+          <Link to="/learn/stars" className="st-btn st-btn--ghost st-btn--sm"><I.star size={14} />Star Ranking</Link>
+        </div>
       </Card>
       <div className="st-grid2">
         <ComingSoon title="Affiliate card" icon={I.link}>Bagikan program EDU dengan tautan referral — belum ada komisi.</ComingSoon>

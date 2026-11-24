@@ -7,7 +7,7 @@ import { useJsonLd, programLd } from '../lib/ld';
 import NotifyForm from '../components/NotifyForm';
 import Accordion from '../components/Accordion';
 import { NotFound } from './Misc';
-import { FAQ, PAYMENTS_ENABLED, PROGRAMS, STATUS, TYPE, bySlug, ctaFor, hasPrice, hrefOf, priceOf, whenOf, type StatusCode } from '../lib/data';
+import { FAQ, PROGRAMS, STATUS, TYPE, bySlug, canPay, ctaFor, hasPrice, hrefOf, priceOf, whenOf, type StatusCode } from '../lib/data';
 
 const CTA: Partial<Record<StatusCode, { kind: 'go' | 'off' | 'notify' | 'help'; label: (free: boolean) => string; notify?: boolean }>> = {
   OPEN: { kind: 'go', label: (f) => (f ? 'Daftar gratis' : 'Lanjut ke pendaftaran') },
@@ -30,9 +30,8 @@ export default function Detail({ from = 'programs' }: { from?: 'programs' | 'eve
   if (!p) return <NotFound />;
 
   const st = STATUS[p.status];
-  // Tidak ada tombol aktif tanpa backend nyata: program berbayar menunggu gateway pembayaran (Midtrans, Batch 2)
-  // dan harga final. Program gratis tetap bisa didaftarkan.
-  const payReady = PAYMENTS_ENABLED && hasPrice(p);
+  // Tombol bayar hanya aktif bila server membuka pembayaran dan harga final tersedia. Program gratis tetap bisa didaftarkan.
+  const payReady = canPay(p);
   const cta = CTA[p.status]?.kind === 'go' && !p.free && !payReady
     ? { kind: 'notify' as const, label: () => (hasPrice(p) ? 'Kabari saya saat pembayaran dibuka' : 'Kabari saya saat harga diumumkan') }
     : CTA[p.status] || CTA.OPEN!;

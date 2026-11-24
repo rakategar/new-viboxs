@@ -621,3 +621,14 @@
 .gmodal__card { display: grid; gap: 14px; width: min(100%, 520px); padding: clamp(22px, 4vw, 32px); border-radius: 22px; background: #fff; color: var(--v-ink); box-shadow: 0 30px 80px rgba(9, 11, 20, .35); }
 @media (prefers-reduced-motion: reduce) { .gmodal { animation: none; } }
 .hdr__link { white-space: nowrap; }
+
+/* Batch 2 — halaman status order */
+.co-access { display: grid; gap: 10px; padding-top: 4px; }
+.pend-tag { display: inline-flex; align-items: center; gap: 8px; }
+.co-card .row-8 .spin-sm { position: static; }
+/* Batch 6 — showcase bergerbang (hanya PUBLIC_APPROVED) */
+.sc-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); }
+.sc-card { display: grid; gap: 8px; align-content: start; padding: 20px; border: 1px solid var(--v-line); border-radius: 18px; background: color-mix(in oklab, var(--v-bg) 92%, white 8%); }
+.sc-card__img { width: 100%; aspect-ratio: 16 / 10; object-fit: cover; border-radius: 12px; }
+.sc-tag { justify-self: start; font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; background: color-mix(in oklab, var(--v-accent) 18%, transparent); }
+.sc-ev { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; font-size: 13px; }

@@ -1,5 +1,5 @@
-import { SUPABASE_KEY, SUPABASE_URL } from '@viboxs/shared/backend';
-import { applyRemote, type Program, type RemoteContent } from './data';
+import { SUPABASE_KEY, SUPABASE_URL, publicRpc } from '@viboxs/shared/backend';
+import { applyRemote, setPaymentsEnabled, type Program, type RemoteContent } from './data';
 
 // v2: cache v1 bisa berisi 9 program contoh lama — jangan pernah dibaca lagi.
 const CACHE = 'edu-content-v2';
@@ -26,6 +26,8 @@ export async function loadContent() {
   const ac = new AbortController();
   const t = window.setTimeout(() => ac.abort(), 2500);
   try { localStorage.removeItem('edu-content-v1'); } catch { /* abaikan */ }
+  // Flag pembayaran dari server (gagal → tetap OFF; server juga menolak checkout berbayar bila OFF).
+  const cfg = publicRpc<{ payments_enabled?: boolean }>('edu_public_config', {}, ac.signal).then((x) => setPaymentsEnabled(x?.payments_enabled === true)).catch(() => {});
   try {
     const c = await fetchRemote(ac.signal);
     applyRemote(c);
@@ -33,6 +35,7 @@ export async function loadContent() {
   } catch {
     try { const c = localStorage.getItem(CACHE); if (c) applyRemote(JSON.parse(c)); } catch { /* abaikan */ }
   } finally {
+    await cfg;
     window.clearTimeout(t);
   }
 }

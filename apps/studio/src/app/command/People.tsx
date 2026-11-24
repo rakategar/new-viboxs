@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react';
 import { useAction, useLoad } from '../../lib/hooks';
-import { ROLE, INVITE_STATUS, GRANT_STATUS, ago, fmtDate } from '../../lib/labels';
-import { sb, must, rpc, authOrigin, type Grant, type Invite, type Profile, type Role } from '../../lib/sb';
-import { Area, Btn, Chips, Copy, Dialog, Empty, I, Loaded, PageHead, Select, StatusBadge, Tabs, Text, useToast } from '../../ui/kit';
+import { ROLE, INVITE_STATUS, GRANT_STATUS, RANGER_STATUS, ago, fmtDate } from '../../lib/labels';
+import { sb, must, rpc, authOrigin, type Grant, type Invite, type Profile, type RangerStatus, type Role } from '../../lib/sb';
+import { Area, Badge, Btn, Check, Chips, Copy, Dialog, Empty, I, Loaded, PageHead, Select, StatusBadge, Tabs, Text, useToast } from '../../ui/kit';
 
 export const inviteUrl = (token: string) => `${authOrigin()}/invite/${token}`;
 const PRO: Role[] = ['ranger', 'trainer', 'opc_founder', 'business_partner', 'collaborator'];
@@ -10,7 +10,7 @@ const PRO: Role[] = ['ranger', 'trainer', 'opc_founder', 'business_partner', 'co
 /** CMD-01: undangan sekali pakai + peran per orang (tambah / tangguhkan / cabut). */
 export default function People() {
   const toast = useToast();
-  const [tab, setTab] = useState<'people' | 'invites'>('people');
+  const [tab, setTab] = useState<'people' | 'invites' | 'rangers'>('people');
   const [creating, setCreating] = useState(false);
   const people = useLoad(async () => {
     const [p, g] = await Promise.all([
@@ -21,14 +21,19 @@ export default function People() {
   });
   const invites = useLoad(() => must(sb.from('st_invites').select('id, email, roles, status, expires_at, created_at, accepted_at, application_id').order('created_at', { ascending: false }).limit(200)) as Promise<Invite[]>);
   const pendingInv = (invites.data ?? []).filter((i) => i.status === 'pending' && new Date(i.expires_at) > new Date()).length;
+  const rangers = useLoad(() => must(sb.from('st_ranger_status').select('*').order('updated_at', { ascending: false })) as Promise<RangerStatus[]>);
 
   return (
     <div className="st-page-in">
       <PageHead eyebrow="CMD-01 · Akses" title="Orang & undangan" desc="Satu identitas bisa punya beberapa peran. Mencabut peran langsung memutus akses server pada permintaan berikutnya.">
         <Btn kind="primary" onClick={() => setCreating(true)}><I.key size={16} />Buat undangan</Btn>
       </PageHead>
-      <Tabs label="Bagian" value={tab} onChange={setTab} tabs={[['people', 'Orang', people.data?.length], ['invites', 'Undangan', pendingInv]]} />
-      {tab === 'people' ? (
+      <Tabs label="Bagian" value={tab} onChange={setTab} tabs={[['people', 'Orang', people.data?.length], ['invites', 'Undangan', pendingInv], ['rangers', 'Status Ranger', (rangers.data ?? []).filter((r) => r.status === 'DEACTIVATION_REQUESTED').length]]} />
+      {tab === 'rangers' ? (
+        <Loaded state={rangers} empty={(d) => (d.length ? null : <Empty title="Belum ada Ranger" icon={I.target} />)}>
+          {(d) => <ul className="st-list">{d.map((r) => <RangerRow key={r.person_id} r={r} name={people.data?.find((p) => p.id === r.person_id)} onDone={() => { rangers.reload(); people.reload(); }} />)}</ul>}
+        </Loaded>
+      ) : tab === 'people' ? (
         <Loaded state={people} empty={(d) => (d.length ? null : <Empty title="Belum ada akun" icon={I.users} />)}>
           {(d) => <div className="st-people">{d.map((p, i) => <PersonCard key={p.id} p={p} i={i} onChange={people.reload} />)}</div>}
         </Loaded>
@@ -100,16 +105,42 @@ function PersonCard({ p, i, onChange }: { p: Profile & { grants: Grant[] }; i: n
   );
 }
 
+/** RAN-014/015: clearance Commander sebelum Ranger bisa tampil sebagai kandidat. Misi/payable terbuka memblokir di server. */
+function RangerRow({ r, name, onDone }: { r: RangerStatus; name?: Profile; onDone: () => void }) {
+  const toast = useToast();
+  const [note, setNote] = useState('');
+  const [open, setOpen] = useState(false);
+  const { busy, run } = useAction();
+  const decide = (ok: boolean) => run(ok ? 'y' : 'n', () => rpc('st_ranger_decide_deactivation', { p_person: r.person_id, p_approve: ok, p_note: note }), () => { toast(ok ? 'Ranger dinonaktifkan; opt-in talent tetap keputusan orangnya.' : 'Tetap aktif.'); setOpen(false); onDone(); }, (e) => toast(e, 'err'));
+  return (
+    <li>
+      <span><b>{name?.display_name || name?.email || r.person_id.slice(0, 8)}</b><small>{r.origin === 'legacy_import' ? 'Legacy import' : 'Jalur EDU Learner'}{r.request_reason ? ` · alasan: ${r.request_reason}` : ''}{r.clearance_note ? ` · clearance: ${r.clearance_note}` : ''}</small></span>
+      <StatusBadge map={RANGER_STATUS} value={r.status} />
+      {r.status === 'DEACTIVATION_REQUESTED' && <Btn size="sm" kind="primary" onClick={() => setOpen(true)}>Putuskan</Btn>}
+      {open && (
+        <Dialog open onClose={() => setOpen(false)} title="Clearance nonaktif Ranger">
+          <div className="st-stack">
+            <p className="st-small st-muted">Periksa serah-terima misi, payable, akses aset, dan NDA. Server menolak bila masih ada misi/payable terbuka.</p>
+            <Area label="Catatan clearance" value={note} onChange={setNote} rows={3} />
+            <div className="st-dlg__foot"><Btn onClick={() => decide(false)} busy={busy === 'n'}>Tetap aktif</Btn><Btn kind="primary" onClick={() => decide(true)} busy={busy === 'y'}>Setujui nonaktif</Btn></div>
+          </div>
+        </Dialog>
+      )}
+    </li>
+  );
+}
+
 function CreateInvite({ open, onClose, onDone }: { open: boolean; onClose: () => void; onDone: () => void }) {
   const toast = useToast();
   const [email, setEmail] = useState('');
   const [roles, setRoles] = useState<string[]>(['ranger']);
   const [days, setDays] = useState('7');
+  const [legacy, setLegacy] = useState(false);
   const [link, setLink] = useState('');
   const { busy, run } = useAction();
   const opts = useMemo(() => PRO.map((r) => [r, ROLE[r].label] as [string, string]), []);
   const go = () => run('go', async () => {
-    const r = await rpc<{ token: string }>('st_create_invite', { p_email: email.trim(), p_roles: roles, p_application: null, p_days: Number(days) });
+    const r = await rpc<{ token: string }>('st_create_invite', { p_email: email.trim(), p_roles: roles, p_application: null, p_days: Number(days), p_legacy: legacy });
     setLink(inviteUrl(r.token));
   }, () => { onDone(); }, (m) => toast(m, 'err'));
   const close = () => { setLink(''); setEmail(''); onClose(); };
@@ -128,6 +159,8 @@ function CreateInvite({ open, onClose, onDone }: { open: boolean; onClose: () =>
           <Text label="Email penerima" type="email" value={email} onChange={setEmail} required wide />
           <Chips label="Peran yang diberikan" options={opts} value={roles} onChange={setRoles} hint="Peran diaktifkan hanya setelah undangan diterima oleh email yang sama." />
           <Select label="Masa berlaku" value={days} onChange={setDays} options={[['3', '3 hari'], ['7', '7 hari'], ['14', '14 hari'], ['30', '30 hari']]} />
+          {roles.includes('ranger') && <div className="st-field st-field--wide"><Check label={<>Ranger <b>existing</b> (legacy import) — terverifikasi dari catatan misi lama</>} checked={legacy} onChange={setLegacy}
+            hint={legacy ? <Badge tone="warn">Tidak ada klaim alumni EDU untuk akun legacy</Badge> : 'Tanpa centang: penerima wajib sudah EDU Learner (jalur rekrutmen baru).'} /></div>}
           <div className="st-form__act"><Btn kind="primary" onClick={go} busy={busy === 'go'} disabled={!email || !roles.length}><I.key size={16} />Buat tautan undangan</Btn></div>
         </div>
       )}

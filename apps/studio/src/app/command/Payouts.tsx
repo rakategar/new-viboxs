@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useAction, useLoad } from '../../lib/hooks';
 import { PAY_STATUS, SCHEDULE, ago, fmtDate, rupiah } from '../../lib/labels';
 import { sb, must, rpc, type Payable, type Payment } from '../../lib/sb';
-import { Area, Btn, Dialog, Empty, I, KV, Loaded, PageHead, StatusBadge, Stat, Tabs, Text, useToast } from '../../ui/kit';
+import { Area, Btn, Dialog, Empty, I, KV, Loaded, PageHead, Select, StatusBadge, Stat, Tabs, Text, useToast } from '../../ui/kit';
 
 /** CMD-07: liabilities → approve → catat transfer manual + bukti. Klik tombol ≠ uang terkirim. */
 export default function Payouts() {
@@ -33,7 +33,7 @@ export default function Payouts() {
         <Stat label="Payable lunas" value={s.data ? s.data.filter((x) => x.status === 'paid').length : null} hint="item" tone="ok" />
       </section>
       <Tabs label="Status" value={tab} onChange={setTab} tabs={[['pending', 'Perlu approval', s.data?.filter((x) => x.status === 'pending_approval').length], ['approved', 'Perlu transfer'], ['done', 'Selesai']]} />
-      <Loaded state={s} empty={() => (list.length ? null : <Empty title="Tidak ada payable di sini" icon={I.wallet}>Payable dibuat otomatis saat deliverable mission diterima.</Empty>)}>
+      <Loaded state={s} empty={() => (list.length ? null : <Empty title="Tidak ada payable di sini" icon={I.wallet}>Payable dibuat saat deliverable mission diterima, atau saat bagi hasil program EDU dirilis dari Order EDU.</Empty>)}>
         {() => (
           <div className="st-table">
             <div className="st-tr st-tr--h"><span>Penerima · sumber</span><span>Nominal</span><span>Terbayar</span><span>Status</span><span /></div>
@@ -60,14 +60,27 @@ function PayDialog({ p, onClose, onDone }: { p: Payable & { name: string; paid: 
   const [amount, setAmount] = useState(String(Number(p.amount) - p.paid));
   const [ref, setRef] = useState('');
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [method, setMethod] = useState('bank_transfer');
+  const [file, setFile] = useState<File | null>(null);
   const { busy, run } = useAction();
   const decide = (ok: boolean) => run(ok ? 'a' : 'r', () => rpc('st_payable_decide', { p_id: p.id, p_approve: ok, p_note: note || null }), () => onDone(ok ? 'Payable disetujui — status belum dibayar sampai transfer dicatat.' : 'Payable ditolak dengan alasan.'), (e) => toast(e, 'err'));
-  const record = () => run('pay', () => rpc<string>('st_record_payment', { p_payable: p.id, p_amount: Number(amount), p_reference: ref, p_paid_at: date }), (st) => onDone(st === 'paid' ? 'Transfer tercatat — payable lunas.' : 'Pembayaran sebagian tercatat.'), (e) => toast(e, 'err'));
+  // Bukti transfer: bucket privat st-proofs/payments/<payable>/…; hash SHA-256 dicatat agar file tidak bisa diganti diam-diam (RAN-012).
+  const record = () => run('pay', async () => {
+    let path: string | null = null, hash: string | null = null;
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) throw new Error('Bukti maksimal 5 MB.');
+      hash = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', await file.arrayBuffer())), (b) => b.toString(16).padStart(2, '0')).join('');
+      path = `payments/${p.id}/${Date.now()}-${file.name.replace(/[^\w.-]+/g, '_')}`;
+      const { error } = await sb.storage.from('st-proofs').upload(path, file, { contentType: file.type });
+      if (error) throw new Error(error.message);
+    }
+    return rpc<string>('st_record_payment', { p_payable: p.id, p_amount: Number(amount), p_reference: ref, p_paid_at: date, p_method: method, p_proof_path: path, p_proof_sha256: hash });
+  }, (st) => onDone(st === 'paid' ? 'Transfer tercatat — payable lunas.' : 'Pembayaran sebagian tercatat.'), (e) => toast(e, 'err'));
   return (
     <Dialog open onClose={onClose} title={`Payable · ${p.name}`}>
       <div className="st-stack">
         <KV rows={[['Sumber', p.label], ['Nominal', rupiah(p.amount)], ['Jadwal', p.schedule ? SCHEDULE[p.schedule] ?? p.schedule : '—'], ['Sudah dibayar', rupiah(p.paid)], ['Sisa', rupiah(Number(p.amount) - p.paid)], ['Status', <StatusBadge key="s" map={PAY_STATUS} value={p.status} />]]} />
-        {p.payments.length > 0 && <ul className="st-list">{p.payments.map((x) => <li key={x.id}><span><b>{rupiah(x.amount)}</b><small>Ref {x.reference}</small></span><span className="st-muted st-small">{fmtDate(x.paid_at, false)}</span></li>)}</ul>}
+        {p.payments.length > 0 && <ul className="st-list">{p.payments.map((x) => <li key={x.id}><span><b>{rupiah(x.amount)}</b><small>Ref {x.reference}{x.method ? ` · ${x.method}` : ''}{x.proof_path ? ' · bukti terlampir' : ''}</small></span><span className="st-muted st-small">{fmtDate(x.paid_at, false)}</span></li>)}</ul>}
         {p.status === 'pending_approval' && (
           <>
             <Area label="Catatan (wajib bila menolak)" value={note} onChange={setNote} rows={2} />
@@ -79,6 +92,8 @@ function PayDialog({ p, onClose, onDone }: { p: Payable & { name: string; paid: 
             <Text label="Nominal ditransfer (IDR)" type="number" min={1} value={amount} onChange={setAmount} />
             <Text label="Tanggal transfer" type="date" value={date} onChange={setDate} />
             <Text label="Referensi / bukti transfer" value={ref} onChange={setRef} wide placeholder="mis. nomor referensi bank" hint="Jangan tempel nomor rekening lengkap. Pembayaran sebagian didukung." />
+            <Select label="Metode" value={method} onChange={setMethod} options={[['bank_transfer', 'Transfer bank'], ['ewallet', 'E-wallet'], ['other', 'Lainnya']]} />
+            <div className="st-field"><label htmlFor="pf">Bukti transfer (gambar/PDF, ≤5 MB)</label><input id="pf" type="file" accept="image/png,image/jpeg,image/webp,application/pdf" onChange={(e) => setFile(e.target.files?.[0] ?? null)} /><small className="st-muted">Samarkan rekening pihak lain sebelum diunggah — penerima bisa melihat bukti ini.</small></div>
             <div className="st-form__act"><Btn kind="primary" onClick={record} busy={busy === 'pay'}>Catat transfer</Btn></div>
           </div>
         )}

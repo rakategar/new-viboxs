@@ -2,11 +2,18 @@ import { useAuth } from '../../lib/auth';
 import { useLoad } from '../../lib/hooks';
 import { PAY_STATUS, SCHEDULE, fmtDate, rupiah } from '../../lib/labels';
 import { sb, must, type Payable, type Payment } from '../../lib/sb';
-import { Card, Empty, I, Loaded, PageHead, Stat, StatusBadge } from '../../ui/kit';
+import { Btn, Card, Empty, I, Loaded, PageHead, Stat, StatusBadge, useToast } from '../../ui/kit';
 
 /** Honor milik sendiri saja (MIS-18) — tidak ada pendapatan perusahaan, margin, atau honor orang lain. */
 export default function Earnings({ creator }: { creator?: boolean }) {
   const { me } = useAuth();
+  const toast = useToast();
+  // Bukti transfer milik sendiri saja (RLS storage: payable.beneficiary = Anda); tautan berlaku 5 menit.
+  const proof = async (path: string) => {
+    const { data, error } = await sb.storage.from('st-proofs').createSignedUrl(path, 300);
+    if (error || !data) { toast('Bukti belum bisa dibuka.', 'err'); return; }
+    window.open(data.signedUrl, '_blank', 'noopener');
+  };
   const s = useLoad(async () => {
     const p = await must(sb.from('st_payables').select('*').eq('beneficiary_id', me!.profile.id).eq('source_type', creator ? 'program' : 'mission').order('created_at', { ascending: false })) as Payable[];
     const pm = p.length ? await must(sb.from('st_payments').select('*').in('payable_id', p.map((x) => x.id))) as Payment[] : [];
@@ -17,7 +24,7 @@ export default function Earnings({ creator }: { creator?: boolean }) {
     <div className="st-page-in">
       <PageHead eyebrow={creator ? 'EDU Creator' : 'VIBOXS Missions'} title={creator ? 'Laporan & payout' : 'Pendapatan'}
         desc={creator ? 'Penjualan terverifikasi berasal dari EDU. Perhitungan bagi hasil mengikuti perjanjian per program.' : 'Hanya honor milik Anda. Status bergerak: disepakati → disetujui → ditransfer.'} />
-      {creator && <div className="st-alert st-alert--info">Integrasi order EDU belum aktif. Tidak ada penjualan terverifikasi, sehingga belum ada payable program. Angka tidak akan ditampilkan sebelum sumbernya tersedia.</div>}
+      {creator && <div className="st-alert st-alert--info">Payable program dibuat Commander dari order EDU terverifikasi setelah sesi selesai / masa refund e-book lewat. Rincian per program ada di Penjualan & peserta.</div>}
       <section className="st-stats st-stats--3">
         <Stat label="Menunggu approval" value={s.data ? sum(['pending_approval']) : null} hint="Belum disetujui" tone="warn" fmt={rupiah} />
         <Stat label="Disetujui, menunggu transfer" value={s.data ? sum(['approved', 'partially_paid']) : null} hint="Bukan dana terkirim" tone="gold" fmt={rupiah} />
@@ -31,6 +38,7 @@ export default function Earnings({ creator }: { creator?: boolean }) {
                 <span><b>{x.label}</b><small>{x.schedule ? SCHEDULE[x.schedule] ?? x.schedule : '—'} · dibuat {fmtDate(x.created_at, false)}{x.pays.length ? ` · ${x.pays.length} transfer` : ''}{x.note && x.status === 'rejected' ? ` · Alasan: ${x.note}` : ''}</small></span>
                 <span className="st-mono">{rupiah(x.amount)}</span>
                 <StatusBadge map={PAY_STATUS} value={x.status} />
+                {x.pays.filter((y) => y.proof_path).map((y) => <Btn key={y.id} size="sm" kind="quiet" onClick={() => proof(y.proof_path!)}>Bukti {rupiah(y.amount)}</Btn>)}
               </li>
             ))}</ul>
           )}

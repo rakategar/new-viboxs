@@ -11,6 +11,7 @@ export const ROLE: Record<Role, { label: string; short: string; desc: string }> 
   opc_founder: { label: 'OPC Founder', short: 'OPC', desc: 'Profil usaha, produk, VIBOXS Connect' },
   business_partner: { label: 'Business Partner', short: 'PTR', desc: 'Kerja sama B2B, VIBOXS Connect' },
   collaborator: { label: 'Business Collaborator', short: 'COL', desc: 'Peluang & kolaborasi B2B' },
+  company_partner: { label: 'Company Partner', short: 'CMP', desc: 'Company Workspace — hiring opt-in & Services' },
 };
 
 export const BUSINESS_ROLES: Role[] = ['opc_founder', 'business_partner', 'collaborator'];
@@ -58,10 +59,11 @@ export const PAY_STATUS: Record<string, [string, Tone]> = {
 
 export const PROG_TYPE: Record<string, string> = { webinar: 'Live Webinar', workshop: 'Workshop', ebook: 'E-book', ecourse: 'E-course' };
 export const PROG_PATH: Record<string, string> = { ai: 'Start with AI', biz: 'Build Your Business', career: 'Work & Career' };
-export const PRICING: Record<string, string> = { free: 'Gratis', paid: 'Berbayar — harga ditetapkan EDU', invitation: 'Undangan', sponsored: 'Disponsori' };
+export const PRICING: Record<string, string> = { free: 'Gratis', paid: 'Berbayar', invitation: 'Undangan', sponsored: 'Disponsori' };
 export const PROG_STATUS: Record<string, [string, Tone]> = {
   draft: ['Draft', 'muted'], submitted: ['Menunggu review', 'violet'], needs_revision: ['Perlu revisi', 'warn'], approved: ['Disetujui', 'ok'],
-  publish_queued: ['Di EDU · belum tayang', 'gold'], published: ['Tayang di EDU', 'ok'], archived: ['Arsip', 'muted'],
+  publish_queued: ['Di EDU · belum tayang', 'gold'], publish_failed: ['Gagal kirim ke EDU', 'danger'], published: ['Tayang di EDU', 'ok'],
+  cancelled: ['Dibatalkan', 'danger'], completed: ['Selesai', 'muted'], archived: ['Arsip', 'muted'],
 };
 
 export const VISIBILITY: Record<string, [string, string]> = {
@@ -119,3 +121,38 @@ export const toLocalInput = (iso: string | null) => {
   return d.toISOString().slice(0, 16);
 };
 export const fromLocalInput = (v: string) => (v ? new Date(`${v}:00+07:00`).toISOString() : null);
+
+/* ---------- Batch 2–6 ---------- */
+export const ORDER_STATUS: Record<string, [string, Tone]> = {
+  CREATED: ['Dibuat', 'muted'], PAYMENT_PENDING: ['Menunggu pembayaran', 'warn'], PAID_VERIFIED: ['Terbayar', 'ok'], FULFILLED: ['Akses aktif', 'ok'], COMPLETED: ['Selesai', 'muted'],
+  EXPIRED: ['Kedaluwarsa', 'muted'], FAILED: ['Gagal', 'danger'], CANCELLED: ['Dibatalkan', 'muted'], REFUNDED: ['Direfund', 'violet'], PARTIALLY_REFUNDED: ['Refund sebagian', 'violet'], CHARGEBACK: ['Chargeback', 'danger'],
+};
+export const PAID_STATES = ['PAID_VERIFIED', 'FULFILLED', 'COMPLETED', 'PARTIALLY_REFUNDED'];
+export const ASM_STATUS: Record<string, [string, Tone]> = {
+  DRAFT: ['Draft', 'muted'], IN_REVIEW: ['Menunggu review', 'violet'], NEEDS_REVISION: ['Perlu revisi', 'warn'], RELEASED: ['Dirilis', 'ok'], ARCHIVED: ['Arsip', 'muted'],
+};
+export const ATTEMPT_STATUS: Record<string, [string, Tone]> = { SCORED: ['Dinilai otomatis', 'info'], NEEDS_REVIEW: ['Menunggu reviewer', 'warn'], REVIEWED: ['Ditinjau reviewer', 'ok'] };
+export const COMPANY_STATUS: Record<string, [string, Tone]> = {
+  APPLIED: ['Diajukan', 'info'], REVIEW: ['Ditinjau', 'violet'], NEED_INFO: ['Butuh info', 'warn'], REJECTED: ['Ditolak', 'muted'], VERIFIED: ['Terverifikasi', 'ok'], ACTIVE: ['Aktif', 'ok'], SUSPENDED: ['Ditangguhkan', 'danger'],
+};
+export const HIRE_STATUS: Record<string, [string, Tone]> = {
+  SENT: ['Menunggu kandidat', 'info'], ACCEPTED: ['Diterima kandidat', 'ok'], DECLINED: ['Ditolak kandidat', 'muted'], BLOCKED: ['Diblokir kandidat', 'danger'], WITHDRAWN: ['Ditarik', 'muted'], CLOSED: ['Ditutup', 'muted'],
+};
+export const HIRE_STAGE: [string, string][] = [['SHORTLISTED', 'Shortlist'], ['INTERVIEW', 'Interview'], ['OFFER', 'Penawaran'], ['HIRED', 'Diterima kerja'], ['CLOSED', 'Ditutup']];
+export const AVAIL: Record<string, string> = { now: 'Siap sekarang', '1month': 'Dalam 1 bulan', '3months': 'Dalam 3 bulan', not_now: 'Belum mencari' };
+export const WORKPREF: Record<string, string> = { remote: 'Remote', hybrid: 'Hybrid', onsite: 'Onsite', any: 'Fleksibel' };
+export const SHOWCASE_STATUS: Record<string, [string, Tone]> = {
+  DRAFT: ['Draft', 'muted'], SUBMITTED: ['Menunggu review', 'violet'], PUBLIC_APPROVED: ['Tayang di EDU', 'ok'], REJECTED: ['Belum disetujui', 'danger'], WITHDRAWN: ['Ditarik', 'muted'],
+};
+export const RANGER_STATUS: Record<string, [string, Tone]> = { ACTIVE: ['Ranger aktif', 'ok'], DEACTIVATION_REQUESTED: ['Minta nonaktif', 'warn'], INACTIVE: ['Nonaktif (clearance)', 'muted'] };
+export const STAR_CODE: Record<string, string> = {
+  EBOOK_PURCHASE: 'Pembelian e-book terverifikasi', WEBINAR_ATTENDANCE: 'Kehadiran webinar terverifikasi', WEBINAR_ASSESSMENT_PASS: 'Lulus asesmen webinar',
+  EBOOK_ESSAY_PASS: 'Lulus esai e-book', REVERSAL: 'Pembalikan (refund/koreksi)',
+};
+/** Star Ranking CONFIG v1 (PRD §06.6): indikator aktivitas, bukan sertifikasi. */
+export const STAR_LEVELS: [string, number, number][] = [['Star I', 0, 100], ['Star II', 100, 250], ['Star III', 250, 450], ['Star IV', 450, 700], ['Star V', 700, 1000]];
+export function starLevel(n: number) {
+  const i = Math.max(0, STAR_LEVELS.findIndex(([, a, b]) => n >= a && n < b));
+  const [name, a, b] = n >= 700 ? STAR_LEVELS[4] : STAR_LEVELS[i];
+  return { name, fill: n >= 700 ? 1 : Math.min(1, Math.max(0, (n - a) / (b - a))), next: n >= 700 ? null : b };
+}

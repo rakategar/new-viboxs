@@ -637,3 +637,14 @@ article.st-lead { cursor: default; }
 @media (prefers-reduced-motion: reduce) {
   .st *, .au *, .st, .au { animation: none !important; transition: none !important; }
 }
+
+/* ---------- Batch 2–6: asesmen, Star Ranking ---------- */
+.st-qs { margin: 0; padding-left: 20px; display: grid; gap: 20px; }
+.st-qs > li { padding-left: 4px; }
+.st-qs > li::marker { color: var(--v-muted); font-family: var(--font-mono); }
+.st-bullets { margin: 4px 0 0; padding-left: 18px; display: grid; gap: 4px; font-size: 14px; }
+.st-prose { margin: 4px 0; white-space: pre-wrap; line-height: 1.6; }
+.st-star { display: flex; align-items: center; gap: 24px; flex-wrap: wrap; }
+.st-star__shell { fill: color-mix(in oklab, var(--v-gold, #f5b800) 10%, transparent); stroke: var(--v-gold, #f5b800); stroke-width: 3; stroke-linejoin: round; }
+.st-star__fluid { fill: var(--v-gold, #f5b800); transition: y 900ms var(--ease), height 900ms var(--ease); }
+@media (prefers-reduced-motion: reduce) { .st-star__fluid { transition: none; } }

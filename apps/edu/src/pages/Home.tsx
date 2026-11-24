@@ -11,6 +11,7 @@ import ProgramCard from '../components/ProgramCard';
 import NotifyForm from '../components/NotifyForm';
 import Status from '../components/Status';
 import Accordion from '../components/Accordion';
+import Showcase from '../components/Showcase';
 import {
   CATALOG_FILLED, FAQ, FEATURED, FORMATS, HOME, PATHS, PROGRAMS, STEPS, TYPE, byDate, bySlug, ctaFor, hrefOf, priceOf, timeOf, whenOf,
 } from '../lib/data';
@@ -60,7 +61,8 @@ export default function Home() {
         </div>
       )}
       {on.paths && <Paths />}
-      {/* Showcase Ranger/OPC (PRD §11) sengaja tidak dirender: belum ada profil PUBLIC_APPROVED dengan bukti & consent. */}
+      {/* Showcase Ranger/OPC (PRD §11): hanya profil PUBLIC_APPROVED dari server; nol profil → tidak dirender. */}
+      <Showcase />
       {on.bridges && <Bridges />}
       {on.closing && <Closing />}
     </div>

@@ -16,6 +16,10 @@ const NAV: Record<Role, NavItem[]> = {
     { to: '/command/leads', label: 'Lead Services', icon: I.lead },
     { to: '/command/missions', label: 'Missions', icon: I.target },
     { to: '/command/edu-review', label: 'Review EDU', icon: I.book },
+    { to: '/command/edu-orders', label: 'Order EDU', icon: I.file },
+    { to: '/command/assessments', label: 'Assessment QA', icon: I.compass },
+    { to: '/command/companies', label: 'Perusahaan', icon: I.users },
+    { to: '/command/showcase', label: 'Showcase', icon: I.star },
     { to: '/command/payouts', label: 'Payable & payout', icon: I.wallet },
     { to: '/command/business', label: 'OPC & Connect', icon: I.link },
     { to: '/command/config', label: 'Feature flags', icon: I.sliders },
@@ -27,22 +31,34 @@ const NAV: Record<Role, NavItem[]> = {
     { to: '/missions/offers', label: 'Penawaran misi', icon: I.target },
     { to: '/missions/my', label: 'Misi saya', icon: I.box },
     { to: '/missions/earnings', label: 'Pendapatan', icon: I.wallet },
+    { to: '/showcase', label: 'Showcase & status', icon: I.user },
     { to: '/soon', label: 'Professional AI Tools', icon: I.spark },
   ],
   trainer: [
     { to: '/workspace', label: 'Ringkasan', icon: I.grid, end: true },
     { to: '/creator/programs', label: 'Program saya', icon: I.book },
+    { to: '/creator/sales', label: 'Penjualan & peserta', icon: I.users },
+    { to: '/creator/assessments', label: 'Summary & asesmen', icon: I.compass },
     { to: '/creator/earnings', label: 'Laporan & payout', icon: I.wallet },
     { to: '/business/profile', label: 'Profil independen', icon: I.user },
     { to: '/connect/discover', label: 'VIBOXS Connect', icon: I.compass },
     { to: '/connect/requests', label: 'Kolaborasi', icon: I.chat },
   ],
   learner: [
-    { to: '/workspace', label: 'My Learning', icon: I.grid, end: true },
-    { to: '/learn/assessment', label: 'Asesmen awal', icon: I.compass },
-    { to: '/learn/recommendations', label: 'Rekomendasi', icon: I.star },
-    { to: '/learn/early-points', label: 'Early Points', icon: I.spark },
-    { to: '/learn/apply', label: 'Jalur profesional', icon: I.arrow },
+    { to: '/workspace', label: 'Ringkasan', icon: I.grid, end: true },
+    { to: '/learn/assessment', label: 'Discover My Path', icon: I.compass },
+    { to: '/learn/catalog', label: 'Cari program', icon: I.search },
+    { to: '/learn/my', label: 'My Learning', icon: I.book },
+    { to: '/learn/report', label: 'Asesmen & laporan', icon: I.file },
+    { to: '/learn/stars', label: 'Star Ranking', icon: I.star },
+    { to: '/learn/tokens', label: 'Token Wallet', icon: I.wallet },
+    { to: '/learn/career', label: 'Karier & peluang', icon: I.arrow },
+  ],
+  company_partner: [
+    { to: '/company', label: 'Ringkasan & verifikasi', icon: I.grid, end: true },
+    { to: '/company/talent', label: 'Cari kandidat', icon: I.search },
+    { to: '/company/pipeline', label: 'Pipeline hiring', icon: I.users },
+    { to: '/company/services', label: 'Ajukan proyek', icon: I.lead },
   ],
   opc_founder: [], business_partner: [], collaborator: [],
 };
@@ -55,6 +71,7 @@ const BIZ_NAV: NavItem[] = [
   { to: '/soon', label: 'Investor Network', icon: I.spark },
 ];
 for (const r of BUSINESS_ROLES) NAV[r] = BIZ_NAV;
+NAV.opc_founder = [...BIZ_NAV.slice(0, 2), { to: '/showcase', label: 'Showcase EDU', icon: I.star }, ...BIZ_NAV.slice(2)];
 
 export default function Shell({ children }: { children: ReactNode }) {
   const nav = useNavigate();

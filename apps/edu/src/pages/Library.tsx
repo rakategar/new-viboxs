@@ -8,7 +8,7 @@ import ProgramCard from '../components/ProgramCard';
 import NotifyForm from '../components/NotifyForm';
 import { NotFound } from './Misc';
 import { useJsonLd, programLd } from '../lib/ld';
-import { CATALOG_FILLED, PAYMENTS_ENABLED, PROGRAMS, SUPPORT, bySlug, hasPrice, priceOf } from '../lib/data';
+import { CATALOG_FILLED, PROGRAMS, SUPPORT, bySlug, canPay, priceOf } from '../lib/data';
 
 /**
  * /digital-library — eksplorasi e-book & kit (PRD §04.3), terpisah dari katalog Programs.
@@ -53,7 +53,7 @@ export default function Library() {
   useJsonLd(eb && eb.type === 'ebook' ? programLd(eb) : null);
   if (!eb || eb.type !== 'ebook') return <NotFound />;
 
-  const canBuy = eb.status === 'AVAILABLE' && (eb.free || (PAYMENTS_ENABLED && hasPrice(eb)));
+  const canBuy = eb.status === 'AVAILABLE' && canPay(eb);
   const meta = ([['Format file', eb.fileFmt], ['Versi', eb.version], ['Bahasa', eb.lang], ['Halaman', eb.pages]] as [string, string | undefined][])
     .filter((x): x is [string, string] => !!x[1] && !/^\[/.test(x[1]));
 

@@ -11,6 +11,7 @@ import Detail from './pages/Detail';
 import Events from './pages/Events';
 import Library, { LibraryIndex } from './pages/Library';
 import Checkout from './pages/Checkout';
+import Order from './pages/Order';
 import Collab from './pages/Collab';
 import { EduLearner, ForCompanies } from './pages/Audience';
 
@@ -36,7 +37,7 @@ function RouteEffects() {
     const policy = /^\/policies\/(purchase|refund|privacy|terms|identity)$/.test(pathname);
     applySeo({
       origin: ORIGIN.edu, path: item ? hrefOf(item) : pathname, // /events/x → canonical /programs/x
-      title: item ? `${item.title} — VIBOXS EDU` : TITLES[pathname] || (policy ? 'Kebijakan — VIBOXS EDU' : pathname.startsWith('/checkout/') ? 'Checkout — VIBOXS EDU' : 'Halaman tidak ditemukan — VIBOXS EDU'),
+      title: item ? `${item.title} — VIBOXS EDU` : TITLES[pathname] || (policy ? 'Kebijakan — VIBOXS EDU' : pathname.startsWith('/checkout/') ? 'Checkout — VIBOXS EDU' : pathname.startsWith('/order/') ? 'Status order — VIBOXS EDU' : 'Halaman tidak ditemukan — VIBOXS EDU'),
       description: item ? item.summary : DESCS[pathname] || DESCS['/'],
       noindex: !(item || policy || pathname in TITLES) || pathname.startsWith('/checkout/'),
     });
@@ -73,6 +74,7 @@ export default function App() {
           <Route path="/library" element={<Navigate to="/digital-library" replace />} />
           <Route path="/library/:slug" element={<LegacyLibrary />} />
           <Route path="/checkout/:slug" element={<Checkout />} />
+          <Route path="/order/:orderNo" element={<Order />} />
           <Route path="/edu-learner" element={<EduLearner />} />
           <Route path="/for-companies" element={<ForCompanies />} />
           <Route path="/for-teams" element={<Teams />} />

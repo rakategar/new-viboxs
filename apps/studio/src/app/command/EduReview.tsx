@@ -1,11 +1,11 @@
 import { useMemo, useState } from 'react';
 import { ORIGIN } from '@viboxs/shared/ecosystem';
 import { useAction, useLoad } from '../../lib/hooks';
-import { PRICING, PROG_PATH, PROG_STATUS, PROG_TYPE, ago, fmtDate } from '../../lib/labels';
+import { PRICING, PROG_PATH, PROG_STATUS, PROG_TYPE, ago, fmtDate, rupiah } from '../../lib/labels';
 import { sb, must, rpc, type ProgramDraft } from '../../lib/sb';
 import { Area, Badge, Btn, Check, Dialog, Empty, I, KV, Loaded, PageHead, StatusBadge, Tabs, useToast } from '../../ui/kit';
 
-const GROUP: Record<string, string[]> = { review: ['submitted'], approved: ['approved', 'publish_queued'], live: ['published'], other: ['draft', 'needs_revision', 'archived'] };
+const GROUP: Record<string, string[]> = { review: ['submitted'], approved: ['approved', 'publish_queued', 'publish_failed'], live: ['published'], other: ['draft', 'needs_revision', 'cancelled', 'completed', 'archived'] };
 
 /** CMD-08: review program kontributor. EDU tetap pemilik katalog — Studio hanya mengirim draft. */
 export default function EduReview() {
@@ -49,19 +49,20 @@ function Review({ d, onClose, onDone }: { d: ProgramDraft; onClose: () => void; 
   const [note, setNote] = useState(d.review_note ?? '');
   const [c, setC] = useState<Record<string, boolean>>({});
   const { busy, run } = useAction();
-  const CHECKS = ['Identitas kontributor sesuai', 'Hak materi dinyatakan & wajar', 'Copy tanpa klaim terlarang (sertifikasi, jaminan hasil, angka palsu)', 'Jadwal, zona waktu & kapasitas masuk akal', 'Model harga sesuai kebijakan EDU (PRICE HOLD)'];
+  const CHECKS = ['Identitas kontributor sesuai', 'Hak materi dinyatakan & wajar', 'Copy tanpa klaim terlarang (sertifikasi, jaminan hasil, angka palsu)', 'Jadwal, zona waktu & kapasitas masuk akal', 'Harga final & ketentuan refund wajar (bukan “non-refundable semua”)'];
   const decide = (status: 'approved' | 'needs_revision') => run(status, async () => {
     if (status === 'needs_revision' && note.trim().length < 10) throw new Error('Tulis alasan revisi (min. 10 karakter).');
     if (status === 'approved' && CHECKS.some((x) => !c[x])) throw new Error('Lengkapi checklist review sebelum menyetujui.');
     await must(sb.from('st_program_drafts').update({ status, review_note: note.trim() || null, reviewed_at: new Date().toISOString() }).eq('id', d.id));
   }, () => onDone(status === 'approved' ? 'Disetujui. Kirim ke EDU saat siap.' : 'Dikembalikan ke kontributor untuk revisi.'), (e) => toast(e, 'err'));
   const send = () => run('send', () => rpc<string>('st_send_to_edu', { p_id: d.id }),
-    (slug) => onDone(`Terkirim ke CMS EDU sebagai draft (/${slug}). Tayangkan dari dashboard EDU setelah harga & jadwal final.`), (e) => toast(e, 'err'));
+    (slug) => slug.startsWith('FAILED') ? toast(`Gagal kirim — tercatat PUBLISH_FAILED: ${slug.slice(8)}`, 'err') : onDone(`Terkirim ke CMS EDU (/${slug}) — belum tayang sampai ditayangkan di dashboard EDU. Kirim ulang memperbarui entri yang sama.`), (e) => toast(e, 'err'));
   return (
     <Dialog open onClose={onClose} title={d.title} wide>
       <div className="st-stack">
         <KV rows={[
-          ['Format', PROG_TYPE[d.type]], ['Jalur', PROG_PATH[d.path]], ['Model harga', PRICING[d.pricing]], ['Untuk siapa', d.for_who], ['Level', d.level],
+          ['Format', PROG_TYPE[d.type]], ['Jalur', PROG_PATH[d.path]], ['Model harga', PRICING[d.pricing] + (d.pricing === 'paid' ? ` · ${d.price ? rupiah(d.price) : 'harga belum diisi'}` : '')],
+          ['Nama publik', d.public_name ?? 'Tidak ditampilkan'], ['Refund', d.refund_terms ?? '—'], ['Untuk siapa', d.for_who], ['Level', d.level],
           ['Jadwal', d.schedule_at ? fmtDate(d.schedule_at) : 'Belum ditentukan'], ['Durasi', d.duration], ['Kapasitas', d.capacity ? `${d.capacity} peserta` : '—'],
           ['Hak materi', d.rights_declared ? <Badge key="r" tone="ok">Dinyatakan pemilik</Badge> : <Badge key="r" tone="danger">Belum dinyatakan</Badge>],
         ]} />
@@ -74,10 +75,11 @@ function Review({ d, onClose, onDone }: { d: ProgramDraft; onClose: () => void; 
             <div className="st-dlg__foot"><Btn onClick={() => decide('needs_revision')} busy={busy === 'needs_revision'}>Minta revisi</Btn><Btn kind="primary" onClick={() => decide('approved')} busy={busy === 'approved'}><I.check size={16} />Setujui</Btn></div>
           </>
         )}
-        {d.status === 'approved' && (
+        {d.status === 'publish_failed' && <div className="st-alert st-alert--err">Kirim ke EDU gagal: {d.publish_error ?? '—'}</div>}
+        {['approved', 'publish_failed', 'publish_queued'].includes(d.status) && (
           <div className="st-alert st-alert--info st-alert--row">
             <span>Kirim ke EDU membuat entri <b>belum tayang</b> di CMS EDU. Status di Studio berubah menjadi “Tayang” hanya setelah EDU menayangkannya.</span>
-            <Btn kind="primary" onClick={send} busy={busy === 'send'}>Kirim ke EDU</Btn>
+            <Btn kind="primary" onClick={send} busy={busy === 'send'}>{d.status === 'approved' ? 'Kirim ke EDU' : 'Kirim ulang / perbarui'}</Btn>
           </div>
         )}
         {(d.status === 'publish_queued' || d.status === 'published') && d.edu_slug && (

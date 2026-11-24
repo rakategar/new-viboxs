@@ -29,3 +29,32 @@ export async function submitForm(kind: SubmitKind, site: SubmitSite, data: Recor
     window.clearTimeout(t);
   }
 }
+
+/** Panggil edge function (EDU checkout/order). Resolve → { status, data } apa adanya; status bayar SELALU dari server. */
+export async function callEdge<T = Record<string, unknown>>(name: string, body: unknown, jwt?: string): Promise<{ status: number; data: T & { error?: string; code?: string } }> {
+  const ac = new AbortController();
+  const t = window.setTimeout(() => ac.abort(), 25000);
+  try {
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/${name}`, {
+      method: 'POST', signal: ac.signal,
+      headers: { 'Content-Type': 'application/json', apikey: SUPABASE_KEY, ...(jwt ? { Authorization: `Bearer ${jwt}` } : {}) },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json().catch(() => ({ error: 'Respons server tidak terbaca.' }));
+    return { status: res.status, data };
+  } catch (e) {
+    if ((e as Error).name === 'AbortError' || !navigator.onLine) return { status: 0, data: { error: 'Koneksi terputus. Periksa internet lalu coba lagi.' } as T & { error: string } };
+    throw e;
+  } finally {
+    window.clearTimeout(t);
+  }
+}
+
+/** RPC publik (anon) — mis. edu_public_config, edu_showcase. */
+export async function publicRpc<T>(fn: string, args: Record<string, unknown> = {}, signal?: AbortSignal): Promise<T> {
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`, {
+    method: 'POST', signal, headers: { 'Content-Type': 'application/json', apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }, body: JSON.stringify(args),
+  });
+  if (!r.ok) throw new Error(fn);
+  return r.json();
+}

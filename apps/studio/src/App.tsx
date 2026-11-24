@@ -36,6 +36,26 @@ const Products = lazy(() => import('./app/business/Products'));
 const Discover = lazy(() => import('./app/business/Discover'));
 const Requests = lazy(() => import('./app/business/Requests'));
 const WorkspaceRoom = lazy(() => import('./app/business/WorkspaceRoom'));
+const EduOrders = lazy(() => import('./app/command/Edu'));
+const AssessmentQA = lazy(() => import('./app/command/Edu').then((m) => ({ default: m.AssessmentQA })));
+const Companies = lazy(() => import('./app/command/Partners').then((m) => ({ default: m.Companies })));
+const ShowcaseReview = lazy(() => import('./app/command/Partners').then((m) => ({ default: m.ShowcaseReview })));
+const Catalog = lazy(() => import('./app/learn/Commerce').then((m) => ({ default: m.Catalog })));
+const MemberCheckout = lazy(() => import('./app/learn/Commerce').then((m) => ({ default: m.MemberCheckout })));
+const MyLearning = lazy(() => import('./app/learn/Commerce').then((m) => ({ default: m.MyLearning })));
+const OrderStatus = lazy(() => import('./app/learn/Commerce').then((m) => ({ default: m.OrderStatus })));
+const Report = lazy(() => import('./app/learn/Progress').then((m) => ({ default: m.Report })));
+const TakeAssessment = lazy(() => import('./app/learn/Progress').then((m) => ({ default: m.TakeAssessment })));
+const Stars = lazy(() => import('./app/learn/Progress').then((m) => ({ default: m.Stars })));
+const Tokens = lazy(() => import('./app/learn/Progress').then((m) => ({ default: m.Tokens })));
+const Career = lazy(() => import('./app/learn/Progress').then((m) => ({ default: m.Career })));
+const CreatorSales = lazy(() => import('./app/creator/Edu').then((m) => ({ default: m.Sales })));
+const CreatorAssessments = lazy(() => import('./app/creator/Edu').then((m) => ({ default: m.Assessments })));
+const CompanyHome = lazy(() => import('./app/company/Company').then((m) => ({ default: m.CompanyHome })));
+const Talent = lazy(() => import('./app/company/Company').then((m) => ({ default: m.Talent })));
+const Pipeline = lazy(() => import('./app/company/Company').then((m) => ({ default: m.Pipeline })));
+const CompanyServices = lazy(() => import('./app/company/Company').then((m) => ({ default: m.Services })));
+const ShowcaseProfile = lazy(() => import('./app/ranger/Profile'));
 
 const PUBLIC = ['/', '/login', '/daftar', '/reset'];
 
@@ -81,7 +101,8 @@ export default function App() {
   if (!ready) return <div className="st-boot"><span className="st-boot__orb" />Menyiapkan Studio…</div>;
   if (!session) return <Navigate to={`/login?next=${encodeURIComponent(pathname)}`} replace />;
   if (!me) return <div className="st-boot st-boot--err"><b>Studio belum bisa dimuat.</b><span>{error || 'Coba muat ulang halaman.'}</span><button type="button" className="st-btn st-btn--ghost" onClick={() => location.reload()}>Muat ulang</button></div>;
-  if (!me.roles.length) return <Shell><NoRole /></Shell>;
+  // Akun tanpa peran tetap boleh mengajukan verifikasi perusahaan (AUT-008) — fitur hiring baru aktif setelah VERIFIED.
+  if (!me.roles.length) return <Shell>{pathname === '/company' ? <Suspense fallback={null}><CompanyHome /></Suspense> : <NoRole />}</Shell>;
 
   return (
     <Shell>
@@ -102,6 +123,10 @@ export default function App() {
           <Route path="/command/business" element={<Need roles={CMD}><Business /></Need>} />
           <Route path="/command/config" element={<Need roles={CMD}><Config /></Need>} />
           <Route path="/command/audit" element={<Need roles={CMD}><AuditLog /></Need>} />
+          <Route path="/command/edu-orders" element={<Need roles={CMD}><EduOrders /></Need>} />
+          <Route path="/command/assessments" element={<Need roles={CMD}><AssessmentQA /></Need>} />
+          <Route path="/command/companies" element={<Need roles={CMD}><Companies /></Need>} />
+          <Route path="/command/showcase" element={<Need roles={CMD}><ShowcaseReview /></Need>} />
 
           <Route path="/missions/offers" element={<Need roles={['ranger']}><RangerList mode="offers" /></Need>} />
           <Route path="/missions/my" element={<Need roles={['ranger']}><RangerList mode="my" /></Need>} />
@@ -110,11 +135,28 @@ export default function App() {
 
           <Route path="/creator/programs" element={<Need roles={['trainer']}><Programs /></Need>} />
           <Route path="/creator/earnings" element={<Need roles={['trainer']}><Earnings creator /></Need>} />
+          <Route path="/creator/sales" element={<Need roles={['trainer']}><CreatorSales /></Need>} />
+          <Route path="/creator/assessments" element={<Need roles={['trainer']}><CreatorAssessments /></Need>} />
 
           <Route path="/learn/assessment" element={<Need roles={['learner']}><Assessment /></Need>} />
           <Route path="/learn/recommendations" element={<Need roles={['learner']}><Recommendations /></Need>} />
           <Route path="/learn/early-points" element={<Need roles={['learner']}><EarlyPoints /></Need>} />
           <Route path="/learn/apply" element={<Need roles={['learner']}><Apply /></Need>} />
+          <Route path="/learn/catalog" element={<Need roles={['learner']}><Catalog /></Need>} />
+          <Route path="/learn/checkout/:slug" element={<Need roles={['learner']}><MemberCheckout /></Need>} />
+          <Route path="/learn/my" element={<Need roles={['learner']}><MyLearning /></Need>} />
+          <Route path="/learn/orders/:orderNo" element={<Need roles={['learner']}><OrderStatus /></Need>} />
+          <Route path="/learn/report" element={<Need roles={['learner']}><Report /></Need>} />
+          <Route path="/learn/assessments/:id" element={<Need roles={['learner']}><TakeAssessment /></Need>} />
+          <Route path="/learn/stars" element={<Need roles={['learner']}><Stars /></Need>} />
+          <Route path="/learn/tokens" element={<Need roles={['learner']}><Tokens /></Need>} />
+          <Route path="/learn/career" element={<Need roles={['learner']}><Career /></Need>} />
+
+          <Route path="/company" element={<CompanyHome />} />
+          <Route path="/company/talent" element={<Need roles={['company_partner']}><Talent /></Need>} />
+          <Route path="/company/pipeline" element={<Need roles={['company_partner']}><Pipeline /></Need>} />
+          <Route path="/company/services" element={<Need roles={['company_partner']}><CompanyServices /></Need>} />
+          <Route path="/showcase" element={<Need roles={['ranger', 'opc_founder']}><ShowcaseProfile /></Need>} />
 
           <Route path="/business/profile" element={<Need roles={BIZ}><OrgProfile /></Need>} />
           <Route path="/business/products" element={<Need roles={BUSINESS_ROLES}><Products /></Need>} />

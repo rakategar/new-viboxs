@@ -4,8 +4,8 @@ import { ROLE, ago } from '../lib/labels';
 import { sb, errMsg, type Message, type Role } from '../lib/sb';
 import { I, useToast } from '../ui/kit';
 
-/** Thread yang terikat pada satu mission (per Ranger) atau satu workspace kolaborasi. Realtime. */
-export default function Thread({ type, threadId, rangerId, readOnly }: { type: 'mission' | 'workspace'; threadId: string; rangerId?: string; readOnly?: boolean }) {
+/** Thread yang terikat pada satu mission (per Ranger), satu workspace kolaborasi, atau satu undangan hiring yang diterima. Realtime. */
+export default function Thread({ type, threadId, rangerId, readOnly }: { type: 'mission' | 'workspace' | 'hiring'; threadId: string; rangerId?: string; readOnly?: boolean }) {
   const { me } = useAuth();
   const toast = useToast();
   const [list, setList] = useState<Message[] | null>(null);
