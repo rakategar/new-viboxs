@@ -488,6 +488,11 @@
 .kv { margin: 0; display: grid; gap: 1px; border-radius: 14px; overflow: hidden; background: var(--v-light-line); border: 1px solid var(--v-light-line); }
 .kv > div { display: flex; justify-content: space-between; gap: 12px; padding: 12px 16px; background: #fff; }
 .kv dt { color: var(--v-light-muted); } .kv dd { margin: 0; font-weight: 600; text-align: right; }
+.kv--dark { background: var(--v-line, rgba(255,255,255,.12)); border-color: var(--v-line, rgba(255,255,255,.12)); }
+.kv--dark > div { background: color-mix(in oklab, var(--v-bg, #090B14) 92%, #fff); }
+.kv--dark dt { color: var(--v-muted, #9aa0b4); } .kv--dark dd { color: var(--v-text, #fff); }
+.kv--stack > div { flex-direction: column; gap: 4px; } .kv--stack dd { text-align: left; font-weight: 500; }
+@media (max-width: 560px) { .kv > div { flex-direction: column; gap: 4px; } .kv dd { text-align: left; } }
 .proto { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; padding-top: 14px; border-top: 1px dashed var(--v-light-line); font-size: 12px; color: var(--v-light-muted); }
 .proto button { min-height: 32px; padding: 0 10px; border-radius: 8px; border: 1px solid var(--v-light-line); background: #fff; font: inherit; font-size: 12px; cursor: pointer; color: var(--v-ink); }
 .okmark { width: 56px; height: 56px; border-radius: 999px; display: grid; place-items: center; background: var(--v-success-l); color: #fff; animation: pop 320ms var(--ease) both; }

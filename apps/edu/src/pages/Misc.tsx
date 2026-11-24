@@ -149,9 +149,27 @@ export function Policy() {
         <h1 className="h1-sm">{t}</h1>
         <p className="lead muted">Dokumen ini sedang ditinjau tim hukum. Pembayaran untuk program berbayar tidak dibuka sebelum kebijakan final dipublikasikan di halaman ini.</p>
         <div className="slot slot--lg">[Isi {t.toLowerCase()} — menunggu review hukum]</div>
+        {kind === 'privacy' && <Processors />}
         <Link to="/help" className="link-arrow">Pusat bantuan <ArrowRight size={14} /></Link>
       </div>
     </section>
+  );
+}
+
+/* Fakta implementasi saat ini (PRD §15 privasi: copy harus sesuai implementasi). Bukan pengganti kebijakan final. */
+const PROCESSORS: [string, string][] = [
+  ['Supabase', 'Database, akun, dan penyimpanan file privat (e-book, bukti transfer).'],
+  ['Vercel', 'Hosting situs edu.viboxs.com dan studio.viboxs.com.'],
+  ['Midtrans', 'Pemrosesan pembayaran. Kami tidak menyimpan data kartu.'],
+  ['DeepSeek', 'AI assist di Studio: draf soal dari materi kontributor, saran nilai esai untuk reviewer (tanpa identitas peserta), dan ringkasan kebutuhan belajar dari jawaban asesmen awal. Hasil AI selalu ditinjau manusia; server penyedia dapat berada di luar Indonesia.'],
+  ['Mailspace (DomaiNesia)', 'Pengiriman email transaksi dan akses program.'],
+];
+function Processors() {
+  return (
+    <div className="stack-12">
+      <h2 className="h3">Pemroses data pihak ketiga yang dipakai saat ini</h2>
+      <dl className="kv kv--dark kv--stack">{PROCESSORS.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>
+    </div>
   );
 }
 
@@ -163,7 +181,7 @@ function Identity() {
         <nav aria-label="Breadcrumb" className="crumbs"><Link to="/">EDU</Link><span>/</span><span>Kebijakan</span><span>/</span><span aria-current="page">Identitas PT EPH</span></nav>
         <h1 className="h1-sm">Identitas penyelenggara</h1>
         <p className="lead muted">VIBOXS EDU dioperasikan oleh VIBOXS, unit usaha PT Ekosistem Pelosok Hub.</p>
-        <dl className="kv">
+        <dl className="kv kv--dark">
           <div><dt>Badan usaha</dt><dd>PT Ekosistem Pelosok Hub</dd></div>
           <div><dt>Unit usaha</dt><dd>VIBOXS</dd></div>
           <div><dt>Situs</dt><dd>edu.viboxs.com · www.viboxs.com</dd></div>

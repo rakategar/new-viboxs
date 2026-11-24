@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ORIGIN } from '@viboxs/shared/ecosystem';
 import { useAuth } from '../../lib/auth';
+import { aiAssist } from '../../lib/edu';
 import { useAction, useLoad } from '../../lib/hooks';
 import { ASM_STATUS, fmtDate, rupiah } from '../../lib/labels';
 import { sb, must, rpc, type Assessment, type CreatorSale, type Question } from '../../lib/sb';
@@ -117,6 +118,9 @@ function AsmEditor({ init, onClose, onDone }: { init: Assessment | { program: Cr
   const [title, setTitle] = useState(existing?.title ?? `Asesmen · ${program?.title ?? ''}`);
   const [qs, setQs] = useState<Question[]>(existing?.questions?.length ? existing.questions : [newQ('mcq')]);
   const k: 'webinar' | 'ebook' = existing?.kind ?? (program?.kind === 'ebook' ? 'ebook' : 'webinar');
+  const programId = existing?.program_id ?? program!.program_id;
+  const [nMcq, setNMcq] = useState(5);
+  const [nEssay, setNEssay] = useState(1);
   const { busy, run } = useAction();
   const upd = (i: number, q: Partial<Question>) => setQs(qs.map((x, j) => (j === i ? { ...x, ...q } : x)));
   const save = (submit: boolean) => run(submit ? 'sub' : 'save', async () => {
@@ -130,7 +134,22 @@ function AsmEditor({ init, onClose, onDone }: { init: Assessment | { program: Cr
   return (
     <Dialog open onClose={onClose} title={existing ? 'Edit asesmen' : 'Asesmen baru'} wide>
       <div className="st-stack">
-        <div className="st-alert st-alert--info st-small">Draft soal otomatis dengan AI belum aktif. Tulis soal sendiri berdasarkan summary/isi e-book; setiap soal wajib punya acuan sumber dan esai wajib punya rubrik.</div>
+        <div className="st-ai">
+          <div className="st-stack--tight">
+            <b className="st-small">Draf dengan AI</b>
+            <span className="st-small st-muted">AI menyusun soal hanya dari {k === 'ebook' ? 'daftar isi & ringkasan e-book' : 'summary sesi yang Anda kirim'}. Periksa dan sunting setiap soal — Anda tetap penanggung jawab isi, dan reviewer memeriksa sebelum rilis.</span>
+          </div>
+          <div className="st-row">
+            <Select label="Pilihan ganda" value={String(nMcq)} onChange={(v) => setNMcq(Number(v))} options={[0, 3, 5, 8, 10].map((n) => [String(n), String(n)])} />
+            <Select label="Esai" value={String(nEssay)} onChange={(v) => setNEssay(Number(v))} options={[0, 1, 2, 3].map((n) => [String(n), String(n)])} />
+            <Btn size="sm" busy={busy === 'ai'} disabled={nMcq + nEssay === 0} onClick={() => run('ai', () => aiAssist<{ questions: Question[] }>({ action: 'assessment_draft', program_id: programId, mcq: nMcq, essay: nEssay }), (r) => {
+              if (!r) return;
+              const blank = qs.length === 1 && !qs[0].prompt.trim();
+              setQs(blank ? r.questions : [...qs, ...r.questions]);
+              toast(`${r.questions.length} soal draf ditambahkan. Periksa sebelum mengajukan.`);
+            }, (e) => toast(e, 'err'))}><I.spark size={14} />Susun draf</Btn>
+          </div>
+        </div>
         <div className="st-form">
           <Text label="Judul" value={title} onChange={setTitle} wide />
           <span className="st-small st-muted">{k === 'ebook' ? 'Refleksi/esai e-book — pembelian tidak mewajibkan esai.' : 'Asesmen webinar — berdasar summary sesi.'}</span>
@@ -138,7 +157,7 @@ function AsmEditor({ init, onClose, onDone }: { init: Assessment | { program: Cr
         <ol className="st-qs">
           {qs.map((q, i) => (
             <li key={i} className="st-form">
-              <Area label={`Soal ${i + 1} · ${q.type === 'mcq' ? 'Pilihan ganda' : 'Esai'}`} value={q.prompt} onChange={(v) => upd(i, { prompt: v })} rows={2} />
+              <Area label={`Soal ${i + 1} · ${q.type === 'mcq' ? 'Pilihan ganda' : 'Esai'}${q.ai ? ' · draf AI' : ''}`} value={q.prompt} onChange={(v) => upd(i, { prompt: v })} rows={2} />
               <Text label="Acuan sumber" value={q.source} onChange={(v) => upd(i, { source: v })} placeholder="mis. Modul 2 · menit 15 / Bab 3 hlm. 12" />
               {q.type === 'mcq' ? (
                 <>
@@ -148,7 +167,10 @@ function AsmEditor({ init, onClose, onDone }: { init: Assessment | { program: Cr
                   <Select label="Kunci jawaban" value={String(q.answer ?? 0)} onChange={(v) => upd(i, { answer: Number(v) })} options={(q.options ?? []).map((_, j) => [String(j), String.fromCharCode(65 + j)])} />
                   <div className="st-row">{(q.options?.length ?? 0) < 5 && <Btn size="sm" kind="quiet" onClick={() => upd(i, { options: [...(q.options ?? []), ''] })}><I.plus size={14} />Opsi</Btn>}</div>
                 </>
-              ) : <Area label="Rubrik penilaian" value={q.rubric} onChange={(v) => upd(i, { rubric: v })} rows={3} hint="Kriteria dan bobot yang dipakai reviewer. Min. 20 karakter." />}
+              ) : <>
+                <Area label="Rubrik penilaian" value={q.rubric} onChange={(v) => upd(i, { rubric: v })} rows={3} hint="Kriteria dan bobot yang dipakai reviewer. Min. 20 karakter." />
+                <Area label="Jawaban acuan (opsional)" value={q.reference ?? ''} onChange={(v) => upd(i, { reference: v })} rows={2} hint="Poin yang diharapkan. Tidak ditampilkan ke peserta." />
+              </>}
               <div className="st-row"><Btn size="sm" kind="quiet" onClick={() => setQs(qs.filter((_, j) => j !== i))} disabled={qs.length < 2}>Hapus soal</Btn></div>
             </li>
           ))}

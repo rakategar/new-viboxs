@@ -1,15 +1,20 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ORIGIN } from '@viboxs/shared/ecosystem';
 import { useAuth } from '../../lib/auth';
-import { useLoad } from '../../lib/hooks';
+import { aiAssist } from '../../lib/edu';
+import { useAction, useLoad } from '../../lib/hooks';
 import { PROG_PATH, PROG_TYPE } from '../../lib/labels';
-import { sb, must, type LearnerProfile } from '../../lib/sb';
-import { Badge, Empty, I, Loaded, PageHead } from '../../ui/kit';
+import { sb, must, type AiDiscovery, type LearnerProfile } from '../../lib/sb';
+import { Badge, Btn, Empty, I, Loaded, PageHead, useToast } from '../../ui/kit';
 import { GOALS, fetchCatalog, recommend } from './rules';
 
 /** LRN-03: hanya program EDU yang benar-benar tayang; tiap kartu menjelaskan alasannya. */
 export default function Recommendations() {
   const { me } = useAuth();
+  const toast = useToast();
+  const [ai, setAi] = useState<AiDiscovery | null>(null);
+  const { busy, run } = useAction();
   const s = useLoad(async () => {
     const [lp, cat] = await Promise.all([
       must(sb.from('st_learner_profiles').select('*').eq('person_id', me!.profile.id).maybeSingle()) as Promise<LearnerProfile | null>,
@@ -28,6 +33,24 @@ export default function Recommendations() {
         ) : (
           <>
             <p className="st-muted">Tujuan: <b>{GOALS.find((g) => g[0] === d.lp!.goal)?.[1] ?? '—'}</b> · {d.total} program tayang diperiksa.</p>
+            <section className="st-ai">
+              {!ai ? (
+                <>
+                  <span className="st-stack--tight"><b className="st-small">Ringkasan kebutuhan dengan AI (opsional)</b><span className="st-small st-muted">Jawaban asesmen awalmu dibaca AI untuk merangkum celah belajar. AI hanya boleh memilih dari program yang tayang; bukan tes psikologi dan bukan jaminan peluang.</span></span>
+                  <Btn size="sm" busy={busy === 'ai'} onClick={() => run('ai', () => aiAssist<AiDiscovery>({ action: 'discovery_summary' }), (r) => r && setAi(r), (e) => toast(e, 'err'))}><I.spark size={14} />Buat ringkasan</Btn>
+                </>
+              ) : (
+                <div className="st-stack--tight">
+                  <span className="row-between"><b className="st-small">Ringkasan AI · versi jawaban {ai.discovery_version}</b><Badge tone={ai.confidence_band === 'high' ? 'ok' : ai.confidence_band === 'medium' ? 'info' : 'warn'}>keyakinan {ai.confidence_band === 'high' ? 'tinggi' : ai.confidence_band === 'medium' ? 'sedang' : 'rendah'}</Badge></span>
+                  {ai.goal && <p className="st-small"><b>Arah:</b> {ai.goal}</p>}
+                  {ai.current_gap && <p className="st-small"><b>Yang perlu dikuatkan:</b> {ai.current_gap}</p>}
+                  {ai.recommended.length ? <ul className="st-reasons">{ai.recommended.map((r) => <li key={r.slug}><I.check size={12} /><a href={`${ORIGIN.edu}/programs/${r.slug}`} target="_blank" rel="noopener noreferrer">{r.title}</a>{r.reason && ` — ${r.reason}`}</li>)}</ul>
+                    : <p className="st-small st-muted">Belum ada kelas tayang yang sesuai. Kami tidak mengarang kelas.</p>}
+                  {ai.alternative_actions.length > 0 && <p className="st-small st-muted">Langkah lain: {ai.alternative_actions.join(' · ')}</p>}
+                  <small className="st-muted">{ai.model} · dapat keliru; ubah jawaban asesmen bila kurang tepat.</small>
+                </div>
+              )}
+            </section>
             {!d.recs.length ? (
               <Empty title="Belum ada program tayang yang cocok" icon={I.book}>
                 <p>Kami tidak mengarang kelas. Coba ubah minat, atau jelajahi kategori umum: {Object.values(PROG_PATH).join(' · ')}.</p>

@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
 import { useAction, useLoad } from '../../lib/hooks';
 import { ASM_STATUS, ORDER_STATUS, PAID_STATES, fmtDate, rupiah } from '../../lib/labels';
-import { sb, must, rpc, type Assessment, type Attempt, type EduOrder, type Entitlement } from '../../lib/sb';
+import { aiAssist } from '../../lib/edu';
+import { sb, must, rpc, type AiEssaySuggestion, type Assessment, type Attempt, type EduOrder, type Entitlement } from '../../lib/sb';
 import { Area, Badge, Btn, Dialog, Empty, I, KV, Loaded, PageHead, Stat, StatusBadge, Tabs, Text, useToast } from '../../ui/kit';
 
 interface Prog { id: string; slug: string; published: boolean; contributor_id: string | null; data: { title: string; type: string; startsAt?: string; price?: number; free?: boolean; qa?: boolean } }
@@ -167,12 +168,13 @@ export function AssessmentQA() {
   const [asm, setAsm] = useState<Assessment | null>(null);
   const [att, setAtt] = useState<(Attempt & { a?: Assessment }) | null>(null);
   const s = useLoad(async () => {
-    const [list, attempts, sums] = await Promise.all([
+    const [list, attempts, sums, sugs] = await Promise.all([
       must(sb.from('st_assessments').select('*').order('updated_at', { ascending: false })) as Promise<Assessment[]>,
       must(sb.from('st_assessment_attempts').select('*').eq('status', 'NEEDS_REVIEW').order('created_at')) as Promise<Attempt[]>,
       must(sb.from('st_session_summaries').select('*').order('submitted_at', { ascending: false })) as Promise<{ id: string; program_id: string; outcomes: string; modules: string; skills: string[]; late: boolean; submitted_at: string }[]>,
+      must(sb.from('st_attempt_ai_suggestions').select('attempt_id, suggestion')) as Promise<{ attempt_id: string; suggestion: AiEssaySuggestion }[]>,
     ]);
-    return { list, attempts: attempts.map((t) => ({ ...t, a: list.find((a) => a.id === t.assessment_id) })), sums };
+    return { list, attempts: attempts.map((t) => ({ ...t, a: list.find((a) => a.id === t.assessment_id), ai_suggestion: sugs.find((x) => x.attempt_id === t.id)?.suggestion ?? null })), sums };
   });
   return (
     <div className="st-page-in">
@@ -203,8 +205,8 @@ function AsmReview({ a, onClose, onDone }: { a: Assessment; onClose: () => void;
       <div className="st-stack">
         <ol className="st-qs">{a.questions.map((q, i) => (
           <li key={i} className="st-stack--tight">
-            <b>{q.prompt}</b><small className="st-muted">Acuan: {q.source}</small>
-            {q.type === 'mcq' ? <ul className="st-bullets">{(q.options ?? []).map((o, j) => <li key={j}>{j === q.answer ? <b>{o} ✓ kunci</b> : o}</li>)}</ul> : <small>Rubrik: {q.rubric}</small>}
+            <b>{q.prompt}</b><small className="st-muted">Acuan: {q.source}{q.ai ? ' · berasal dari draf AI — cek akurasi terhadap materi' : ''}</small>
+            {q.type === 'mcq' ? <ul className="st-bullets">{(q.options ?? []).map((o, j) => <li key={j}>{j === q.answer ? <b>{o} ✓ kunci</b> : o}</li>)}</ul> : <><small>Rubrik: {q.rubric}</small>{q.reference && <small className="st-muted">Jawaban acuan: {q.reference}</small>}</>}
           </li>
         ))}</ol>
         {a.status === 'IN_REVIEW' && <>
@@ -216,11 +218,15 @@ function AsmReview({ a, onClose, onDone }: { a: Assessment; onClose: () => void;
   );
 }
 
+const CONF: Record<string, [string, 'ok' | 'warn' | 'muted']> = { high: ['yakin', 'ok'], medium: ['sedang', 'muted'], low: ['ragu — nilai cermat', 'warn'] };
+
 function AttemptReview({ t, onClose, onDone }: { t: Attempt & { a?: Assessment }; onClose: () => void; onDone: () => void }) {
   const toast = useToast();
   const [score, setScore] = useState(t.score != null ? String(t.score) : '');
   const [fb, setFb] = useState('');
+  const [sug, setSug] = useState<AiEssaySuggestion | null>(t.ai_suggestion ?? null);
   const { busy, run } = useAction();
+  const hint = (i: number) => sug?.items.find((x) => x.index === i);
   return (
     <Dialog open onClose={onClose} title={`Nilai · ${t.a?.title ?? ''}`} wide>
       <div className="st-stack">
@@ -228,9 +234,20 @@ function AttemptReview({ t, onClose, onDone }: { t: Attempt & { a?: Assessment }
           <li key={i} className="st-stack--tight">
             <b>{q.prompt}</b>
             {q.type === 'mcq' ? <small>Jawaban: {q.options?.[Number(t.answers[i])] ?? '—'} {Number(t.answers[i]) === q.answer ? '✓' : '✗'}</small>
-              : <><p className="st-prose">{String(t.answers[i] ?? '')}</p><small className="st-muted">Rubrik: {q.rubric}</small></>}
+              : <><p className="st-prose">{String(t.answers[i] ?? '')}</p><small className="st-muted">Rubrik: {q.rubric}</small>
+                {hint(i) && <div className="st-ai st-ai--note">
+                  <span className="row-between st-small"><b>Saran AI: {hint(i)!.score}/100</b><Badge tone={CONF[hint(i)!.confidence][1]}>{CONF[hint(i)!.confidence][0]}</Badge></span>
+                  {hint(i)!.strengths && <small>Kuat: {hint(i)!.strengths}</small>}
+                  {hint(i)!.gaps && <small>Kurang: {hint(i)!.gaps}</small>}
+                  {hint(i)!.evidence.map((e) => <small key={e} className="st-muted">“{e}”</small>)}
+                  {hint(i)!.flags.length > 0 && <small className="st-alert st-alert--warn">Perlu perhatian: {hint(i)!.flags.join(' · ')}</small>}
+                </div>}</>}
           </li>
         ))}</ol>
+        <div className="st-row">
+          <Btn size="sm" busy={busy === 'ai'} onClick={() => run('ai', () => aiAssist<{ suggestion: AiEssaySuggestion }>({ action: 'essay_suggest', attempt_id: t.id }), (r) => r && setSug(r.suggestion), (e) => toast(e, 'err'))}><I.spark size={14} />{sug ? 'Minta saran ulang' : 'Saran nilai AI'}</Btn>
+          <small className="st-muted">{sug ? `${sug.model} · ${fmtDate(sug.at)}. Saran saja — skor final dari Anda.` : 'Hanya teks esai, rubrik & acuan yang dikirim — tanpa identitas peserta.'}</small>
+        </div>
         {t.history.length > 0 && <small className="st-muted">Riwayat: {t.history.map((h) => `${h.event}${h.prev_score != null ? ` (skor sebelumnya ${h.prev_score})` : ''}`).join(' · ')}</small>}
         <div className="st-form">
           <Text label="Skor (0–100)" type="number" min={0} value={score} onChange={setScore} />

@@ -1,4 +1,4 @@
--- Uji alur Batch 3–4 (dijalankan 2026-11-24 lewat MCP execute_sql; hasil 23/23 lulus). Satu transaksi → ROLLBACK.
+-- Uji alur Batch 3–4 + AI assist (dijalankan 2026-11-24 lewat MCP execute_sql). Satu transaksi → ROLLBACK.
 -- Kontributor publish (ACK by id, resend tanpa duplikat, slug terkunci) → order guest gratis → klaim akun → summary → review → rilis → jawaban → Star.
 -- Catatan: update yang ditolak RLS tidak melempar error (0 baris) — asersi memeriksa STATE, bukan error.
 begin;
@@ -49,7 +49,10 @@ set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-0000000000f2","e
 insert into _r select 'CHE-004 claim guest order (verified email)', public.edu_claim_orders() = 1, '';
 insert into _r select 'My Learning sees entitlement', count(*) = 1, '' from public.edu_entitlements;
 
+set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-0000000000f2","email":"buyer@x.test","role":"authenticated"}';
+insert into _r select 'AI context denied to non-owner', r like '%Hanya kontributor%', r from (select pg_temp.expect_fail($$select public.st_ai_assessment_context((select v from _ids where k='prog'))$$) r) q;
 set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-0000000000f1","email":"trainer@x.test","role":"authenticated"}';
+insert into _r select 'AI draft needs session summary first', r like '%summary sesi%', r from (select pg_temp.expect_fail($$select public.st_ai_assessment_context((select v from _ids where k='prog'))$$) r) q;
 insert into _r select 'CON-012 creator sales own only', count(*) = 1 and sum(free_orders) = 1, count(*)::text from public.st_creator_sales();
 with x as (insert into public.st_assessments (program_id, kind, title, questions) values ((select v from _ids where k='prog'), 'webinar', 'Asesmen uji',
   '[{"type":"mcq","prompt":"Apa langkah pertama menulis prompt?","options":["Tujuan","Warna"],"answer":0,"source":"Modul 1"}]') returning id)
@@ -71,6 +74,15 @@ insert into _r select 'paper hides answer key', not ((public.st_assessment_paper
 insert into _r select 'MCQ auto scored 100', (public.st_submit_attempt((select v from _ids where k='asm'), '[0]') ->> 'score')::numeric = 100, '';
 insert into _r select 'LEA-013 duplicate attempt blocked', r like '%sudah dikirim%', r from (select pg_temp.expect_fail($$select public.st_submit_attempt((select v from _ids where k='asm'), '[0]')$$) r) q;
 insert into _r select 'LEA-014 stars 25 (hadir) + 60 (lulus) = 85', sum(units) = 85, sum(units)::text from public.st_star_events;
+reset role;
+insert into public.st_attempt_ai_suggestions (attempt_id, suggestion) select id, '{"items":[]}' from public.st_assessment_attempts where assessment_id = (select v from _ids where k='asm');
+set local role authenticated;
+insert into _r select 'AI suggestion hidden from learner', count(*) = 0, count(*)::text from public.st_attempt_ai_suggestions;
+set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-0000000000f1","email":"trainer@x.test","role":"authenticated"}';
+insert into _r select 'AI context for owner after summary', public.st_ai_assessment_context((select v from _ids where k='prog')) ->> 'kind' = 'webinar', '';
+insert into _r select 'AI suggestion hidden from contributor', count(*) = 0, '' from public.st_attempt_ai_suggestions;
+set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-0000000000c9","email":"cmd9@x.test","role":"authenticated","app_metadata":{"role":"admin"}}';
+insert into _r select 'AI suggestion visible to commander', count(*) = 1, count(*)::text from public.st_attempt_ai_suggestions;
 reset role;
 select * from _r;
 rollback;

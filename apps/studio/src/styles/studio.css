@@ -285,6 +285,9 @@ code { font-size: 12px; background: var(--n-hover); padding: 1px 6px; border-rad
 .st-alert--ok { color: var(--v-success); border-color: color-mix(in oklab, var(--v-success) 40%, transparent); background: color-mix(in oklab, var(--v-success) 10%, transparent); }
 .st-alert--info { color: var(--v-info); border-color: color-mix(in oklab, var(--v-info) 35%, transparent); background: color-mix(in oklab, var(--v-info) 8%, transparent); }
 .st-alert--warn { color: var(--v-warning); border-color: color-mix(in oklab, var(--v-warning) 40%, transparent); background: color-mix(in oklab, var(--v-warning) 8%, transparent); }
+.st-ai { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px; padding: 12px 14px; border-radius: 12px; border: 1px dashed color-mix(in oklab, var(--v-accent, var(--v-info)) 45%, transparent); background: color-mix(in oklab, var(--v-accent, var(--v-info)) 5%, transparent); }
+.st-ai > .st-stack--tight { flex: 1 1 260px; }
+.st-ai--note { display: grid; gap: 4px; align-items: stretch; margin-top: 6px; }
 .st-empty { display: grid; justify-items: center; text-align: center; gap: 10px; padding: 40px 20px; border: 1px dashed var(--v-line-strong); border-radius: var(--st-r-lg); color: var(--v-muted); }
 .st-empty b { color: var(--v-text); font-size: 15px; }
 .st-empty__ico { width: 48px; height: 48px; display: grid; place-items: center; border-radius: 12px; background: var(--n-pastel); color: var(--n-on-pastel); animation: float 4s ease-in-out infinite; }

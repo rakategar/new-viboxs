@@ -1,5 +1,7 @@
 // Notifikasi HTTP Midtrans → status order EDU.
-// 1) verifikasi signature_key = SHA512(order_id + status_code + gross_amount + server_key)  (CHE-007)
+// 1) verifikasi signature_key = SHA512(order_id + status_code + gross_amount + Signature Secret Key)  (CHE-007)
+//    Sejak 28 Okt 2026 Midtrans memakai Signature Secret Key (Settings → Access Keys → Payment), terpisah dari Server Key.
+//    Secret MIDTRANS_SIGNATURE_KEY; boleh dipisah koma saat rotasi (key lama + baru). Tanpa itu → jatuh ke Server Key (akun lama).
 // 2) ambil ulang status dari API Midtrans (server-ke-server) — payload webhook tidak dipercaya sendirian
 // 3) edu_apply_payment: transisi idempoten (webhook ganda = satu PAID, satu entitlement) (CHE-009)
 // 4) PAID pertama kali → email akses dengan tautan bertanda tangan & berbatas waktu (bila SMTP tersedia)
@@ -43,23 +45,20 @@ Deno.serve(async (req) => {
   const production = Deno.env.get('MIDTRANS_IS_PRODUCTION') === 'true';
   const sb = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } });
 
+  const sigKeys = (Deno.env.get('MIDTRANS_SIGNATURE_KEY') ?? serverKey).split(',').map((k) => k.trim()).filter(Boolean);
+
   const raw = await req.text();
   let n: Record<string, string>;
   try { n = JSON.parse(raw); } catch { return ok({ error: 'json' }, 400); }
   const orderId = String(n.order_id ?? ''), statusCode = String(n.status_code ?? ''), gross = String(n.gross_amount ?? '');
-  const expected = hex(await crypto.subtle.digest('SHA-512', new TextEncoder().encode(orderId + statusCode + gross + serverKey)));
-  if (!orderId || !safeEqual(expected, String(n.signature_key ?? ''))) {
-    let diag: Record<string, unknown> = {};
-    try {
-      const api0 = production ? 'https://api.midtrans.com' : 'https://api.sandbox.midtrans.com';
-      const r0 = await fetch(`${api0}/v2/${encodeURIComponent(orderId)}/status`, { headers: { Accept: 'application/json', Authorization: `Basic ${btoa(`${serverKey}:`)}` } });
-      const s0 = await r0.json();
-      const e0 = hex(await crypto.subtle.digest('SHA-512', new TextEncoder().encode(String(s0.order_id) + String(s0.status_code) + String(s0.gross_amount) + serverKey)));
-      diag = { api_http: r0.status, api_sig_eq_recv: s0.signature_key === n.signature_key, api_sig_eq_ours: s0.signature_key === e0, api_merchant: s0.merchant_id === n.merchant_id };
-    } catch (e) { diag = { diag_err: String(e).slice(0, 80) }; }
+  let valid = false;
+  for (const k of sigKeys) {
+    const expected = hex(await crypto.subtle.digest('SHA-512', new TextEncoder().encode(orderId + statusCode + gross + k)));
+    if (safeEqual(expected, String(n.signature_key ?? ''))) valid = true;
+  }
+  if (!orderId || !valid) {
     await sb.from('edu_payment_events').insert({ order_no: orderId.slice(0, 60) || null, source: 'webhook', transaction_status: String(n.transaction_status ?? '').slice(0, 40),
-      signature_valid: false, verified: false, transition: 'rejected_signature',
-      payload: { status_code: statusCode, gross_amount: gross, recv: String(n.signature_key ?? '').slice(0, 10), exp: expected.slice(0, 10), raw_len: raw.length, ...diag } });
+      signature_valid: false, verified: false, transition: 'rejected_signature', payload: { status_code: statusCode, gross_amount: gross, sig_key_source: Deno.env.get('MIDTRANS_SIGNATURE_KEY') ? 'signature_key' : 'server_key' } });
     return ok({ error: 'invalid signature' }, 403);
   }
   if (!/^EDU\d{6}-[A-F0-9]{8}$/.test(orderId)) return ok({ ignored: true }); // notifikasi uji dari dashboard / produk lain

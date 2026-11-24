@@ -31,9 +31,9 @@ export async function submitForm(kind: SubmitKind, site: SubmitSite, data: Recor
 }
 
 /** Panggil edge function (EDU checkout/order). Resolve → { status, data } apa adanya; status bayar SELALU dari server. */
-export async function callEdge<T = Record<string, unknown>>(name: string, body: unknown, jwt?: string): Promise<{ status: number; data: T & { error?: string; code?: string } }> {
+export async function callEdge<T = Record<string, unknown>>(name: string, body: unknown, jwt?: string, timeoutMs = 25000): Promise<{ status: number; data: T & { error?: string; code?: string } }> {
   const ac = new AbortController();
-  const t = window.setTimeout(() => ac.abort(), 25000);
+  const t = window.setTimeout(() => ac.abort(), timeoutMs);
   try {
     const res = await fetch(`${SUPABASE_URL}/functions/v1/${name}`, {
       method: 'POST', signal: ac.signal,
