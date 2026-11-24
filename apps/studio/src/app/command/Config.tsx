@@ -3,6 +3,7 @@ import { useAction, useLoad } from '../../lib/hooks';
 import { fmtDate } from '../../lib/labels';
 import { sb, must, type Flag } from '../../lib/sb';
 import { Badge, Btn, Card, I, Loaded, PageHead, Text, Toggle, useToast } from '../../ui/kit';
+import { MfaPanel } from '../Mfa';
 
 /** CMD-11: feature flags. Invariant keamanan dikunci di database dan tidak bisa diubah dari UI maupun API. */
 export default function Config() {
@@ -12,6 +13,8 @@ export default function Config() {
       <PageHead eyebrow="CMD-11 · Config & Feature Flags" title="Feature flags" desc="Setiap perubahan tercatat di audit. Flag terkunci adalah invariant PRD atau fitur Coming Soon — RLS menolak perubahan apa pun." />
       <Loaded state={s}>
         {(d) => (
+          <>
+          <MfaPanel required={!!d.find((f) => f.key === 'commander_mfa_required')?.enabled} />
           <div className="st-grid2">
             <Card title="Dapat diatur">{d.filter((f) => !f.locked).map((f) => <FlagRow key={f.key} f={f} onDone={s.reload} />)}</Card>
             <Card title={<><I.lock size={16} /> Terkunci</>} desc="Invariant keamanan & Coming Soon.">
@@ -20,6 +23,7 @@ export default function Config() {
               ))}</ul>
             </Card>
           </div>
+          </>
         )}
       </Loaded>
     </div>

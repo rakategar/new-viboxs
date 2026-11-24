@@ -651,3 +651,10 @@ article.st-lead { cursor: default; }
 .st-star__shell { fill: color-mix(in oklab, var(--v-gold, #f5b800) 10%, transparent); stroke: var(--v-gold, #f5b800); stroke-width: 3; stroke-linejoin: round; }
 .st-star__fluid { fill: var(--v-gold, #f5b800); transition: y 900ms var(--ease), height 900ms var(--ease); }
 @media (prefers-reduced-motion: reduce) { .st-star__fluid { transition: none; } }
+
+/* ---------- MFA ---------- */
+.st-mfa { display: grid; gap: 12px; width: min(360px, calc(100vw - 32px)); padding: 28px 24px; border-radius: var(--st-r-lg); border: 1px solid var(--v-line-strong); background: var(--v-surface, var(--v-bg)); text-align: left; }
+.st-mfa__ico { width: 44px; height: 44px; display: grid; place-items: center; border-radius: 12px; background: var(--n-pastel); color: var(--n-on-pastel); }
+.st-mfa-enroll { display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start; }
+.st-mfa-enroll img { background: #fff; border-radius: 12px; padding: 8px; }
+.st-mfa-enroll code { word-break: break-all; }

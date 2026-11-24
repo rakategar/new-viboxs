@@ -7,6 +7,9 @@ type AuthState = {
   session: Session | null;
   me: Me | null;
   error: string;
+  /** Assurance level sesi (MFA). next=aal2 & current=aal1 → akun punya authenticator tapi sesi belum diverifikasi. */
+  aal: { current: string | null; next: string | null } | null;
+  refreshAal: () => Promise<void>;
   refresh: () => Promise<Me | null>;
   switchRole: (r: Role) => Promise<void>;
   signOut: () => Promise<void>;
@@ -28,7 +31,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [me, setMe] = useState<Me | null>(null);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState('');
+  const [aal, setAal] = useState<AuthState['aal']>(null);
   const uid = useRef<string | null>(null);
+
+  const refreshAal = useCallback(async () => {
+    const { data } = await sb.auth.mfa.getAuthenticatorAssuranceLevel();
+    setAal(data ? { current: data.currentLevel, next: data.nextLevel } : null);
+  }, []);
 
   const refresh = useCallback(async () => {
     try {
@@ -47,7 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!alive) return;
       setSession(data.session);
       uid.current = data.session?.user.id ?? null;
-      if (data.session) await refresh();
+      if (data.session) await Promise.all([refresh(), refreshAal()]);
       setReady(true);
     });
     const { data } = sb.auth.onAuthStateChange((_e, s) => {
@@ -55,11 +64,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const next = s?.user.id ?? null;
       if (next !== uid.current) {
         uid.current = next;
-        if (next) { setReady(false); refresh().finally(() => setReady(true)); } else setMe(null);
-      }
+        if (next) { setReady(false); Promise.all([refresh(), refreshAal()]).finally(() => setReady(true)); } else { setMe(null); setAal(null); }
+      } else if (s) refreshAal();
     });
     return () => { alive = false; data.subscription.unsubscribe(); };
-  }, [refresh]);
+  }, [refresh, refreshAal]);
 
   const switchRole = useCallback(async (r: Role) => {
     await rpc('st_switch_role', { p_role: r });
@@ -68,5 +77,5 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(async () => { await sb.auth.signOut(); setMe(null); }, []);
 
-  return <Ctx.Provider value={{ ready, session, me, error, refresh, switchRole, signOut }}>{children}</Ctx.Provider>;
+  return <Ctx.Provider value={{ ready, session, me, error, aal, refreshAal, refresh, switchRole, signOut }}>{children}</Ctx.Provider>;
 }

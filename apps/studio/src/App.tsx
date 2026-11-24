@@ -11,6 +11,7 @@ import { Login, Register, Reset } from './public/Auth';
 import Invite from './public/Invite';
 import Shell from './app/Shell';
 import Workspace from './app/Workspace';
+import { MfaChallenge } from './app/Mfa';
 import { Notifications, Settings, Soon, NoRole } from './app/Common';
 
 const Applications = lazy(() => import('./app/command/Applications'));
@@ -81,7 +82,7 @@ const BIZ: Role[] = [...BUSINESS_ROLES, 'trainer'];
 
 export default function App() {
   const { pathname } = useLocation();
-  const { ready, session, me, error } = useAuth();
+  const { ready, session, me, error, aal } = useAuth();
 
   useEffect(() => {
     applySeo({ origin: STUDIO_ORIGIN, path: pathname === '/' ? '/' : pathname.split('/').slice(0, 2).join('/'), title: pathname === '/' ? 'VIBOXS Studio — Ruang kerja privat ekosistem VIBOXS' : 'VIBOXS Studio', noindex: true });
@@ -100,6 +101,8 @@ export default function App() {
   }
   if (!ready) return <div className="st-boot"><span className="st-boot__orb" />Menyiapkan Studio…</div>;
   if (!session) return <Navigate to={`/login?next=${encodeURIComponent(pathname)}`} replace />;
+  // AUT-016: akun yang sudah punya authenticator wajib memasukkan kode sebelum workspace terbuka.
+  if (aal?.next === 'aal2' && aal.current !== 'aal2') return <MfaChallenge />;
   if (!me) return <div className="st-boot st-boot--err"><b>Studio belum bisa dimuat.</b><span>{error || 'Coba muat ulang halaman.'}</span><button type="button" className="st-btn st-btn--ghost" onClick={() => location.reload()}>Muat ulang</button></div>;
   // Akun tanpa peran tetap boleh mengajukan verifikasi perusahaan (AUT-008) — fitur hiring baru aktif setelah VERIFIED.
   if (!me.roles.length) return <Shell>{pathname === '/company' ? <Suspense fallback={null}><CompanyHome /></Suspense> : <NoRole />}</Shell>;

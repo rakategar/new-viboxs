@@ -171,9 +171,9 @@ export function Field({ label, hint, error, children, wide, required }: { label:
     </div>
   );
 }
-type TextProps = { label: string; value: string | number | null | undefined; onChange: (v: string) => void; hint?: ReactNode; error?: string; wide?: boolean; placeholder?: string; type?: string; required?: boolean; autoComplete?: string; min?: number; step?: number };
-export function Text({ label, value, onChange, hint, error, wide, placeholder, type = 'text', required, autoComplete, min, step }: TextProps) {
-  return <Field label={label} hint={hint} error={error} wide={wide} required={required}>{(id, d) => <input id={id} type={type} value={value ?? ''} placeholder={placeholder} autoComplete={autoComplete} min={min} step={step} aria-invalid={!!error || undefined} aria-describedby={d} required={required} onChange={(e) => onChange(e.target.value)} />}</Field>;
+type TextProps = { label: string; value: string | number | null | undefined; onChange: (v: string) => void; hint?: ReactNode; error?: string; wide?: boolean; placeholder?: string; type?: string; required?: boolean; autoComplete?: string; min?: number; step?: number; inputMode?: React.HTMLAttributes<HTMLInputElement>['inputMode'] };
+export function Text({ label, value, onChange, hint, error, wide, placeholder, type = 'text', required, autoComplete, min, step, inputMode }: TextProps) {
+  return <Field label={label} hint={hint} error={error} wide={wide} required={required}>{(id, d) => <input id={id} type={type} value={value ?? ''} placeholder={placeholder} autoComplete={autoComplete} inputMode={inputMode} min={min} step={step} aria-invalid={!!error || undefined} aria-describedby={d} required={required} onChange={(e) => onChange(e.target.value)} />}</Field>;
 }
 export function Area({ label, value, onChange, hint, error, rows = 4, wide = true, placeholder, required }: { label: string; value: string | null | undefined; onChange: (v: string) => void; hint?: ReactNode; error?: string; rows?: number; wide?: boolean; placeholder?: string; required?: boolean }) {
   return <Field label={label} hint={hint} error={error} wide={wide} required={required}>{(id, d) => <textarea id={id} rows={rows} value={value ?? ''} placeholder={placeholder} aria-invalid={!!error || undefined} aria-describedby={d} onChange={(e) => onChange(e.target.value)} />}</Field>;
