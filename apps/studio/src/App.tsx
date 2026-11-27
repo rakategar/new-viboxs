@@ -30,7 +30,6 @@ const Earnings = lazy(() => import('./app/ranger/Earnings'));
 const Programs = lazy(() => import('./app/creator/Programs'));
 const Assessment = lazy(() => import('./app/learn/Assessment'));
 const Recommendations = lazy(() => import('./app/learn/Recommendations'));
-const EarlyPoints = lazy(() => import('./app/learn/EarlyPoints'));
 const Apply = lazy(() => import('./app/learn/Apply'));
 const OrgProfile = lazy(() => import('./app/business/OrgProfile'));
 const Products = lazy(() => import('./app/business/Products'));
@@ -143,7 +142,7 @@ export default function App() {
 
           <Route path="/learn/assessment" element={<Need roles={['learner']}><Assessment /></Need>} />
           <Route path="/learn/recommendations" element={<Need roles={['learner']}><Recommendations /></Need>} />
-          <Route path="/learn/early-points" element={<Need roles={['learner']}><EarlyPoints /></Need>} />
+          <Route path="/learn/early-points" element={<Navigate to="/workspace" replace />} />
           <Route path="/learn/apply" element={<Need roles={['learner']}><Apply /></Need>} />
           <Route path="/learn/catalog" element={<Need roles={['learner']}><Catalog /></Need>} />
           <Route path="/learn/checkout/:slug" element={<Need roles={['learner']}><MemberCheckout /></Need>} />

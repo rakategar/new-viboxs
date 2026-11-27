@@ -48,7 +48,7 @@ function Hero({ signedIn }: { signedIn: boolean }) {
         <RevealText as="h1" className="nx-h1" text={'Satu ruang kerja.\nIzin terpisah per peran.'} />
         <p className="nx-lead" data-rv>Backstage ekosistem VIBOXS — tempat Commander, Rangers, kontributor EDU, Learner, dan mitra bisnis bekerja dalam satu identitas, dengan hak akses yang dijaga di server.</p>
         <div className="nx-row nx-hero__cta" data-rv>
-          <Link to={signedIn ? '/workspace' : '/login'} className="nx-btn nx-btn--pink"><Roll>{signedIn ? 'Buka workspace' : 'Masuk Studio'}</Roll></Link>
+          <Link to={signedIn ? '/workspace' : '/login'} className="nx-btn nx-btn--accent"><Roll>{signedIn ? 'Buka workspace' : 'Masuk Studio'}</Roll></Link>
           <Link to="/daftar" className="nx-btn nx-btn--gray"><Roll>Daftar sebagai Learner</Roll></Link>
         </div>
       </div>
@@ -317,7 +317,7 @@ function Security() {
           <RevealText className="nx-h2" text="Keamanan dibangun di server, bukan di menu." />
           <p className="nx-sub" data-rv>Setiap izin, keputusan, dan perpindahan peran diperiksa ulang di backend pada setiap permintaan.</p>
           <div className="nx-row nx-center" data-rv>
-            <Link to="/login" className="nx-btn nx-btn--pink"><Roll>Masuk Studio</Roll></Link>
+            <Link to="/login" className="nx-btn nx-btn--accent"><Roll>Masuk Studio</Roll></Link>
             <a href={`mailto:${CONTACT.email}?subject=${encodeURIComponent('Pertanyaan VIBOXS Studio')}`} className="nx-btn nx-btn--gray"><Roll>Hubungi admin</Roll></a>
           </div>
         </div>
@@ -391,7 +391,7 @@ function Cta({ signedIn }: { signedIn: boolean }) {
         <div className="nx-cta__l dots-light">
           <RevealText className="nx-h2" text={'Sudah diundang?\nMasuk dengan email undangan Anda.'} />
           <div className="nx-row nx-center" data-rv>
-            <Link to={signedIn ? '/workspace' : '/login'} className="nx-btn nx-btn--pink"><Roll>{signedIn ? 'Buka workspace' : 'Mulai masuk'}</Roll></Link>
+            <Link to={signedIn ? '/workspace' : '/login'} className="nx-btn nx-btn--accent"><Roll>{signedIn ? 'Buka workspace' : 'Mulai masuk'}</Roll></Link>
           </div>
         </div>
         <div className="nx-cta__r dots-dark" data-rv>

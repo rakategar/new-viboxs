@@ -56,7 +56,6 @@ export interface FormatFields {
 }
 export interface ProgramReview { id: string; draft_id: string; decision: 'approved' | 'needs_revision'; note: string | null; checks: Record<string, boolean>; reviewer_id: string | null; created_at: string }
 export interface LearnerProfile { person_id: string; goal: string | null; level: string | null; hours: string | null; interests: string[]; formats: string[]; answers: Record<string, unknown>; updated_at: string }
-export interface Points { id: string; campaign: string; reason: string; points: number; note: string | null; created_at: string }
 export interface Org {
   id: string; owner_id: string; name: string; kind: string; sector: string; description: string; website: string | null; location: string | null;
   offers: string[]; needs: string[]; visibility: 'private' | 'network' | 'discoverable'; verified_identity: boolean; verified_ownership: boolean; partner_contracted: boolean; updated_at: string;

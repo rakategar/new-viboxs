@@ -170,7 +170,6 @@ export function Register() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<Record<string, string>>({});
   const [state, setState] = useState<'form' | 'verify' | 'done'>('form');
-  const [points, setPoints] = useState(false);
   const signedIn = !!session;
   const [linkErr] = useState(linkError);
 
@@ -186,9 +185,9 @@ export function Register() {
     if (!pending || pending.name.trim().length < 2) return;
     (async () => {
       try {
-        const r = await rpc<{ early_points: boolean }>('st_register_learner', { p_name: pending!.name, p_privacy_version: PRIVACY_VERSION, p_marketing: pending!.marketing });
+        await rpc('st_register_learner', { p_name: pending!.name, p_privacy_version: PRIVACY_VERSION, p_marketing: pending!.marketing });
         localStorage.removeItem('viboxs-studio-learner');
-        setPoints(r.early_points); setState('done'); await refresh();
+        setState('done'); await refresh();
       } catch (e) { setErr({ form: (e as Error).message }); }
     })();
   }, [ready, session, me, state, nav, refresh]);
@@ -207,8 +206,8 @@ export function Register() {
     if (signedIn) {
       // sudah punya akun (mis. Ranger) → tambahkan peran Learner ke identitas yang sama
       try {
-        const r = await rpc<{ early_points: boolean }>('st_register_learner', { p_name: name.trim(), p_privacy_version: PRIVACY_VERSION, p_marketing: marketing });
-        setPoints(r.early_points); setState('done'); await refresh();
+        await rpc('st_register_learner', { p_name: name.trim(), p_privacy_version: PRIVACY_VERSION, p_marketing: marketing });
+        setState('done'); await refresh();
       } catch (e2) { setErr({ form: (e2 as Error).message }); }
       setBusy(false);
       return;
@@ -226,7 +225,6 @@ export function Register() {
         <div className="au__done">
           <span className="au__check"><I.check size={28} /></span>
           <p>Akun Anda hanya memiliki akses <b>EDU Learner</b>. Jalur profesional (Ranger, Trainer, OPC) tetap melalui aplikasi terpisah dan seleksi Commander.</p>
-          {points && <p className="au__pts"><I.spark size={16} /> 100 Early Points tercatat — belum dapat ditukar. Aturan penukaran diumumkan setelah disahkan.</p>}
           <button type="button" className="st-btn st-btn--primary st-btn--block" onClick={() => nav('/learn/assessment')}>Mulai asesmen awal</button>
           <button type="button" className="st-btn st-btn--ghost st-btn--block" onClick={() => nav('/workspace')}>Lihat My Learning</button>
         </div>
@@ -277,7 +275,7 @@ function RegisterAside() {
       <ol>
         <li><b>Asesmen awal</b><span>Pertanyaan terstruktur berbasis aturan — bukan tes kepribadian atau penilaian bakat.</span></li>
         <li><b>Rekomendasi</b><span>Hanya program EDU yang benar-benar tayang, dengan alasan yang bisa dibaca.</span></li>
-        <li><b>Early Points</b><span>Bila kampanye aktif: poin dicatat, belum bisa ditukar.</span></li>
+        <li><b>Star Ranking</b><span>Naik dari assessment yang diverifikasi reviewer — bukan dari klik atau login.</span></li>
       </ol>
       <p className="st-hint">Membeli program EDU tidak wajib punya akun — guest checkout tetap tersedia di edu.viboxs.com.</p>
     </div>

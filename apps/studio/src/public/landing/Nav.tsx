@@ -64,7 +64,7 @@ export default function Nav({ signedIn }: { signedIn: boolean }) {
           <div className="nx-act">
             <ThemeToggle className="nx-theme" />
             {!signedIn && <Link to="/login" className="nx-signin">Masuk</Link>}
-            <Link to={cta[0]} className="nx-btn nx-btn--pink"><Roll>{cta[1]}</Roll></Link>
+            <Link to={cta[0]} className="nx-btn nx-btn--accent"><Roll>{cta[1]}</Roll></Link>
             <button type="button" className="nx-burger" aria-label="Buka menu" aria-expanded={sheet} onClick={() => setSheet(true)}><I.menu size={20} /></button>
           </div>
         </div>
@@ -114,7 +114,7 @@ export default function Nav({ signedIn }: { signedIn: boolean }) {
           {SITE_ORDER.map((k) => <a key={k} href={siteUrl(k)}><b>{SITES[k].name}</b><span>{isPending(k) ? 'Sedang disiapkan' : SITES[k].domain}</span></a>)}
         </div>
         <div className="nx-sheet__cta">
-          <Link to={signedIn ? '/workspace' : '/login'} className="nx-btn nx-btn--pink nx-btn--block">{signedIn ? 'Buka workspace' : 'Masuk Studio'}</Link>
+          <Link to={signedIn ? '/workspace' : '/login'} className="nx-btn nx-btn--accent nx-btn--block">{signedIn ? 'Buka workspace' : 'Masuk Studio'}</Link>
           <Link to="/daftar" className="nx-btn nx-btn--gray nx-btn--block">Daftar sebagai Learner</Link>
         </div>
       </div>

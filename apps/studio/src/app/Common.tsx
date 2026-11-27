@@ -109,7 +109,7 @@ export function Soon() {
         <ComingSoon title="AI Quality Inspector" icon={I.shield}>Audit berbasis bukti dengan cakupan yang jelas — bukan label subjektif. QC saat ini dilakukan manusia.</ComingSoon>
         <ComingSoon title="Dede AI Strategy Assistant" icon={I.chat}>Konsultasi metodologi founder dengan knowledge base terkurasi.</ComingSoon>
         <ComingSoon title="Affiliate EDU" icon={I.link}>Tautan referral lintas peran, komisi terverifikasi, payout. Belum ada komisi aktif.</ComingSoon>
-        <ComingSoon title="Penukaran poin" icon={I.star}>Early Points tercatat; aturan tukar menunggu persetujuan finance.</ComingSoon>
+        <ComingSoon title="Penukaran Token" icon={I.star}>Token reward tercatat di ledger; penukaran menunggu persetujuan Legal &amp; Finance.</ComingSoon>
         <ComingSoon title="Investor Network" icon={I.compass}>Visi eksplorasi — bukan jaminan akses modal, pitching, atau equity.</ComingSoon>
         <ComingSoon title="Payout otomatis" icon={I.wallet}>Saat ini payout dicatat manual dengan bukti transfer.</ComingSoon>
       </div>

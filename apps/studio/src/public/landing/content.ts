@@ -20,7 +20,7 @@ export const SOON: { t: string; d: string }[] = [
   { t: 'Professional AI Tools', d: 'PRD Builder, Design System Builder, AI Quality Inspector untuk Ranger.' },
   { t: 'Dede AI Advisor', d: 'Panduan metodologi founder dengan knowledge base terkurasi.' },
   { t: 'Affiliate EDU', d: 'Tautan referral lintas peran. Belum ada komisi aktif.' },
-  { t: 'Penukaran poin', d: 'Early Points tercatat. Aturan tukar menunggu persetujuan.' },
+  { t: 'Penukaran Token', d: 'Token reward tercatat di ledger. Penukaran menunggu persetujuan Legal & Finance.' },
   { t: 'Konektor Universe', d: 'Produk OPC tetap “Antre” sampai konektor benar-benar aktif.' },
   { t: 'Investor Network', d: 'Visi eksplorasi — bukan janji pendanaan atau akses investor.' },
 ];
@@ -30,7 +30,7 @@ export const TILES: { icon: IconKey; label: string }[] = [
   { icon: 'lead', label: 'Lead Services' }, { icon: 'inbox', label: 'Aplikasi' }, { icon: 'key', label: 'Undangan' },
   { icon: 'target', label: 'Missions' }, { icon: 'chat', label: 'Thread' }, { icon: 'box', label: 'Deliverable' },
   { icon: 'wallet', label: 'Payable' }, { icon: 'book', label: 'Program EDU' }, { icon: 'compass', label: 'Asesmen' },
-  { icon: 'star', label: 'Early Points' }, { icon: 'link', label: 'Connect' }, { icon: 'users', label: 'Peran' },
+  { icon: 'star', label: 'Star Ranking' }, { icon: 'link', label: 'Connect' }, { icon: 'users', label: 'Peran' },
   { icon: 'bell', label: 'Realtime' }, { icon: 'eye', label: 'Audit' }, { icon: 'lock', label: 'Firewall' },
   { icon: 'sliders', label: 'Feature flag' },
 ];
@@ -86,7 +86,7 @@ export const SHOWCASE: { k: string; tab: string; pix: string; h: string; d: stri
     flow: f(890, [
       { id: 'u', kind: 'box', x: 20, y: 90, icon: 'user', t: 'Daftar', s: 'gratis' },
       { id: 'a', kind: 'agent', x: 160, y: 90, icon: 'compass', t: 'Asesmen', s: 'aturan rules-v1' },
-      { id: 'p', kind: 'sub', x: 200, y: 270, icon: 'star', t: 'Early Points', s: 'belum ditukar' },
+      { id: 'p', kind: 'sub', x: 200, y: 270, icon: 'star', t: 'Star Ranking', s: 'dari asesmen terverifikasi' },
       { id: 'r', kind: 'box', x: 500, y: 90, icon: 'spark', t: 'Rekomendasi', s: 'beralasan' },
       { id: 'c', kind: 'box', x: 660, y: 90, icon: 'book', t: 'Katalog EDU', s: 'yang tayang' },
     ], [['u', 'a'], ['a', 'r'], ['r', 'c'], ['a', 'p', 'sub']]),

@@ -1,4 +1,6 @@
-# Pending deploy: v4 WP03 + WP04 (branch `v4-wp03-wp04`)
+# Pending deploy: v4 WP03 + WP04 + WP05 part (branch `v4-wp03-wp04`)
+
+WP05 part = rebrand without pink + Points removed. Company Showcase has not been built.
 
 **Context:** written on 27 Nov 2026 from a Claude Code account that has no Supabase MCP. The SQL below has **not been applied** and the tests have **not been run**. Only `tsc` and `vite build` passed for `build:studio` and `build:edu`.
 
@@ -14,8 +16,9 @@ Use `apply_migration`, in this order:
 |---|---|---|
 | 1 | `20261127e_proof_internal_only` | `supabase/migrations/20261127e_proof_internal_only.sql` |
 | 2 | `20261127f_program_formats_media` | `supabase/migrations/20261127f_program_formats_media.sql` |
+| 3 | `20261127g_points_archive` | `supabase/migrations/20261127g_points_archive.sql` |
 
-`20261127f` patches `st_release_program_payable` by text replacement. It fails loudly if the live definition differs from what it expects.
+`20261127f` patches `st_release_program_payable`, and `20261127g` patches `st_register_learner`, both by text replacement. Each fails loudly if the live definition differs from what it expects.
 
 ### 2. Deploy the edge function `st-notify`
 
@@ -34,6 +37,7 @@ Run each file through `execute_sql`. Every test file ends with `rollback`. Expec
 |---|---|---|
 | `supabase/tests/v4_proof_internal_only.sql` | V4-BP-005..010, V4-MG-001, RAN-012 | all `ok = true` |
 | `supabase/tests/v4_publish_formats.sql` | V4-PF-001..015 | all `ok = true` |
+| `supabase/tests/v4_points_archive.sql` | V4-TV-001..003, V4-MG-002 | all `ok = true` |
 | `supabase/tests/commander_mfa.sql` | MFA regression | 21 RPCs guarded (18 + `st_set_staff_permission`, `st_payment_add_proof`, `st_review_draft`) |
 | `v4_demo_isolation.sql`, `v4_activation.sql`, `v4_company_application.sql`, `edu_company_firewall.sql`, `edu_publish_learning_flow.sql` | Regression | unchanged |
 
@@ -66,6 +70,10 @@ Do these checks with the demo accounts (credentials are in the internal RAHASIA 
 - **Commander Payouts:**
   - "Lihat bukti" opens a 60-second link;
   - "Ganti bukti" creates version 2.
+- **Rebrand (light + dark), no pink:**
+  - primary buttons are orange `#FF4A26` with dark text;
+  - run axe/Lighthouse for WCAG AA contrast on the landing page, Workspace and forms;
+  - `/learn/early-points` redirects to `/workspace`.
 
 ## Behaviour changes to be aware of
 
@@ -76,6 +84,12 @@ Do these checks with the demo accounts (credentials are in the internal RAHASIA 
   - Commander has access.
   - An Operator has access only with the `FINANCE_EVIDENCE` permission, granted via `st_set_staff_permission`.
   - There is no UI yet for granting that permission.
+- **Points are removed:**
+  - the Learner Workspace card is replaced by "Star & Token";
+  - the flag is OFF and locked;
+  - `st_points` is read-only and visible to Commander only;
+  - points are not converted to Token.
+- **The "Pembayaran berhasil" email and the "Program tayang" email** are sent only after `st-notify` is redeployed.
 - **KIT is treated as a digital product**, like an e-book: it appears in the Digital Library, uses the 7-day refund window for profit sharing, and is delivered as a file through `edu-private`.
 
 ## Known gaps (follow-ups)

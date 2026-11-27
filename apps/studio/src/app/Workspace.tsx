@@ -2,7 +2,7 @@ import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { useLoad } from '../lib/hooks';
 import { ROLE, ENTITY, ago, rupiah, PROG_STATUS, BUSINESS_ROLES } from '../lib/labels';
-import { sb, must, type Audit, type Notification, type Payable, type ProgramDraft, type Points, type LearnerProfile } from '../lib/sb';
+import { sb, must, type Audit, type Notification, type Payable, type ProgramDraft, type LearnerProfile } from '../lib/sb';
 import { PendingInvites } from './Invites';
 import { Badge, Card, ComingSoon, Empty, I, Loaded, PageHead, Stat, StatusBadge } from '../ui/kit';
 
@@ -147,11 +147,8 @@ function TrainerHome() {
 function LearnerHome() {
   const { me } = useAuth();
   const s = useLoad(async () => {
-    const [lp, pts] = await Promise.all([
-      must(sb.from('st_learner_profiles').select('*').eq('person_id', me!.profile.id).maybeSingle()) as Promise<LearnerProfile | null>,
-      must(sb.from('st_points').select('*')) as Promise<Points[]>,
-    ]);
-    return { lp, pts: pts.reduce((a, p) => a + p.points, 0) };
+    const lp = await must(sb.from('st_learner_profiles').select('*').eq('person_id', me!.profile.id).maybeSingle()) as LearnerProfile | null;
+    return { lp };
   });
   return (
     <>
@@ -160,10 +157,9 @@ function LearnerHome() {
           {s.data?.lp ? <p>Tujuan Anda: <b>{s.data.lp.goal}</b>. Diperbarui {ago(s.data.lp.updated_at)}.</p> : <p className="st-muted">Belum diisi. 2–3 menit, berbasis aturan yang bisa dijelaskan.</p>}
           <Link to={s.data?.lp ? '/learn/recommendations' : '/learn/assessment'} className="st-btn st-btn--primary st-btn--sm">{s.data?.lp ? 'Lihat rekomendasi' : 'Mulai asesmen'}<I.arrow size={14} /></Link>
         </Card>
-        <Card title="Early Points">
-          <p className="st-big">{s.data ? s.data.pts : '—'}<small> poin</small></p>
-          <p className="st-muted st-small">{s.data?.pts ? 'Tercatat, belum dapat ditukar.' : 'Kampanye belum aktif untuk akun Anda.'}</p>
-          <Link to="/learn/early-points" className="st-linkbtn">Riwayat poin</Link>
+        <Card title="Star & Token">
+          <p className="st-muted st-small">Star Ranking naik dari assessment yang terverifikasi. Token reward dicatat di ledger, tetapi belum bisa ditukar sampai disetujui Legal &amp; Finance.</p>
+          <Link to="/learn/stars" className="st-linkbtn">Lihat Star Ranking</Link>
         </Card>
         <Card title="Jalur profesional">
           <p className="st-muted st-small">Ingin jadi Ranger, Trainer, atau OPC Founder? Ajukan aplikasi — akses baru hanya setelah seleksi Commander.</p>
