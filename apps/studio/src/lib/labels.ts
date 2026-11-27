@@ -61,7 +61,21 @@ export const PAY_STATUS: Record<string, [string, Tone]> = {
   pending_approval: ['Menunggu approval', 'warn'], approved: ['Disetujui · belum transfer', 'gold'], rejected: ['Ditolak', 'danger'], partially_paid: ['Dibayar sebagian', 'violet'], paid: ['Lunas', 'ok'],
 };
 
-export const PROG_TYPE: Record<string, string> = { webinar: 'Live Webinar', workshop: 'Workshop', ebook: 'E-book', ecourse: 'E-course' };
+export const PROG_TYPE: Record<string, string> = { webinar: 'Live Webinar', workshop: 'Workshop', ebook: 'E-book', kit: 'Kit', ecourse: 'E-course (segera hadir)' };
+/** Rasio cover/poster per format (v4 §08.2): e-book & kit potret 4:5, sesi landscape 16:9. */
+export const COVER_RATIO: Record<string, '4:5' | '16:9'> = { ebook: '4:5', kit: '4:5', webinar: '16:9', workshop: '16:9', ecourse: '16:9' };
+/** Zona waktu tanpa DST — offset tetap agar input jam konsisten. */
+export const TIMEZONES: [string, string, number][] = [
+  ['Asia/Jakarta', 'WIB · Asia/Jakarta', 7], ['Asia/Makassar', 'WITA · Asia/Makassar', 8], ['Asia/Jayapura', 'WIT · Asia/Jayapura', 9],
+  ['Asia/Singapore', 'Singapura · Asia/Singapore', 8], ['UTC', 'UTC', 0],
+];
+const tzOff = (tz?: string) => (TIMEZONES.find((x) => x[0] === tz)?.[2] ?? 7);
+export const toTzInput = (iso: string | null | undefined, tz?: string) => (iso ? new Date(new Date(iso).getTime() + tzOff(tz) * 3600_000).toISOString().slice(0, 16) : '');
+export const fromTzInput = (v: string, tz?: string) => {
+  if (!v) return null;
+  const o = tzOff(tz); const sign = o >= 0 ? '+' : '-';
+  return new Date(`${v}:00${sign}${String(Math.abs(o)).padStart(2, '0')}:00`).toISOString();
+};
 export const PROG_PATH: Record<string, string> = { ai: 'Start with AI', biz: 'Build Your Business', career: 'Work & Career' };
 export const PRICING: Record<string, string> = { free: 'Gratis', paid: 'Berbayar', invitation: 'Undangan', sponsored: 'Disponsori' };
 export const PROG_STATUS: Record<string, [string, Tone]> = {
@@ -164,3 +178,5 @@ export function starLevel(n: number) {
   const [name, a, b] = n >= 700 ? STAR_LEVELS[4] : STAR_LEVELS[i];
   return { name, fill: n >= 700 ? 1 : Math.min(1, Math.max(0, (n - a) / (b - a))), next: n >= 700 ? null : b };
 }
+/** Produk digital (unduhan, tanpa jadwal): e-book & kit (v4 WP04). */
+export const isDigital = (t?: string | null) => t === 'ebook' || t === 'kit';

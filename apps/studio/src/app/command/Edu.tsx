@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useAction, useLoad } from '../../lib/hooks';
-import { ASM_STATUS, ORDER_STATUS, PAID_STATES, fmtDate, rupiah } from '../../lib/labels';
+import { ASM_STATUS, ORDER_STATUS, PAID_STATES, fmtDate, rupiah, isDigital } from '../../lib/labels';
 import { aiAssist } from '../../lib/edu';
 import { sb, must, rpc, type AiEssaySuggestion, type Assessment, type Attempt, type EduOrder, type Entitlement } from '../../lib/sb';
 import { Area, Badge, Btn, Dialog, Empty, I, KV, Loaded, PageHead, Stat, StatusBadge, Tabs, Text, useToast } from '../../ui/kit';
@@ -100,7 +100,7 @@ function OrderDialog({ o, onClose, onDone }: { o: EduOrder; onClose: () => void;
               <div><span className="st-eyebrow">Jejak pembayaran</span>
                 <ul className="st-list">{d.ev.map((e) => <li key={e.id}><span><b>{e.transition ?? '—'}</b><small>{e.source} · {e.transaction_status ?? '—'} · signature {e.signature_valid == null ? 'n/a' : e.signature_valid ? 'valid' : 'TIDAK valid'}</small></span><span className="st-small st-muted">{fmtDate(e.created_at)}</span></li>)}</ul>
               </div>
-              {d.ent && o.product.type !== 'ebook' && (d.att ? <div className="st-alert st-alert--ok">Kehadiran terverifikasi {fmtDate(d.att.created_at)} — {d.att.evidence}</div> : !d.ent.revoked_at && (
+              {d.ent && !isDigital(o.product.type) && (d.att ? <div className="st-alert st-alert--ok">Kehadiran terverifikasi {fmtDate(d.att.created_at)} — {d.att.evidence}</div> : !d.ent.revoked_at && (
                 <div className="st-form">
                   <Text label="Bukti kehadiran" value={evidence} onChange={setEvidence} wide placeholder="mis. laporan peserta Zoom: hadir 85 menit" />
                   <div className="st-form__act"><Btn busy={busy === 'att'} onClick={() => run('att', () => rpc('edu_mark_attendance', { p_entitlement: d.ent!.id, p_evidence: evidence }), () => onDone('Kehadiran tercatat (+25 progres bintang).'), (e) => toast(e, 'err'))}>Catat kehadiran</Btn></div>
@@ -144,7 +144,7 @@ function ProgramDialog({ p, priv, onClose, onDone }: { p: Prog; priv?: Priv; onC
       <div className="st-stack">
         <div className="st-alert st-alert--info st-small">Data di sini TIDAK pernah tampil di halaman publik EDU. Peserta melihatnya hanya di halaman order/My Learning setelah aksesnya terverifikasi.</div>
         <div className="st-form">
-          {p.data.type !== 'ebook'
+          {!isDigital(p.data.type)
             ? <Text label="Tautan sesi Zoom/Meet" value={meet} onChange={setMeet} wide />
             : <div className="st-field st-field--wide"><label className="st-label" htmlFor="eb-file">File e-book (PDF/EPUB)</label><input id="eb-file" type="file" accept=".pdf,.epub,application/pdf,application/epub+zip" onChange={(e) => setFile(e.target.files?.[0] ?? null)} /><small className="st-muted">{priv?.ebook_path ? `Tersimpan: ${priv.ebook_path.split('/').pop()}` : 'Belum ada file.'} Diunduh pembeli lewat tautan bertanda tangan 10 menit.</small></div>}
           <Area label="Catatan akses untuk peserta" value={note} onChange={setNote} rows={2} />

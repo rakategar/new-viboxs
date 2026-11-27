@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ORIGIN } from '@viboxs/shared/ecosystem';
 import { useAuth } from '../../lib/auth';
 import { useAction, useLoad } from '../../lib/hooks';
-import { ORDER_STATUS, PAID_STATES, PROG_PATH, PROG_TYPE, fmtDate, rupiah } from '../../lib/labels';
+import { ORDER_STATUS, PAID_STATES, PROG_PATH, PROG_TYPE, fmtDate, rupiah, isDigital } from '../../lib/labels';
 import { sb, must, rpc, type EduOrder, type Entitlement } from '../../lib/sb';
 import { eduEdge, idemKey, paymentsEnabled } from '../../lib/edu';
 import { Badge, Btn, Card, Check, Empty, ErrorBox, I, KV, Loaded, PageHead, Skeleton, StatusBadge, useToast } from '../../ui/kit';
@@ -11,7 +11,7 @@ import { fetchCatalog, type EduProgram } from './rules';
 
 const OPEN = ['OPEN', 'RESCHEDULED', 'AVAILABLE'];
 const priceLabel = (p: EduProgram) => (p.free ? 'Gratis' : p.price ? rupiah(p.price) : 'Harga belum diumumkan');
-const isPast = (p: EduProgram) => p.type !== 'ebook' && !!p.startsAt && Date.parse(p.startsAt) < Date.now();
+const isPast = (p: EduProgram) => !isDigital(p.type) && !!p.startsAt && Date.parse(p.startsAt) < Date.now();
 
 /** Find Programs — katalog EDU kanonis di dalam Studio (PRD §05.1 member). Tidak ada produk selain yang terbit. */
 export function Catalog() {
@@ -32,11 +32,11 @@ export function Catalog() {
                   <span className="st-mono">{PROG_TYPE[p.type] ?? p.type} · {PROG_PATH[p.path] ?? p.path}</span>
                   <b className="st-rec__t">{p.title}</b>
                   <p className="st-small st-muted st-clamp">{p.summary}</p>
-                  <span className="st-small">{p.type === 'ebook' ? 'Akses mandiri' : p.startsAt ? fmtDate(p.startsAt) : p.date ?? 'Jadwal menyusul'}</span>
+                  <span className="st-small">{isDigital(p.type) ? 'Akses mandiri' : p.startsAt ? fmtDate(p.startsAt) : p.date ?? 'Jadwal menyusul'}</span>
                   <div className="row-between">
                     <b>{priceLabel(p)}</b>
                     {buy ? <Link to={`/learn/checkout/${p.slug}`} className="st-btn st-btn--primary st-btn--sm">{p.free ? 'Daftar' : 'Beli'}</Link>
-                      : <a href={`${ORIGIN.edu}/${p.type === 'ebook' ? 'digital-library' : 'programs'}/${p.slug}`} target="_blank" rel="noopener noreferrer" className="st-btn st-btn--ghost st-btn--sm">Detail<I.ext size={14} /></a>}
+                      : <a href={`${ORIGIN.edu}/${isDigital(p.type) ? 'digital-library' : 'programs'}/${p.slug}`} target="_blank" rel="noopener noreferrer" className="st-btn st-btn--ghost st-btn--sm">Detail<I.ext size={14} /></a>}
                   </div>
                   {!buy && !p.free && <span className="st-small st-muted">{p.price ? 'Pembayaran online sedang disiapkan.' : 'Harga belum diumumkan.'}</span>}
                 </article>
@@ -84,7 +84,7 @@ export function MemberCheckout() {
         ) : !p.free && !(on && p.price) ? (
           <Card title={p.title}><div className="st-alert st-alert--warn">Pembayaran online untuk program berbayar sedang disiapkan. Tidak ada order atau tagihan yang dibuat.</div></Card>
         ) : (
-          <Card title={p.title} desc={`${PROG_TYPE[p.type] ?? p.type} · ${p.type === 'ebook' ? 'akses mandiri' : p.startsAt ? fmtDate(p.startsAt) : 'jadwal menyusul'}`}>
+          <Card title={p.title} desc={`${PROG_TYPE[p.type] ?? p.type} · ${isDigital(p.type) ? 'akses mandiri' : p.startsAt ? fmtDate(p.startsAt) : 'jadwal menyusul'}`}>
             <div className="st-stack">
               <KV rows={[['Total', <b key="t">{priceLabel(p)}</b>], ['Akun', me!.profile.email ?? '—'], ['Pembayaran', p.free ? 'Tidak ada tagihan' : 'Midtrans (VA, e-wallet, QRIS, kartu)'], ['Akses', 'Terbuka setelah server menerima konfirmasi — tampil di My Learning']]} />
               <Check label={<>Saya menyetujui <a href={`${ORIGIN.edu}/policies/terms`} target="_blank" rel="noopener noreferrer">ketentuan layanan</a> dan <a href={`${ORIGIN.edu}/policies/refund`} target="_blank" rel="noopener noreferrer">kebijakan refund</a> EDU.</>} checked={terms} onChange={setTerms} />
@@ -181,7 +181,7 @@ export function OrderStatus() {
       {err ? <ErrorBox msg={err} onRetry={load} /> : !v ? <Skeleton /> : (
         <Card title={<StatusBadge map={ORDER_STATUS} value={v.status} />}>
           <div className="st-stack">
-            <KV rows={[['Total', v.product.free ? 'Gratis' : rupiah(v.cash)], ['Jadwal', v.product.startsAt ? fmtDate(v.product.startsAt) : v.product.type === 'ebook' ? 'Akses mandiri' : 'Menyusul'],
+            <KV rows={[['Total', v.product.free ? 'Gratis' : rupiah(v.cash)], ['Jadwal', v.product.startsAt ? fmtDate(v.product.startsAt) : isDigital(v.product.type) ? 'Akses mandiri' : 'Menyusul'],
               ['Terverifikasi', v.paid_at ? fmtDate(v.paid_at) : '—'], ...(v.refunded > 0 ? [['Direfund', rupiah(v.refunded)] as [string, string]] : [])]} />
             {v.status === 'PAYMENT_PENDING' && (
               <div className="st-alert st-alert--warn st-alert--row" role="status" aria-live="polite">

@@ -77,6 +77,30 @@ function render(r: Row): Mail | null {
     if (!line[st]) return null;
     return { subject: `Status pengajuan Company Partner ${ref}`, paras: [hello, line[st], note].filter(Boolean) };
   }
+  // v4 §08.3: email "Program tayang" hanya setelah EDU ACK (diantre trigger st_program_mail).
+  if (r.topic === 'program.published') {
+    const slug = typeof p.slug === 'string' && /^[a-z0-9-]+$/.test(p.slug) ? p.slug : '';
+    const digital = p.type === 'ebook' || p.type === 'kit';
+    return {
+      subject: 'Program Anda sudah tayang di VIBOXS EDU',
+      paras: [hello, `Program <b>${esc(String(p.title ?? ''))}</b> sudah disetujui dan kini tayang di katalog VIBOXS EDU.`,
+        'Perubahan yang memengaruhi harga, jadwal, atau isi program perlu diajukan ulang untuk review.'],
+      cta: slug ? { label: 'Lihat di EDU', url: `https://edu.viboxs.com/${digital ? 'digital-library' : 'programs'}/${slug}` } : { label: 'Buka Studio', url: `${STUDIO_ORIGIN}/creator/programs` },
+    };
+  }
+  // v4 §15 "Pembayaran berhasil" — tanpa lampiran atau tautan bukti bank internal (V4-BP-008/009).
+  if (r.topic === 'payout.paid') {
+    const amt = Number(p.amount ?? 0).toLocaleString('id-ID');
+    const day = new Date(String(p.paid_at)).toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta', dateStyle: 'long' });
+    const link = typeof p.link === 'string' && p.link.startsWith('/') ? p.link : '/workspace';
+    return {
+      subject: p.partial === true ? 'Pembayaran sebagian berhasil' : 'Pembayaran berhasil',
+      paras: [hello, `<b>${p.partial === true ? 'Pembayaran sebagian berhasil.' : 'Pembayaran berhasil.'}</b> Pembayaran untuk ${esc(String(p.category ?? 'honor VIBOXS'))} telah diproses dan dikonfirmasi pada ${esc(day)}.`,
+        `Rincian: ${esc(String(p.label ?? ''))} · Rp${esc(amt)} · referensi ${esc(String(p.reference_masked ?? '••••'))}.`,
+        'Rincian nominal dan histori tersedia di Studio. Bukti bank bersifat internal dan tidak dilampirkan.'],
+      cta: { label: 'Lihat di Studio', url: `${STUDIO_ORIGIN}${link}` },
+    };
+  }
   return null;
 }
 

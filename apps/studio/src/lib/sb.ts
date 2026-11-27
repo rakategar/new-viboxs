@@ -34,15 +34,27 @@ export interface Bid { id: string; mission_id: string; ranger_id: string; kind: 
 export interface Assignment { id: string; mission_id: string; ranger_id: string; agreed_fee: number; payout_schedule: string; agreement_terms: string; agreement_version: number; agreement_state: string; accepted_at: string | null; created_at: string }
 export interface Deliverable { id: string; mission_id: string; ranger_id: string; version: number; url: string; note: string | null; status: string; review_note: string | null; reviewed_at: string | null; created_at: string }
 export interface Payable { id: string; beneficiary_id: string; source_type: string; source_id: string | null; label: string; amount: number; currency: string; schedule: string | null; status: string; note: string | null; approved_at: string | null; created_at: string }
-export interface Payment { id: string; payable_id: string; amount: number; reference: string; paid_at: string; created_at: string; method: string | null; proof_path: string | null }
+export interface Payment { id: string; payable_id: string; amount: number; reference: string; paid_at: string; created_at: string; method: string | null; proof_path: string | null; proof_version?: number; proof_uploaded_at?: string | null }
+/** Tampilan penerima (v4 WP03): tanpa path/hash bukti bank. */
+export interface MyPayment { id: string; payable_id: string; amount: number; reference_masked: string; paid_at: string; method: string | null; status: 'PAID' }
 export interface Message { id: string; thread_type: string; thread_id: string; ranger_id: string | null; author_id: string; author_name: string | null; acting_as: string | null; body: string; created_at: string }
 export interface ProgramDraft {
-  id: string; owner_id: string; title: string; slug: string; type: 'ebook' | 'webinar' | 'workshop' | 'ecourse'; path: 'ai' | 'biz' | 'career';
+  id: string; owner_id: string; title: string; slug: string; type: ProgFormat; path: 'ai' | 'biz' | 'career';
   pricing: 'free' | 'paid' | 'invitation' | 'sponsored'; summary: string; for_who: string; level: string; outcomes: string[]; tags: string[];
   schedule_at: string | null; duration: string | null; capacity: number | null; rights_declared: boolean; status: string; review_note: string | null; edu_slug: string | null; updated_at: string;
   price: number | null; accepts_tokens: boolean; public_name: string | null; toc: string[]; cover_url: string | null; refund_terms: string | null; support_contact: string | null;
   edu_program_id: string | null; publish_error: string | null;
+  /** v4 WP04: field khusus format (server membuang kunci yang tidak relevan), media cover/poster di bucket privat staging. */
+  format_fields: FormatFields; cover_path: string | null; cover_alt: string | null; cover_ratio: '4:5' | '16:9' | '1:1' | null; rights_media: boolean; submitted_at?: string | null;
 }
+export type ProgFormat = 'ebook' | 'webinar' | 'workshop' | 'kit' | 'ecourse';
+export interface FormatFields {
+  pages?: string; license?: string; version?: string; preview?: string;
+  speaker_bio?: string; timezone?: string; agenda?: { item: string; dur: string }[]; faq?: { q: string; a: string }[]; summary_due?: string;
+  sessions?: { starts_at: string; dur: string }[]; resources?: string; assignment?: string; output?: string;
+  files?: { name: string; toc: string[]; license: string }[];
+}
+export interface ProgramReview { id: string; draft_id: string; decision: 'approved' | 'needs_revision'; note: string | null; checks: Record<string, boolean>; reviewer_id: string | null; created_at: string }
 export interface LearnerProfile { person_id: string; goal: string | null; level: string | null; hours: string | null; interests: string[]; formats: string[]; answers: Record<string, unknown>; updated_at: string }
 export interface Points { id: string; campaign: string; reason: string; points: number; note: string | null; created_at: string }
 export interface Org {

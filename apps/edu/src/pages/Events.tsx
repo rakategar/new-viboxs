@@ -4,7 +4,7 @@ import { ArrowRight } from '@viboxs/shared/icons';
 import { useMotion } from '@viboxs/shared/motion';
 import Status from '../components/Status';
 import NotifyForm from '../components/NotifyForm';
-import { CATALOG_FILLED, PROGRAMS, TYPE, byDate, ctaFor, hrefOf, priceOf, whenOf, type Program } from '../lib/data';
+import { CATALOG_FILLED, PROGRAMS, TYPE, byDate, ctaFor, hrefOf, priceOf, whenOf, type Program, isDigital } from '../lib/data';
 
 const TZ = 'Asia/Jakarta';
 const DOW = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
@@ -22,7 +22,7 @@ const dayLabel = (d: string) => new Intl.DateTimeFormat('id-ID', { weekday: 'lon
 export default function Events() {
   const ref = useRef<HTMLDivElement>(null);
   useMotion(ref);
-  const sessions = CATALOG_FILLED ? PROGRAMS.filter((p) => p.type !== 'ebook') : [];
+  const sessions = CATALOG_FILLED ? PROGRAMS.filter((p) => !isDigital(p.type)) : [];
   const dated = sessions.filter((p) => ISO_DAY.test(p.sortDate));
   const byDay = useMemo(() => {
     const m = new Map<string, Program[]>();

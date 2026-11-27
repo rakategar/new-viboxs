@@ -4,7 +4,7 @@ create temp table _r (t text, ok boolean, info text) on commit drop;
 grant all on _r to authenticated;
 create or replace function pg_temp.expect_fail(q text) returns text language plpgsql as $$
 begin execute q; return 'NO ERROR'; exception when others then return sqlerrm; end $$;
-insert into _r select 'all 18 RPC guarded', count(*) = 18, string_agg(p.proname, ',' order by p.proname) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.prokind = 'f' and pg_get_functiondef(p.oid) like '%perform public.st_require_mfa()%';
+insert into _r select 'all 21 RPC guarded', count(*) = 21, string_agg(p.proname, ',' order by p.proname) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.prokind = 'f' and pg_get_functiondef(p.oid) like '%perform public.st_require_mfa()%';
 insert into auth.users (id, email, aud, role, email_confirmed_at) values ('00000000-0000-0000-0000-0000000000c7','cmd7@x.test','authenticated','authenticated', now());
 set local role authenticated;
 set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-0000000000c7","email":"cmd7@x.test","role":"authenticated","aal":"aal1","app_metadata":{"role":"admin"}}';

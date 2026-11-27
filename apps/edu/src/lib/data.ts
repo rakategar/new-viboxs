@@ -7,7 +7,9 @@
 
 export type StatusCode = 'ANNOUNCED' | 'OPEN' | 'FULL' | 'CLOSED' | 'RESCHEDULED' | 'CANCELLED' | 'COMPLETED' | 'AVAILABLE';
 export type Tone = 'success' | 'info' | 'warning' | 'muted' | 'accent2' | 'danger';
-export type ProgType = 'webinar' | 'workshop' | 'ebook';
+export type ProgType = 'webinar' | 'workshop' | 'ebook' | 'kit';
+/** Produk digital (unduhan, tanpa jadwal): e-book & kit (v4 WP04). */
+export const isDigital = (t?: string) => t === 'ebook' || t === 'kit';
 
 export const STATUS: Record<StatusCode, { label: string; tone: Tone; live?: boolean; note?: string }> = {
   ANNOUNCED: { label: 'Diumumkan', tone: 'info', note: 'Sesi sudah diumumkan, tetapi pendaftaran belum dibuka. Aktifkan pemberitahuan untuk kabar berikutnya.' },
@@ -25,7 +27,7 @@ export const STATUS_EFFECT: Partial<Record<StatusCode, string>> = {
   CLOSED: 'Tidak menerima peserta', RESCHEDULED: 'Tanggal baru + tanda perubahan', CANCELLED: 'Penjelasan + bantuan', COMPLETED: 'Arsip; replay hanya bila termasuk hak',
 };
 
-export const TYPE: Record<ProgType, string> = { webinar: 'Live Webinar', workshop: 'Workshop', ebook: 'E-book' };
+export const TYPE: Record<ProgType, string> = { webinar: 'Live Webinar', workshop: 'Workshop', ebook: 'E-book', kit: 'Kit' };
 
 export interface Path { id: string; n: string; name: string; desc: string; topics: string[] }
 export const PATHS: Path[] = [
@@ -47,8 +49,14 @@ export interface Program {
   startsAt?: string;
   /** Nama fasilitator — hanya diisi setelah ia menyetujui publikasi profil. */
   facilitator?: string;
-  /** URL sampul berhak pakai (e-book). */
+  /** URL sampul/poster berhak pakai (bucket publik edu-media setelah disetujui). */
   cover?: string;
+  /** v4 WP04: alt text & rasio cover (e-book/kit 4:5, sesi 16:9). */
+  coverAlt?: string; coverRatio?: '4:5' | '16:9' | '1:1';
+  speakerBio?: string; timezone?: string; summaryDue?: string; license?: string; preview?: string; refundTerms?: string;
+  faq?: { q: string; a: string }[]; sessions?: { startsAt: string; dur: string }[];
+  resources?: string; assignment?: string; output?: string;
+  kitFiles?: { name: string; toc: string[]; license: string }[];
 }
 
 /** Data contoh untuk pengembangan lokal saja (tidak pernah ikut ke produksi). */
@@ -85,7 +93,7 @@ export const jktDay = (iso: string) => new Intl.DateTimeFormat('en-CA', { timeZo
  */
 export const normalizeProgram = (p: Program): Program => {
   const n: Program = { ...p, tags: p.tags || [], lang: p.lang || 'Bahasa Indonesia' };
-  if (p.type !== 'ebook' && p.startsAt && !Number.isNaN(Date.parse(p.startsAt))) {
+  if (!isDigital(p.type) && p.startsAt && !Number.isNaN(Date.parse(p.startsAt))) {
     const d = new Date(p.startsAt);
     n.day = fmt({ weekday: 'long' }).format(d);
     n.date = fmt({ day: 'numeric', month: 'long', year: 'numeric' }).format(d);
@@ -95,7 +103,7 @@ export const normalizeProgram = (p: Program): Program => {
     if (!p.time) n.time = `${fmt({ hour: '2-digit', minute: '2-digit' }).format(d).replace(':', '.')} WIB`;
     const end = d.getTime() + 3 * 3600e3; // sesi dianggap lewat 3 jam setelah mulai bila tidak ditandai lain
     if (Date.now() > end) n.past = true;
-  } else if (p.type !== 'ebook' && /^\d{4}-\d{2}-\d{2}$/.test(p.sortDate || '') && p.sortDate < jktDay(new Date().toISOString())) {
+  } else if (!isDigital(p.type) && /^\d{4}-\d{2}-\d{2}$/.test(p.sortDate || '') && p.sortDate < jktDay(new Date().toISOString())) {
     n.past = true; // hanya tanggal (tanpa jam): lewat setelah hari itu berakhir di WIB
   }
   if (n.past && ['OPEN', 'FULL', 'RESCHEDULED', 'ANNOUNCED', 'CLOSED'].includes(n.status)) n.status = 'COMPLETED';
@@ -172,12 +180,12 @@ export const hasPrice = (p: Program) => p.free || (typeof p.price === 'number' &
 export const isQa = (p: Program) => import.meta.env.DEV && p.slug.startsWith('qa-');
 /** Bisa masuk checkout sekarang? Gratis selalu; berbayar bila harga final & pembayaran dibuka (atau fixture QA di dev). */
 export const canPay = (p: Program) => p.free || (hasPrice(p) && (PAYMENTS_ENABLED || isQa(p)));
-export const whenOf = (p: Program) => (p.type === 'ebook' ? [p.fileFmt, p.lang].filter(Boolean).join(' · ') : p.day ? `${p.day}, ${p.date}` : p.date || 'Jadwal menyusul');
-export const timeOf = (p: Program) => (p.type === 'ebook' ? 'Akses dikirim setelah pembelian terverifikasi' : [p.time, p.mode].filter(Boolean).join(' · '));
+export const whenOf = (p: Program) => (isDigital(p.type) ? [p.fileFmt, p.lang].filter(Boolean).join(' · ') : p.day ? `${p.day}, ${p.date}` : p.date || 'Jadwal menyusul');
+export const timeOf = (p: Program) => (isDigital(p.type) ? 'Akses dikirim setelah pembelian terverifikasi' : [p.time, p.mode].filter(Boolean).join(' · '));
 export const pathName = (id: string) => PATHS.find((x) => x.id === id)?.name || '';
 export const lcFirst = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
 export const hrefOf = (p: Program, from: 'programs' | 'events' = 'programs') =>
-  p.type === 'ebook' ? `/digital-library/${p.slug}` : from === 'events' ? `/events/${p.slug}` : `/programs/${p.slug}`;
+  isDigital(p.type) ? `/digital-library/${p.slug}` : from === 'events' ? `/events/${p.slug}` : `/programs/${p.slug}`;
 
 export const byDate = (a: Program, b: Program) => (a.sortDate || '9999').localeCompare(b.sortDate || '9999');
 export const emailOk = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.trim());

@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { PATHS, STATUS, TYPE, priceOf, type ProgType, type Program, type StatusCode } from '../lib/data';
+import { PATHS, STATUS, TYPE, priceOf, type ProgType, type Program, type StatusCode, isDigital } from '../lib/data';
 import { getContent, sb, setContent, type ProgramRow } from './sb';
 import { Area, Card, Empty, I, PageHead, Select, StringList, Text, Toggle, ago, useToast } from './ui';
 import type { HomeContent } from '../lib/data';
 
 const slugify = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 80);
 const BLANK: Program = { slug: '', type: 'webinar', path: 'ai', title: '', summary: '', forWho: '', level: 'Pemula', status: 'ANNOUNCED', free: true, sortDate: '', added: 0, tags: [], mode: 'Online', loc: 'Zoom — link dikirim lewat email', dur: '90 menit' };
-const STATUS_OPTS = (t: ProgType) => (Object.keys(STATUS) as StatusCode[]).filter((k) => (t === 'ebook' ? ['AVAILABLE', 'ANNOUNCED', 'CLOSED'].includes(k) : k !== 'AVAILABLE')).map((k) => [k, STATUS[k].label] as [StatusCode, string]);
+const STATUS_OPTS = (t: ProgType) => (Object.keys(STATUS) as StatusCode[]).filter((k) => (isDigital(t) ? ['AVAILABLE', 'ANNOUNCED', 'CLOSED'].includes(k) : k !== 'AVAILABLE')).map((k) => [k, STATUS[k].label] as [StatusCode, string]);
 const ID_DAYS = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
 const ID_MONTHS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 
@@ -106,7 +106,7 @@ export default function Programs() {
           <div className="adm-filters">
             <div className="adm-search"><I.search size={16} /><input placeholder="Cari judul, slug, tag…" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Cari program" /></div>
             <div className="adm-seg" role="group" aria-label="Filter tipe">
-              {([['all', 'Semua'], ['webinar', 'Webinar'], ['workshop', 'Workshop'], ['ebook', 'E-book']] as const).map(([k, l]) => (
+              {([['all', 'Semua'], ['webinar', 'Webinar'], ['workshop', 'Workshop'], ['ebook', 'E-book'], ['kit', 'Kit']] as const).map(([k, l]) => (
                 <button key={k} type="button" aria-pressed={ft === k} className={ft === k ? 'is-on' : ''} onClick={() => setFt(k)}>{l}</button>
               ))}
             </div>
@@ -122,7 +122,7 @@ export default function Programs() {
                       <span className="adm-muted adm-small">{TYPE[r.data.type]} · /{r.slug} · diubah {ago(r.updated_at)}</span>
                     </td>
                     <td><span className={`adm-pill adm-pill--${STATUS[r.data.status]?.tone}`}>{STATUS[r.data.status]?.label ?? r.data.status}</span></td>
-                    <td className="adm-small">{r.data.type === 'ebook' ? r.data.fileFmt || 'E-book' : `${r.data.day ? `${r.data.day}, ` : ''}${r.data.date || '—'}`}</td>
+                    <td className="adm-small">{isDigital(r.data.type) ? r.data.fileFmt || 'E-book' : `${r.data.day ? `${r.data.day}, ` : ''}${r.data.date || '—'}`}</td>
                     <td className="adm-small">{priceOf(r.data)}</td>
                     <td>
                       <button type="button" className={`adm-icon ${r.published ? 'is-on' : ''}`} onClick={() => togglePub(r)} aria-label={r.published ? 'Sembunyikan' : 'Tayangkan'} title={r.published ? 'Tayang — klik untuk sembunyikan' : 'Tersembunyi — klik untuk tayangkan'}>{r.published ? <I.eye size={16} /> : <I.eyeOff size={16} />}</button>
@@ -153,7 +153,7 @@ type EditState = { p: Program; published: boolean; isNew: boolean; orig?: string
 function Editor({ edit, setEdit, onSave }: { edit: EditState; setEdit: (e: EditState | null) => void; onSave: () => void }) {
   const p = edit.p;
   const set = (patch: Partial<Program>) => setEdit({ ...edit, p: { ...p, ...patch } });
-  const ebook = p.type === 'ebook';
+  const ebook = isDigital(p.type);
   const [busy, setBusy] = useState(false);
   const agendaTxt = (p.agenda ?? []).map(([a, b]) => `${a} | ${b}`).join('\n');
 
@@ -168,7 +168,7 @@ function Editor({ edit, setEdit, onSave }: { edit: EditState; setEdit: (e: EditS
           <div className="adm-form">
             <Text wide label="Judul" value={p.title} onChange={(v) => set({ title: v, ...(edit.isNew ? { slug: slugify(v) } : {}) })} />
             <Text label="Slug (alamat URL)" value={p.slug} onChange={(v) => set({ slug: v })} hint={`${ebook ? '/digital-library/' : '/programs/'}${slugify(p.slug || p.title) || '…'}`} />
-            <Select label="Tipe" value={p.type} onChange={(v) => set({ type: v, status: v === 'ebook' ? 'AVAILABLE' : p.status === 'AVAILABLE' ? 'OPEN' : p.status })} options={Object.entries(TYPE) as [ProgType, string][]} />
+            <Select label="Tipe" value={p.type} onChange={(v) => set({ type: v, status: isDigital(v) ? 'AVAILABLE' : p.status === 'AVAILABLE' ? 'OPEN' : p.status })} options={Object.entries(TYPE) as [ProgType, string][]} />
             <Select label="Jalur belajar" value={p.path} onChange={(v) => set({ path: v })} options={PATHS.map((x) => [x.id, x.name] as [string, string])} />
             <Select label="Status" value={p.status} onChange={(v) => set({ status: v })} options={STATUS_OPTS(p.type)} hint={STATUS[p.status]?.note} />
             <Area label="Ringkasan" value={p.summary} onChange={(v) => set({ summary: v })} hint="1–2 kalimat. Juga dipakai sebagai deskripsi SEO." />

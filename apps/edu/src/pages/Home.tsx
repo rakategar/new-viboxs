@@ -13,7 +13,7 @@ import Status from '../components/Status';
 import Accordion from '../components/Accordion';
 import Showcase from '../components/Showcase';
 import {
-  CATALOG_FILLED, FAQ, FEATURED, FORMATS, HOME, PATHS, PROGRAMS, STEPS, TYPE, byDate, bySlug, ctaFor, hrefOf, priceOf, timeOf, whenOf,
+  CATALOG_FILLED, FAQ, FEATURED, FORMATS, HOME, PATHS, PROGRAMS, STEPS, TYPE, byDate, bySlug, ctaFor, hrefOf, priceOf, timeOf, whenOf, isDigital,
 } from '../lib/data';
 
 export default function Home() {
@@ -231,7 +231,7 @@ function Formats() {
 
 /* ---------------- E06 Upcoming ---------------- */
 function Schedule() {
-  const sched = PROGRAMS.filter((p) => p.type !== 'ebook' && !p.past && ['OPEN', 'FULL', 'RESCHEDULED', 'ANNOUNCED'].includes(p.status)).sort(byDate).slice(0, 5);
+  const sched = PROGRAMS.filter((p) => !isDigital(p.type) && !p.past && ['OPEN', 'FULL', 'RESCHEDULED', 'ANNOUNCED'].includes(p.status)).sort(byDate).slice(0, 5);
   return (
     <section className="pb-section-xl">
       <div className="container split-2 align-start">

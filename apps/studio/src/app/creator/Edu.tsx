@@ -33,7 +33,7 @@ export function Sales() {
           </div>
         )}
       </Loaded>
-      <p className="st-small st-muted">Payout manual oleh Finance dengan bukti transfer, maksimal 7 hari kerja setelah eligible (sesi selesai / masa refund e-book lewat). Status “dibayar” hanya muncul setelah transfer tercatat.</p>
+      <p className="st-small st-muted">Payout manual oleh Finance, maksimal 7 hari kerja setelah eligible (sesi selesai / masa refund e-book lewat). Status “Pembayaran berhasil” hanya muncul setelah transfer tercatat; bukti bank bersifat internal dan tidak dibagikan.</p>
     </div>
   );
 }

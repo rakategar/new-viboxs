@@ -4,7 +4,7 @@ import { ORIGIN } from '@viboxs/shared/ecosystem';
 import { useAuth } from '../../lib/auth';
 import { aiAssist } from '../../lib/edu';
 import { useAction, useLoad } from '../../lib/hooks';
-import { PROG_PATH, PROG_TYPE } from '../../lib/labels';
+import { PROG_PATH, PROG_TYPE, isDigital } from '../../lib/labels';
 import { sb, must, type AiDiscovery, type LearnerProfile } from '../../lib/sb';
 import { Badge, Btn, Empty, I, Loaded, PageHead, useToast } from '../../ui/kit';
 import { GOALS, fetchCatalog, recommend } from './rules';
@@ -65,7 +65,7 @@ export default function Recommendations() {
                     <p className="st-small st-muted st-clamp">{p.summary}</p>
                     <ul className="st-reasons">{reasons.map((r) => <li key={r}><I.check size={12} />{r}</li>)}</ul>
                     <div className="row-between">
-                      <span className="st-small">{p.date ?? (p.type === 'ebook' ? 'Akses mandiri' : 'Tanggal menyusul')}{p.free && <Badge tone="ok">Gratis</Badge>}</span>
+                      <span className="st-small">{p.date ?? (isDigital(p.type) ? 'Akses mandiri' : 'Tanggal menyusul')}{p.free && <Badge tone="ok">Gratis</Badge>}</span>
                       <a href={`${ORIGIN.edu}/programs/${p.slug}`} target="_blank" rel="noopener noreferrer" className="st-btn st-btn--ghost st-btn--sm">Lihat di EDU<I.ext size={14} /></a>
                     </div>
                   </article>

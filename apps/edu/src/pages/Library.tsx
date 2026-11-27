@@ -8,7 +8,7 @@ import ProgramCard from '../components/ProgramCard';
 import NotifyForm from '../components/NotifyForm';
 import { NotFound } from './Misc';
 import { useJsonLd, programLd } from '../lib/ld';
-import { CATALOG_FILLED, PROGRAMS, SUPPORT, bySlug, canPay, priceOf } from '../lib/data';
+import { CATALOG_FILLED, PROGRAMS, SUPPORT, bySlug, canPay, priceOf, isDigital } from '../lib/data';
 
 /**
  * /digital-library — eksplorasi e-book & kit (PRD §04.3), terpisah dari katalog Programs.
@@ -17,7 +17,7 @@ import { CATALOG_FILLED, PROGRAMS, SUPPORT, bySlug, canPay, priceOf } from '../l
 export function LibraryIndex() {
   const ref = useRef<HTMLDivElement>(null);
   useMotion(ref);
-  const books = CATALOG_FILLED ? PROGRAMS.filter((p) => p.type === 'ebook') : [];
+  const books = CATALOG_FILLED ? PROGRAMS.filter((p) => isDigital(p.type)) : [];
   return (
     <div ref={ref}>
       <section className="page-top">
@@ -50,8 +50,8 @@ export default function Library() {
   const ref = useRef<HTMLDivElement>(null);
   useMotion(ref, [slug]);
   const cover = useTilt<HTMLDivElement>(7);
-  useJsonLd(eb && eb.type === 'ebook' ? programLd(eb) : null);
-  if (!eb || eb.type !== 'ebook') return <NotFound />;
+  useJsonLd(eb && isDigital(eb.type) ? programLd(eb) : null);
+  if (!eb || !isDigital(eb.type)) return <NotFound />;
 
   const canBuy = eb.status === 'AVAILABLE' && canPay(eb);
   const meta = ([['Format file', eb.fileFmt], ['Versi', eb.version], ['Bahasa', eb.lang], ['Halaman', eb.pages]] as [string, string | undefined][])
@@ -64,7 +64,7 @@ export default function Library() {
         <div className="split-2 align-center">
           <div className="cover-wrap" data-build="Sampul · E-book">
             {eb.cover ? (
-              <div ref={cover} className="cover cover--img"><img src={eb.cover} alt={`Sampul ${eb.title}`} /></div>
+              <div ref={cover} className="cover cover--img"><img src={eb.cover} alt={eb.coverAlt || `Sampul ${eb.title}`} /></div>
             ) : (
               <div ref={cover} className="cover">
                 <span className="cover__glow" aria-hidden="true" />
@@ -75,7 +75,7 @@ export default function Library() {
             )}
           </div>
           <div className="stack-20">
-            <span className="row-8"><span className="tag tag--ink">E-BOOK</span><Status code={eb.status} still /></span>
+            <span className="row-8"><span className="tag tag--ink">{eb.type === 'kit' ? 'KIT' : 'E-BOOK'}</span><Status code={eb.status} still /></span>
             <h1 className="h1-sm">{eb.title}</h1>
             <p className="body-17 ink-muted">{eb.summary}</p>
             {meta.length > 0 && <dl className="meta-grid">{meta.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>}
@@ -83,7 +83,7 @@ export default function Library() {
             <div className="buyrow" data-build="Panel · Beli">
               <span className="stack-2"><span className="price-xl">{priceOf(eb)}</span><span className="xs-13 ink-muted">Total final tampil sebelum kamu membayar.</span></span>
               {canBuy
-                ? <Link to={`/checkout/${eb.slug}`} className="btn btn--primary btn--lg">{eb.free ? 'Dapatkan e-book' : 'Beli e-book'} <ArrowRight /></Link>
+                ? <Link to={`/checkout/${eb.slug}`} className="btn btn--primary btn--lg">{eb.free ? `Dapatkan ${eb.type === 'kit' ? 'kit' : 'e-book'}` : `Beli ${eb.type === 'kit' ? 'kit' : 'e-book'}`} <ArrowRight /></Link>
                 : <button type="button" className="btn btn--off btn--lg" disabled aria-disabled="true">{eb.status === 'AVAILABLE' ? 'Pembayaran online sedang disiapkan' : 'Belum tersedia'}</button>}
             </div>
             {!canBuy && <NotifyForm compact label="Kabari saya saat bisa dibeli" consent="Saya setuju menerima email pemberitahuan." done="Kami kabari lewat email." />}
@@ -97,10 +97,22 @@ export default function Library() {
           </section>
         )}
 
+        {!!eb.kitFiles?.length && (
+          <section aria-labelledby="kit-h" className="stack-16 maxw-760">
+            <h2 id="kit-h" className="h2-block">Isi paket</h2>
+            <ol className="toc">{eb.kitFiles.map((f, i) => <li key={f.name + i}><span className="mono ink-muted">{String(i + 1).padStart(2, '0')}</span><span className="stack-4"><span className="strong">{f.name}</span><span className="small ink-muted">{f.toc.join(' · ')}{f.license ? ` — Lisensi: ${f.license}` : ''}</span></span></li>)}</ol>
+          </section>
+        )}
+        {eb.preview && (
+          <section aria-labelledby="prev-h" className="stack-16 maxw-760">
+            <h2 id="prev-h" className="h2-block">Cuplikan</h2>
+            <blockquote className="body ink-muted preview-quote">{eb.preview}</blockquote>
+          </section>
+        )}
         <section className="quad" data-build="Blok · Ketentuan e-book">
           <div className="box"><span className="mono-label ink-muted">COCOK UNTUK</span><span className="body">{[eb.forWho, eb.level].filter(Boolean).join(' · ') || 'Semua pembelajar'}</span></div>
           <div className="box"><span className="mono-label ink-muted">CARA AKSES</span><span className="body">{eb.access || 'Setelah pembayaran terverifikasi server, tautan unduhan aman (berbatas waktu) dikirim ke email pembeli.'}</span></div>
-          <div className="box"><span className="mono-label ink-muted">LISENSI</span><span className="body">Untuk penggunaan pribadi satu pembeli. Tidak untuk dibagikan atau dijual ulang.</span></div>
+          <div className="box"><span className="mono-label ink-muted">LISENSI</span><span className="body">{eb.license || 'Untuk penggunaan pribadi satu pembeli. Tidak untuk dibagikan atau dijual ulang.'}</span></div>
           <div className="box"><span className="mono-label ink-muted">REFUND</span><span className="body">Mengikuti <Link to="/policies/refund" className="strong">kebijakan refund</Link> produk digital yang sedang ditinjau tim hukum.</span></div>
         </section>
         <section className="stack-16">

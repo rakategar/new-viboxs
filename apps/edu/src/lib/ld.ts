@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { ORIGIN } from '@viboxs/shared/ecosystem';
-import { hrefOf, type Program } from './data';
+import { hrefOf, type Program, isDigital } from './data';
 
 /**
  * JSON-LD per program (PRD §17 SEO, QA EDU-015): hanya untuk program yang benar-benar terbit dari CMS.
@@ -12,7 +12,10 @@ export function programLd(p: Program): Record<string, unknown> {
   const offers = p.free
     ? { '@type': 'Offer', price: 0, priceCurrency: 'IDR', url }
     : typeof p.price === 'number' && p.price > 0 ? { '@type': 'Offer', price: p.price, priceCurrency: 'IDR', url } : undefined;
-  if (p.type === 'ebook') {
+  if (p.type === 'kit') {
+    return { '@context': 'https://schema.org', '@type': 'CreativeWork', name: p.title, description: p.summary, url, inLanguage: 'id', publisher: provider, ...(p.cover && { image: p.cover }), ...(offers && { offers }) };
+  }
+  if (isDigital(p.type)) {
     return { '@context': 'https://schema.org', '@type': 'Book', name: p.title, description: p.summary, url, inLanguage: 'id', bookFormat: 'https://schema.org/EBook', publisher: provider, ...(offers && { offers }) };
   }
   const base = { '@context': 'https://schema.org', name: p.title, description: p.summary, url, inLanguage: 'id' };

@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { Check } from '@viboxs/shared/icons';
 import { STUDIO_ORIGIN } from '@viboxs/shared/ecosystem';
 import { callEdge } from '@viboxs/shared/backend';
-import { rupiah } from '../lib/data';
+import { rupiah, isDigital } from '../lib/data';
 
 /** Token akses guest disimpan di perangkat pembeli (dibuat server sekali saat order dibuat). */
 const TK = (no: string) => `edu-order:${no}`;
@@ -88,7 +88,7 @@ export default function Order() {
 
 function OrderCard({ o, checking, recheck }: { o: OrderView; checking: boolean; recheck: () => void }) {
   const paid = PAID.includes(o.status);
-  const webinar = o.product.type !== 'ebook';
+  const webinar = !isDigital(o.product.type);
   const when = o.product.startsAt ? fmt(o.product.startsAt) : [o.product.date, o.product.time].filter(Boolean).join(' · ') || 'Jadwal menyusul';
   const rows: [string, string][] = [
     ['Program', o.product.title], [webinar ? 'Jadwal' : 'Format', webinar ? when : 'E-book'],
@@ -155,7 +155,7 @@ function OrderCard({ o, checking, recheck }: { o: OrderView; checking: boolean; 
       <p className="body-16">{b}</p>
       {kv}
       <div className="row-12 flex-wrap">
-        <Link to={o.product.type === 'ebook' ? `/digital-library/${o.slug}` : `/programs/${o.slug}`} className="btn btn--ink">Ke halaman program</Link>
+        <Link to={isDigital(o.product.type) ? `/digital-library/${o.slug}` : `/programs/${o.slug}`} className="btn btn--ink">Ke halaman program</Link>
         <Link to="/help" className="btn btn--ink-ghost">Hubungi bantuan</Link>
       </div>
     </section>

@@ -618,7 +618,11 @@
 .cal__d.is-sel .cal__dot { background: #fff; }
 .cal__list { display: grid; gap: 12px; align-content: start; }
 
-.cover--img { padding: 0; }
+.cover--img { padding: 0; aspect-ratio: 4 / 5; }
+/* v4 WP04: poster sesi dengan proporsi asli, tanpa placeholder palsu */
+.poster { margin: 0; width: 100%; border-radius: 16px; overflow: hidden; background: #0B1530; border: 1px solid rgba(11, 21, 48, .12); }
+.poster img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.preview-quote { margin: 0; padding: 16px 20px; border-left: 3px solid var(--v-accent); background: #fff; border-radius: 0 12px 12px 0; white-space: pre-line; }
 .cover--img img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
 /* modal guest checkout (non-blocking: bisa ditutup, Esc, klik luar) */

@@ -14,7 +14,7 @@ const LEVEL_WORD: Record<string, string> = { beginner: 'pemula', intermediate: '
 const levelMatch = (lv: string | undefined, want: string) => { const t = (lv ?? '').toLowerCase(); return t.includes('semua') || t.includes(LEVEL_WORD[want]); };
 // Dibangun saat render (bukan saat modul dimuat) agar jalur topik dari CMS ikut tampil.
 const groups = (): { key: Key; name: string; chips: [string, string][] }[] => [
-  { key: 'format', name: 'Format', chips: [['all', 'Semua'], ['ebook', 'E-book'], ['webinar', 'Webinar'], ['workshop', 'Workshop']] },
+  { key: 'format', name: 'Format', chips: [['all', 'Semua'], ['ebook', 'E-book'], ['kit', 'Kit'], ['webinar', 'Webinar'], ['workshop', 'Workshop']] },
   { key: 'path', name: 'Topik', chips: [['all', 'Semua'], ...PATHS.map((p) => [p.id, p.name] as [string, string])] },
   { key: 'level', name: 'Level', chips: [['all', 'Semua'], ['beginner', 'Pemula'], ['intermediate', 'Menengah'], ['advanced', 'Lanjutan']] },
   { key: 'price', name: 'Biaya', chips: [['all', 'Semua'], ['free', 'Gratis'], ['paid', 'Berbayar']] },

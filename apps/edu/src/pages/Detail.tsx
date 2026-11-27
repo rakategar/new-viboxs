@@ -7,7 +7,7 @@ import { useJsonLd, programLd } from '../lib/ld';
 import NotifyForm from '../components/NotifyForm';
 import Accordion from '../components/Accordion';
 import { NotFound } from './Misc';
-import { FAQ, PROGRAMS, STATUS, TYPE, bySlug, canPay, ctaFor, hasPrice, hrefOf, priceOf, whenOf, type StatusCode } from '../lib/data';
+import { FAQ, PROGRAMS, STATUS, TYPE, bySlug, canPay, ctaFor, hasPrice, hrefOf, priceOf, whenOf, type StatusCode, isDigital } from '../lib/data';
 
 const CTA: Partial<Record<StatusCode, { kind: 'go' | 'off' | 'notify' | 'help'; label: (free: boolean) => string; notify?: boolean }>> = {
   OPEN: { kind: 'go', label: (f) => (f ? 'Daftar gratis' : 'Lanjut ke pendaftaran') },
@@ -24,9 +24,9 @@ export default function Detail({ from = 'programs' }: { from?: 'programs' | 'eve
   const p = bySlug(slug);
   const ref = useRef<HTMLDivElement>(null);
   useMotion(ref, [slug]);
-  useJsonLd(p && p.type !== 'ebook' ? programLd(p) : null);
+  useJsonLd(p && !isDigital(p.type) ? programLd(p) : null);
   // Tautan lama/Studio ke /programs/<ebook> → halaman Digital Library yang benar.
-  if (p?.type === 'ebook') return <Navigate to={hrefOf(p)} replace />;
+  if (p && isDigital(p.type)) return <Navigate to={hrefOf(p)} replace />;
   if (!p) return <NotFound />;
 
   const st = STATUS[p.status];
@@ -39,7 +39,7 @@ export default function Detail({ from = 'programs' }: { from?: 'programs' | 'eve
   const tone = toneOf(p.status);
   const policies: [string, string][] = p.free
     ? [['Perubahan jadwal', 'Bila jadwal berubah, kami mengirim pemberitahuan ke email terdaftar. Registrasimu tetap berlaku untuk jadwal baru.'], ['Lisensi materi', 'Materi untuk penggunaan pribadi, bukan untuk didistribusikan ulang.']]
-    : [['Refund & reschedule', 'Bila sesi dibatalkan penyelenggara, kamu dapat memilih pengembalian dana atau jadwal pengganti. Ketentuan lengkap mengikuti kebijakan refund yang sedang ditinjau tim hukum.'], ['Lisensi materi', 'Materi untuk penggunaan pribadi, bukan untuk didistribusikan ulang.']];
+    : [['Refund & reschedule', p.refundTerms || 'Bila sesi dibatalkan penyelenggara, kamu dapat memilih pengembalian dana atau jadwal pengganti. Ketentuan lengkap mengikuti kebijakan refund yang sedang ditinjau tim hukum.'], ['Lisensi materi', 'Materi untuk penggunaan pribadi, bukan untuk didistribusikan ulang.']];
   const facts = ([['Format', [TYPE[p.type], p.mode].filter(Boolean).join(' · ')], ['Tanggal', whenOf(p)], ['Jam', p.time], ['Durasi', p.dur], ['Lokasi / joining', p.loc], ['Bahasa', p.lang], ['Kapasitas', p.cap]] as [string, string | undefined][])
     .filter((x): x is [string, string] => !!x[1] && !/^\[/.test(x[1]));
   const related = PROGRAMS.filter((x) => x.slug !== p.slug && (x.path === p.path || x.type === p.type) && !x.past).slice(0, 3);
@@ -68,6 +68,11 @@ export default function Detail({ from = 'programs' }: { from?: 'programs' | 'eve
       <div className="light pad-page pad-page--xl">
         <div className="container detail">
           <article className="detail__main">
+            {p.cover && (
+              <figure className="poster" style={{ aspectRatio: (p.coverRatio ?? '16:9').replace(':', ' / ') } as CSSProperties} data-build="Media · Poster">
+                <img src={p.cover} alt={p.coverAlt || `Poster ${p.title}`} loading="lazy" decoding="async" />
+              </figure>
+            )}
             {st.note && (
               <div role="status" className="notice" style={{ '--tone': tone } as CSSProperties}>
                 <span className="notice__h">{st.label}</span>
@@ -90,16 +95,28 @@ export default function Detail({ from = 'programs' }: { from?: 'programs' | 'eve
               <dl className="facts-l" data-build="Tabel · Jadwal">{facts.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>
               <span className="xs-13 ink-muted">Semua jam dalam Waktu Indonesia Barat (WIB, Asia/Jakarta, UTC+7). Peserta di luar WIB: sesuaikan dengan zona waktumu.</span>
             </section>
-            {p.facilitator && (
+            {!!p.sessions?.length && (
               <section className="stack-16">
-                <h2 className="h2-block">Kontributor</h2>
-                <div className="facil" data-build="Slot · Fasilitator"><span className="facil__ph" /><span className="stack-4"><span className="strong">{p.facilitator}</span></span></div>
+                <h2 className="h2-block">Sesi</h2>
+                <ol className="agenda" data-build="Daftar · Sesi">{p.sessions.map((x, i) => <li key={x.startsAt + i}><span className="mono xs-13 ink-muted">{String(i + 1).padStart(2, '0')}</span><span className="strong">{wib(x.startsAt)}</span><span className="small ink-muted">{x.dur}</span></li>)}</ol>
+              </section>
+            )}
+            {(p.facilitator || p.speakerBio) && (
+              <section className="stack-16">
+                <h2 className="h2-block">{p.type === 'webinar' ? 'Pembicara' : 'Kontributor'}</h2>
+                <div className="facil" data-build="Slot · Fasilitator"><span className="facil__ph" /><span className="stack-4">{p.facilitator && <span className="strong">{p.facilitator}</span>}{p.speakerBio && <span className="body ink-muted">{p.speakerBio}</span>}</span></div>
               </section>
             )}
             {!!p.agenda?.length && (
               <section className="stack-16">
                 <h2 className="h2-block">Agenda</h2>
                 <ol className="agenda" data-build="Daftar · Agenda">{p.agenda.map(([t, d], i) => <li key={t}><span className="mono xs-13 ink-muted">{String(i + 1).padStart(2, '0')}</span><span className="strong">{t}</span><span className="small ink-muted">{d}</span></li>)}</ol>
+              </section>
+            )}
+            {(p.resources || p.assignment || p.output) && (
+              <section className="stack-16">
+                <h2 className="h2-block">Latihan &amp; hasil</h2>
+                <dl className="policy">{([['Resources', p.resources], ['Tugas', p.assignment], ['Output latihan', p.output]] as [string, string | undefined][]).filter((x) => x[1]).map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>
               </section>
             )}
             {!!p.receive?.length && (
@@ -118,7 +135,7 @@ export default function Detail({ from = 'programs' }: { from?: 'programs' | 'eve
             </section>
             <section className="stack-8">
               <h2 className="h2-block">FAQ &amp; dukungan</h2>
-              <Accordion tone="light" items={FAQ.filter((f) => f.g === 'Akses' || f.g === 'Perubahan').map((f) => ({ q: f.q, a: f.a }))} defaultOpen={null} />
+              <Accordion tone="light" items={[...(p.faq ?? []), ...FAQ.filter((f) => f.g === 'Akses' || f.g === 'Perubahan').map((f) => ({ q: f.q, a: f.a }))]} defaultOpen={null} />
               <Link to="/help" className="link-arrow acc-deep mt-8">Pusat bantuan <ArrowRight size={14} /></Link>
             </section>
           </article>
@@ -157,6 +174,11 @@ export default function Detail({ from = 'programs' }: { from?: 'programs' | 'eve
     </div>
   );
 }
+
+const wib = (iso: string) => {
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? iso : `${new Intl.DateTimeFormat('id-ID', { timeZone: 'Asia/Jakarta', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(d).replace(':', '.')} WIB`;
+};
 
 export const DocIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" /><path d="M14 3v5h5" /></svg>
