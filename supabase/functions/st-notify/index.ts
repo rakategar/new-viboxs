@@ -106,7 +106,7 @@ function render(r: Row): Mail | null {
 
 function html(m: Mail) {
   const p = m.paras.map((x) => `<p style="margin:0 0 14px;line-height:1.6">${x}</p>`).join('');
-  const b = m.cta ? `<p style="margin:22px 0"><a href="${esc(m.cta.url)}" style="background:#FF4A26;color:#fff;text-decoration:none;padding:12px 20px;border-radius:8px;font-weight:600;display:inline-block">${esc(m.cta.label)}</a></p>
+  const b = m.cta ? `<p style="margin:22px 0"><a href="${esc(m.cta.url)}" style="background:#FF4A26;color:#111;text-decoration:none;padding:12px 20px;border-radius:8px;font-weight:600;display:inline-block">${esc(m.cta.label)}</a></p>
 <p style="margin:0 0 14px;font-size:12px;color:#666">Jika tombol tidak berfungsi, salin tautan ini ke browser: <br><span style="word-break:break-all">${esc(m.cta.url)}</span></p>` : '';
   return `<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#111;max-width:560px;margin:0 auto;padding:24px">
 <p style="font-weight:700;letter-spacing:.08em;margin:0 0 20px">VIBOXS</p>${p}${b}

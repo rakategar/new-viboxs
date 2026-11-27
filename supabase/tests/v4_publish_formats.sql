@@ -1,5 +1,5 @@
 -- v4 WP04 — Form produk dinamis + media + auto-publish (QA V4-PF-001..015). Satu transaksi lalu ROLLBACK.
--- BELUM DIJALANKAN (sesi tanpa MCP Supabase, 27 Nov 2026). Jalankan setelah migrasi 20261127f diterapkan; harapan: semua ok = true.
+-- Hasil 2026-11-27 (produksi, setelah migrasi 20261127f): 28/28.
 begin;
 create temp table _r (t text, ok boolean, info text) on commit drop;
 grant all on _r to authenticated, anon;
@@ -71,12 +71,17 @@ insert into _r select 'V4-PF-014 revisi butuh catatan', r like '%alasan revisi%'
 select public.st_review_draft('00000000-0000-0000-0000-0000000fd001', 'approved', 'Siap tayang.', pg_temp.chk());
 insert into _r select 'riwayat review tercatat', count(*) = 1, count(*)::text from public.st_program_reviews where draft_id = '00000000-0000-0000-0000-0000000fd001';
 -- tanpa salinan cover: kirim gagal jujur (bukan tayang palsu)
-insert into _r select 'V4-PF-012 cover belum tersalin → FAILED, bukan tayang', public.st_send_to_edu('00000000-0000-0000-0000-0000000fd001') like 'FAILED%'
-  and (select status from public.st_program_drafts where id = '00000000-0000-0000-0000-0000000fd001') = 'publish_failed', '';
+-- hasil RPC disimpan dulu: subquery di statement yang sama memakai snapshot sebelum RPC berjalan
+create temp table _k (k text primary key, v text) on commit drop;
+grant all on _k to authenticated;
+insert into _k values ('send1', public.st_send_to_edu('00000000-0000-0000-0000-0000000fd001'));
+insert into _r select 'V4-PF-012 cover belum tersalin → FAILED, bukan tayang', (select v from _k where k = 'send1') like 'FAILED%' and status = 'publish_failed', status
+  from public.st_program_drafts where id = '00000000-0000-0000-0000-0000000fd001';
 insert into _r select 'tidak ada baris EDU tayang saat gagal', count(*) = 0, count(*)::text from public.edu_programs where draft_id = '00000000-0000-0000-0000-0000000fd001' and published;
 insert into storage.objects (bucket_id, name, metadata) values ('edu-media', 'programs/00000000-0000-0000-0000-0000000fd001/cover-1.webp', '{"mimetype":"image/webp"}');
-insert into _r select 'V4-PF-010/011 retry → tayang (ACK)', public.st_send_to_edu('00000000-0000-0000-0000-0000000fd001') = 'panduan-prompt-uji-pf'
-  and (select status from public.st_program_drafts where id = '00000000-0000-0000-0000-0000000fd001') = 'published', '';
+insert into _k values ('send2', public.st_send_to_edu('00000000-0000-0000-0000-0000000fd001'));
+insert into _r select 'V4-PF-010/011 retry → tayang (ACK)', (select v from _k where k = 'send2') = 'panduan-prompt-uji-pf' and status = 'published', status
+  from public.st_program_drafts where id = '00000000-0000-0000-0000-0000000fd001';
 insert into _r select 'V4-PF-011 data publik: cover URL publik, tanpa path privat', (data ->> 'cover') like 'https://%/edu-media/programs/%' and data ->> 'coverRatio' = '4:5' and data ->> 'license' = 'Penggunaan pribadi'
   and data::text not like '%drafts/%', data ->> 'cover' from public.edu_programs where draft_id = '00000000-0000-0000-0000-0000000fd001';
 insert into _r select 'file e-book diteruskan ke tabel privat EDU', ebook_path = 'drafts/00000000-0000-0000-0000-0000000fd001/buku.pdf', ebook_path

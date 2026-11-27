@@ -57,7 +57,7 @@ insert into _r select 'perusahaan demo bisa mengundang learner demo', r = 'NO ER
 set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-0000000d0f01","role":"authenticated"}';
 create temp table _ids (k text primary key, v uuid); grant all on _ids to authenticated;
 with x as (insert into public.st_program_drafts (title, slug, type, pricing, summary, for_who, outcomes, rights_declared, schedule_at, status)
-  values ('[DEMO] Webinar Zq', 'demo-webinar-zq', 'webinar', 'free', 'Ringkasan cukup panjang untuk lolos validasi review program.', 'Tester', array['a','b'], true, now() + interval '3 day', 'submitted') returning id)
+  values ('[DEMO] Webinar Zq', 'demo-webinar-zq', 'webinar', 'free', 'Ringkasan cukup panjang untuk lolos validasi review program.', 'Tester', array['a','b'], true, now() + interval '3 day', 'draft') returning id)
 insert into _ids select 'draft', id from x;
 set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-0000000d0c01","role":"authenticated","app_metadata":{"role":"admin"}}';
 update public.st_program_drafts set status = 'approved' where id = (select v from _ids where k = 'draft');
@@ -69,6 +69,7 @@ update public.st_flags set enabled = true where key = 'demo_publish_sandbox';
 set local role authenticated;
 insert into _r select 'sandbox ON: draft demo boleh dikirim (tetap unpublished)', public.st_send_to_edu((select v from _ids where k = 'draft')) like 'demo-webinar-zq%', '';
 insert into _r select 'sandbox ON: baris EDU tetap published=false', bool_and(not published), count(*)::text from public.edu_programs where slug like 'demo-webinar-zq%';
+insert into _r select 'sandbox ON: status Studio publish_queued (bukan Tayang)', status = 'publish_queued', status from public.st_program_drafts where id = (select v from _ids where k = 'draft');
 reset role;
 insert into _r select 'sandbox ON: CMS tetap tidak bisa menayangkan produk demo', r like '%akun demo%', r
   from (select pg_temp.expect_fail($$update public.edu_programs set published = true where slug like 'demo-webinar-zq%'$$) r) q;

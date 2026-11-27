@@ -4,7 +4,12 @@ WP05 part = rebrand without pink + Points removed. Company Showcase has not been
 
 **Context:** written on 27 Nov 2026 from a Claude Code account that has no Supabase MCP. The SQL below has **not been applied** and the tests have **not been run**. Only `tsc` and `vite build` passed for `build:studio` and `build:edu`.
 
-> **Warning:** do not merge this branch to `main` before steps 1–4 are done. The new UI calls `st_my_payments`, `st_review_draft`, the `format_fields`/`cover_*` columns, and the `st-program-media`/`edu-media` buckets. Without the migrations, the Earnings, Payouts, Program saya and Review EDU pages will error in production.
+> **Status 27 Nov 2026 (akun dengan MCP Supabase): langkah 1–5 SELESAI.**
+> - Migrasi e, f, f2 (patch sandbox demo: program demo terkirim tanpa tayang), dan g sudah diterapkan.
+> - Trigger arsip Points sekarang hanya INSERT/UPDATE, supaya hapus akun (cascade) tetap jalan.
+> - `st-notify` v2 sudah di-deploy; tombol email kini berteks gelap di atas oranye.
+> - Tes: WP03 29/29, WP04 28/28, Points 10/10, MFA 13/13 (21 RPC), alur publikasi 30/30 (disesuaikan ke v4), isolasi demo 16/16.
+> - Advisor: tidak ada temuan baru.
 
 ## Deploy order (account with Supabase MCP: project `lbouqcovrnuhahrcnpki`)
 

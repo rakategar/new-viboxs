@@ -22,6 +22,7 @@ insert into _r select 'AUT-016 flag ON + aal1 → invite blocked', r like '%butu
 insert into _r select 'V4 flag ON + aal1 → approve & aktivasi blocked', r like '%butuh verifikasi MFA%', r from (select pg_temp.expect_fail($$select public.st_application_approve(gen_random_uuid(), null)$$) r) q;
 insert into _r select 'V4 flag ON + aal1 → verifikasi perusahaan blocked', r like '%butuh verifikasi MFA%', r from (select pg_temp.expect_fail($$select public.st_company_decide(gen_random_uuid(), 'VERIFIED', 'catatan cukup panjang')$$) r) q;
 insert into _r select 'AUT-016 flag ON + aal1 → approval blocked', r like '%butuh verifikasi MFA%', r from (select pg_temp.expect_fail($$select public.st_assessment_decide(gen_random_uuid(), true, '')$$) r) q;
+insert into _r select 'V4 WP03/04 aal1 → bukti & review blocked', (select pg_temp.expect_fail($$select public.st_payment_add_proof(gen_random_uuid(), 'x', 'y', 'z')$$)) like '%butuh verifikasi MFA%' and (select pg_temp.expect_fail($$select public.st_review_draft(gen_random_uuid(), 'approved', null, '{}')$$)) like '%butuh verifikasi MFA%', '';
 insert into _r select 'aal1 cannot turn MFA flag off', r like '%authenticator%', r from (select pg_temp.expect_fail($$update public.st_flags set enabled = false where key = 'commander_mfa_required'$$) r) q;
 reset role;
 select * from _r;

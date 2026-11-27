@@ -1,5 +1,5 @@
 -- v4 WP03 — Bukti bank internal-only (QA V4-BP-005..010, V4-MG-001, RAN-012). Satu transaksi lalu ROLLBACK.
--- BELUM DIJALANKAN (sesi tanpa MCP Supabase, 27 Nov 2026). Jalankan setelah migrasi 20261127e diterapkan; harapan: semua baris ok = true.
+-- Hasil 2026-11-27 (produksi, setelah migrasi 20261127e): 29/29.
 begin;
 create temp table _r (t text, ok boolean, info text) on commit drop;
 grant all on _r to authenticated, anon;

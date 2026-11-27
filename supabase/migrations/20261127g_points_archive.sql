@@ -25,7 +25,8 @@ begin
   raise exception 'Points sudah diarsipkan (v4) — data read-only.' using errcode = '42501';
 end $$;
 drop trigger if exists g_st_points_ro on public.st_points;
-create trigger g_st_points_ro before insert or update or delete on public.st_points for each row execute function public.st_points_readonly();
+-- DELETE tidak diblokir trigger: klien sudah tanpa hak DELETE, dan hapus akun (cascade dari st_profiles) harus tetap jalan.
+create trigger g_st_points_ro before insert or update on public.st_points for each row execute function public.st_points_readonly();
 revoke execute on function public.st_points_readonly() from public, anon, authenticated;
 
 drop policy if exists "poin sendiri / commander" on public.st_points;

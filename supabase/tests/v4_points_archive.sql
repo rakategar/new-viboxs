@@ -1,5 +1,5 @@
 -- v4 WP05 (Points) — QA V4-TV-001..003, V4-MG-002. Satu transaksi lalu ROLLBACK.
--- BELUM DIJALANKAN (sesi tanpa MCP Supabase, 27 Nov 2026). Jalankan setelah migrasi 20261127g; harapan: semua ok = true.
+-- Hasil 2026-11-27 (produksi, setelah migrasi 20261127g): lulus semua.
 begin;
 create temp table _r (t text, ok boolean, info text) on commit drop;
 grant all on _r to authenticated;

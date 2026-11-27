@@ -19,19 +19,22 @@ create temp table _ids (k text primary key, v uuid); grant all on _ids to authen
 set local role authenticated;
 set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-0000000000f1","email":"trainer@x.test","role":"authenticated"}';
 with x as (insert into public.st_program_drafts (title, slug, type, pricing, summary, for_who, outcomes, rights_declared, schedule_at, status)
-  values ('Uji Webinar QA', 'uji-webinar-qa-zz', 'webinar', 'free', 'Ringkasan cukup panjang untuk lolos validasi review program.', 'Tester', array['a','b'], true, now() + interval '3 day', 'submitted') returning id)
+  values ('Uji Webinar QA', 'uji-webinar-qa-zz', 'webinar', 'free', 'Ringkasan cukup panjang untuk lolos validasi review program.', 'Tester', array['a','b'], true, now() + interval '3 day', 'draft') returning id)
 insert into _ids select 'draft', id from x;
-update public.st_program_drafts set status = 'approved' where id = (select v from _ids where k='draft');
-insert into _r select 'trainer self-approve has no effect', status = 'submitted', status from public.st_program_drafts where id = (select v from _ids where k='draft');
+insert into _r select 'trainer self-approve ditolak RLS', r like '%row-level security%', r from (select pg_temp.expect_fail($$update public.st_program_drafts set status = 'approved' where id = (select v from _ids where k='draft')$$) r) q;
+insert into _r select 'trainer self-approve has no effect', status = 'draft', status from public.st_program_drafts where id = (select v from _ids where k='draft');
 
 set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-0000000000c9","email":"cmd9@x.test","role":"authenticated","app_metadata":{"role":"admin"}}';
 update public.st_program_drafts set status = 'approved' where id = (select v from _ids where k='draft');
+-- v4 WP04: approve → langsung tayang (status "Tayang" dari ACK edu_programs.published)
 insert into _r select 'CON-007 send returns slug', public.st_send_to_edu((select v from _ids where k='draft')) = 'uji-webinar-qa-zz', '';
-insert into _r select 'CON-007 draft is publish_queued', status = 'publish_queued', status from public.st_program_drafts where id = (select v from _ids where k='draft');
-insert into _r select 'CON-007 not in public catalog', not published, '' from public.edu_programs where draft_id = (select v from _ids where k='draft');
+insert into _r select 'CON-007 v4 draft langsung published', status = 'published', status from public.st_program_drafts where id = (select v from _ids where k='draft');
+insert into _r select 'CON-007 v4 tayang di katalog', published, '' from public.edu_programs where draft_id = (select v from _ids where k='draft');
 select public.st_send_to_edu((select v from _ids where k='draft'));
 insert into _r select 'CON-009 resend = no duplicate', count(*) = 1, count(*)::text from public.edu_programs where draft_id = (select v from _ids where k='draft');
 insert into _r select 'CON-003 meeting url not in public data', not (data ? 'meeting_url'), '' from public.edu_programs where draft_id = (select v from _ids where k='draft');
+update public.edu_programs set published = false where draft_id = (select v from _ids where k='draft');
+insert into _r select 'CON-008 unpublish CMS → publish_queued', status = 'publish_queued', status from public.st_program_drafts where id = (select v from _ids where k='draft');
 update public.edu_programs set published = true where draft_id = (select v from _ids where k='draft');
 insert into _r select 'CON-008 ACK by id → published', status = 'published', status from public.st_program_drafts where id = (select v from _ids where k='draft');
 insert into _r select 'slug locked after publish', r like '%terkunci%', r from (select pg_temp.expect_fail($$update public.edu_programs set slug = 'ganti-slug' where draft_id = (select v from _ids where k='draft')$$) r) q;
