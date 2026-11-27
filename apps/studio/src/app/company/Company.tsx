@@ -3,15 +3,18 @@ import { Link } from 'react-router-dom';
 import { ORIGIN } from '@viboxs/shared/ecosystem';
 import { useAuth } from '../../lib/auth';
 import { useAction, useLoad } from '../../lib/hooks';
-import { AVAIL, COMPANY_STATUS, CONTRACT, HIRE_STAGE, HIRE_STATUS, LEAD_STATUS, WORKPREF, fmtDate, fromLocalInput, toLocalInput } from '../../lib/labels';
-import { sb, must, rpc, type Company, type HiringRow, type Vacancy } from '../../lib/sb';
+import { AVAIL, COMPANY_PURPOSE, COMPANY_STATUS, CONTRACT, HIRE_STAGE, HIRE_STATUS, LEAD_STATUS, WORKPREF, fmtDate, fromLocalInput, toLocalInput } from '../../lib/labels';
+import { sb, must, rpc, sendOutbox, type Company, type HiringRow, type Vacancy } from '../../lib/sb';
+import { PendingInvites } from '../Invites';
 import { Area, Badge, Btn, Card, Check, Dialog, Empty, I, KV, Loaded, PageHead, Select, StatusBadge, TagInput, Text, useToast } from '../../ui/kit';
 import Thread from '../Thread';
 
 const TERMS = 'company-terms-draft-2026-11';
-const BLANK = { legal_name: '', nib: '', business_domain: '', business_email: '', pic_name: '', pic_role: '', hiring_needs: '', website: '', authority_statement: false };
+const BLANK = { legal_name: '', nib: '', industry: '', address: '', business_email: '', company_whatsapp: '', website: '', pic_name: '', pic_role: '', pic_email: '',
+  purpose: 'hiring', hiring_needs: '', authority_statement: false, data_consent: false, comm_consent_wa: false };
+const EDITABLE = ['SUBMITTED', 'NEED_INFO'];
 
-/** Company Workspace — verifikasi (APPLIED → … → VERIFIED). Bisa dibuka akun tanpa peran (pendaftaran perusahaan). */
+/** Company Workspace — pengajuan & status (v4: … → VERIFIED → COMPANY_INVITE_SENT → ACTIVE). Bisa dibuka akun tanpa peran. */
 export function CompanyHome() {
   const { me, refresh } = useAuth();
   const toast = useToast();
@@ -19,39 +22,52 @@ export function CompanyHome() {
   const [f, setF] = useState<typeof BLANK | null>(null);
   const { busy, run } = useAction();
   const c = s.data;
-  const form = f ?? (c ? { ...BLANK, ...c, nib: c.nib ?? '', business_domain: c.business_domain ?? '', website: c.website ?? '', authority_statement: true } : { ...BLANK, business_email: me!.profile.email ?? '' });
+  const form = f ?? (c ? { ...BLANK, legal_name: c.legal_name, nib: c.nib ?? '', industry: c.industry ?? '', address: c.address ?? '', business_email: c.business_email, company_whatsapp: c.company_whatsapp ?? '',
+    website: c.website ?? '', pic_name: c.pic_name, pic_role: c.pic_role, pic_email: c.pic_email ?? '', purpose: c.purpose ?? 'hiring', hiring_needs: c.hiring_needs, authority_statement: true, data_consent: true, comm_consent_wa: c.comm_consent_wa }
+    : { ...BLANK, business_email: me!.profile.email ?? '' });
   const set = <K extends keyof typeof BLANK>(k: K, v: (typeof BLANK)[K]) => setF({ ...form, [k]: v });
-  const submit = () => run('s', () => rpc<string>('st_company_apply', { p: { ...form, terms_version: TERMS } }), (ref) => { toast(`Pengajuan ${ref} terkirim ke Commander.`); setF(null); s.reload(); refresh(); }, (e) => toast(e, 'err'));
-  const editable = !c || ['APPLIED', 'NEED_INFO'].includes(c.status);
+  const submit = () => run('s', async () => { const ref = await rpc<string>('st_company_apply', { p: { ...form, terms_version: TERMS } }); await sendOutbox(); return ref; },
+    (ref) => { toast(`Pengajuan ${ref} masuk antrean Commander. Konfirmasi dikirim ke email perusahaan.`); setF(null); s.reload(); refresh(); }, (e) => toast(e, 'err'));
+  const editable = !c || EDITABLE.includes(c.status);
+  const live = !!c && ['VERIFIED', 'ACTIVE'].includes(c.status);
   return (
     <div className="st-page-in">
-      <PageHead eyebrow="Company Workspace" title={c?.legal_name ?? 'Daftarkan perusahaan'} desc="Satu perusahaan, satu workspace untuk hiring dan Services. Verifikasi gratis; akses talent search aktif setelah Commander memverifikasi." />
+      <PageHead eyebrow="Company Workspace" title={c?.legal_name ?? 'Daftarkan perusahaan'} desc="Satu perusahaan, satu workspace untuk hiring dan Services. Verifikasi gratis; Talent Discovery aktif setelah Commander memverifikasi dan PIC menerima undangan aktivasi." />
+      <PendingInvites />
       <Loaded state={s}>
         {() => (
           <>
             {c && <Card title={<span className="st-row">Status verifikasi <StatusBadge map={COMPANY_STATUS} value={c.status} /></span>}>
               {c.review_note && <div className={`st-alert ${c.status === 'NEED_INFO' ? 'st-alert--warn' : 'st-alert--info'}`}>Catatan Commander: {c.review_note}</div>}
-              {['VERIFIED', 'ACTIVE'].includes(c.status) && (
+              {c.status === 'COMPANY_INVITE_SENT' && <p className="st-small">Perusahaan terverifikasi. Terima undangan aktivasi di atas (atau dari email) untuk membuka Company Workspace.</p>}
+              {['SUBMITTED', 'IN_COMMANDER_QUEUE', 'REVIEW'].includes(c.status) && <p className="st-small st-muted">Pengajuan {c.ref} sedang diproses. Pembaruan status dikirim ke {c.business_email}. Anda belum memperoleh akses Talent Discovery sampai verifikasi selesai.</p>}
+              {live && (
                 <div className="st-grid3">
                   <Link to="/company/talent" className="st-btn st-btn--primary"><I.search size={16} />Cari kandidat</Link>
                   <Link to="/company/pipeline" className="st-btn st-btn--ghost"><I.users size={16} />Pipeline hiring</Link>
                   <Link to="/company/services" className="st-btn st-btn--ghost"><I.lead size={16} />Ajukan proyek Services</Link>
                 </div>
               )}
-              {['VERIFIED', 'ACTIVE'].includes(c.status) && me!.active_role !== 'company_partner' && <p className="st-small st-muted">Ganti konteks ke Company Partner dari menu peran untuk membuka fitur hiring.</p>}
+              {live && me!.active_role !== 'company_partner' && <p className="st-small st-muted">Ganti konteks ke Company Partner dari menu peran untuk membuka fitur hiring.</p>}
             </Card>}
             {editable && (
-              <Card title={c ? 'Lengkapi pengajuan' : 'Data perusahaan'} desc="Kontak kandidat tidak pernah dibuka sebelum kandidat menerima undangan. Data perusahaan dipakai untuk verifikasi & anti-penyalahgunaan.">
+              <Card title={c ? 'Lengkapi pengajuan' : 'Data perusahaan'} desc="Lengkapi identitas perusahaan, email, dan nomor WhatsApp resmi. Logo dapat dikirim lewat form edu.viboxs.com/for-companies atau diminta Commander saat verifikasi. Pembaruan status dikirim lewat email.">
                 <div className="st-form">
                   <Text label="Nama legal perusahaan" value={form.legal_name} onChange={(v) => set('legal_name', v)} wide />
-                  <Text label="NIB / identitas usaha" value={form.nib} onChange={(v) => set('nib', v)} hint="Bila ada. NIB saja tidak cukup — Commander memeriksa PIC & kewenangan." />
-                  <Text label="Domain bisnis" value={form.business_domain} onChange={(v) => set('business_domain', v)} placeholder="perusahaan.co.id" />
-                  <Text label="Email bisnis" type="email" value={form.business_email} onChange={(v) => set('business_email', v)} />
+                  <Text label="NIB / identitas usaha" value={form.nib} onChange={(v) => set('nib', v)} hint="NIB saja tidak cukup — Commander memeriksa PIC & kewenangan." />
+                  <Text label="Industri" value={form.industry} onChange={(v) => set('industry', v)} />
+                  <Text label="Email perusahaan" type="email" value={form.business_email} onChange={(v) => set('business_email', v)} />
+                  <Text label="WhatsApp perusahaan" type="tel" value={form.company_whatsapp} onChange={(v) => set('company_whatsapp', v)} placeholder="0812xxxxxxx" />
                   <Text label="Website" value={form.website} onChange={(v) => set('website', v)} placeholder="https://" />
-                  <Text label="Nama PIC" value={form.pic_name} onChange={(v) => set('pic_name', v)} />
+                  <Select label="Tujuan penggunaan" value={form.purpose} onChange={(v) => set('purpose', v)} options={Object.entries(COMPANY_PURPOSE) as [string, string][]} />
+                  <Area label="Alamat usaha" value={form.address} onChange={(v) => set('address', v)} rows={2} wide />
+                  <Text label="Nama PIC HR" value={form.pic_name} onChange={(v) => set('pic_name', v)} />
                   <Text label="Jabatan PIC" value={form.pic_role} onChange={(v) => set('pic_role', v)} />
-                  <Area label="Kebutuhan rekrutmen" value={form.hiring_needs} onChange={(v) => set('hiring_needs', v)} rows={3} hint="Posisi, jumlah, lokasi/remote, perkiraan waktu." />
-                  <div className="st-field st-field--wide"><Check label="Saya berwenang mewakili perusahaan ini untuk rekrutmen, menyetujui ketentuan hiring VIBOXS (draf, menunggu review hukum), dan tidak akan mengekspor/menyalahgunakan data kandidat." checked={form.authority_statement} onChange={(v) => set('authority_statement', v)} /></div>
+                  <Text label="Email PIC (jika berbeda)" type="email" value={form.pic_email} onChange={(v) => set('pic_email', v)} />
+                  <Area label="Kebutuhan kandidat / layanan" value={form.hiring_needs} onChange={(v) => set('hiring_needs', v)} rows={3} hint="Posisi, jumlah, lokasi/remote, perkiraan waktu — minimal 30 karakter." wide />
+                  <div className="st-field st-field--wide"><Check label="Saya berwenang mewakili perusahaan ini dan informasi di atas akurat." checked={form.authority_statement} onChange={(v) => set('authority_statement', v)} /></div>
+                  <div className="st-field st-field--wide"><Check label="Data kandidat hanya dipakai untuk perekrutan yang sah, tidak diekspor atau diperjualbelikan (ketentuan draf, menunggu review hukum)." checked={form.data_consent} onChange={(v) => set('data_consent', v)} /></div>
+                  <div className="st-field st-field--wide"><Check label="Bersedia menerima pembaruan lewat WhatsApp resmi setelah layanan WhatsApp VIBOXS terhubung (saat ini email saja)." checked={form.comm_consent_wa} onChange={(v) => set('comm_consent_wa', v)} /></div>
                   <div className="st-form__act"><Btn kind="primary" busy={busy === 's'} onClick={submit}>{c ? 'Kirim ulang' : 'Ajukan verifikasi'}</Btn></div>
                 </div>
               </Card>

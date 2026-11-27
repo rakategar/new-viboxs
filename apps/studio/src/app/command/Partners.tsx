@@ -1,21 +1,24 @@
 import { useState } from 'react';
 import { useAction, useLoad } from '../../lib/hooks';
-import { COMPANY_STATUS, SHOWCASE_STATUS, fmtDate, rupiah } from '../../lib/labels';
-import { sb, must, rpc, type Company, type Showcase } from '../../lib/sb';
-import { Area, Badge, Btn, Dialog, Empty, I, KV, Loaded, PageHead, StatusBadge, Tabs, Text, useToast } from '../../ui/kit';
+import { COMPANY_PURPOSE, COMPANY_SOURCE, COMPANY_STATUS, OUTBOX_STATUS, SHOWCASE_STATUS, fmtDate, rupiah } from '../../lib/labels';
+import { sb, must, rpc, sendOutbox, type Company, type OutboxRow, type Showcase } from '../../lib/sb';
+import { Area, Badge, Btn, Dialog, Empty, I, KV, Loaded, PageHead, Select, StatusBadge, Tabs, Text, useToast } from '../../ui/kit';
 
-/** Hiring Company Verification (PRD §03.4): NIB saja tidak cukup — Commander memvalidasi PIC, domain, kewenangan. */
+const QUEUE = ['SUBMITTED', 'IN_COMMANDER_QUEUE', 'REVIEW', 'NEED_INFO'];
+
+/** Company Applications (v4 §03.3): satu antrean untuk EDU /for-companies & Studio /company. NIB saja tidak cukup. */
 export function Companies() {
   const toast = useToast();
-  const [tab, setTab] = useState<'queue' | 'all'>('queue');
+  const [tab, setTab] = useState<'queue' | 'invited' | 'all'>('queue');
   const [sel, setSel] = useState<Company | null>(null);
   const s = useLoad(async () => must(sb.from('st_companies').select('*').order('created_at', { ascending: false })) as Promise<Company[]>);
-  const list = (s.data ?? []).filter((c) => tab === 'all' || ['APPLIED', 'REVIEW', 'NEED_INFO'].includes(c.status));
+  const all = s.data ?? [];
+  const list = all.filter((c) => tab === 'all' || (tab === 'queue' ? QUEUE.includes(c.status) : c.status === 'COMPANY_INVITE_SENT'));
   return (
     <div className="st-page-in">
-      <PageHead eyebrow="Hiring Company Verification" title="Perusahaan" desc="Perusahaan hanya mencari learner yang opt-in dan bukan Ranger aktif. Verifikasi gratis; tolak bila PIC/kewenangan tidak meyakinkan." />
-      <Tabs label="Status" value={tab} onChange={setTab} tabs={[['queue', 'Perlu keputusan', (s.data ?? []).filter((c) => ['APPLIED', 'REVIEW', 'NEED_INFO'].includes(c.status)).length], ['all', 'Semua']]} />
-      <Loaded state={s} empty={() => (list.length ? null : <Empty title="Tidak ada perusahaan di sini" icon={I.users}>Perusahaan mendaftar dari edu.viboxs.com/for-companies → Studio.</Empty>)}>
+      <PageHead eyebrow="Company Applications" title="Perusahaan" desc="Pengajuan dari edu.viboxs.com/for-companies dan Studio masuk ke sini. Verifikasi gratis; role Company aktif setelah PIC menerima undangan aman." />
+      <Tabs label="Status" value={tab} onChange={setTab} tabs={[['queue', 'Perlu keputusan', all.filter((c) => QUEUE.includes(c.status)).length], ['invited', 'Menunggu aktivasi', all.filter((c) => c.status === 'COMPANY_INVITE_SENT').length], ['all', 'Semua']]} />
+      <Loaded state={s} empty={() => (list.length ? null : <Empty title="Tidak ada perusahaan di sini" icon={I.users}>Perusahaan mendaftar dari edu.viboxs.com/for-companies.</Empty>)}>
         {() => (
           <div className="st-cards">
             {list.map((c, i) => (
@@ -23,6 +26,7 @@ export function Companies() {
                 <span className="row-between"><span className="st-mono">{c.ref}</span><StatusBadge map={COMPANY_STATUS} value={c.status} /></span>
                 <b>{c.legal_name}</b>
                 <span className="st-small st-muted">{c.pic_name} · {c.pic_role} · {c.business_email}</span>
+                <span className="st-row">{c.needs_completion && <Badge tone="warn">Lengkapi data</Badge>}<small className="st-muted">{COMPANY_SOURCE[c.source] ?? c.source} · {fmtDate(c.created_at)}</small></span>
               </button>
             ))}
           </div>
@@ -36,22 +40,65 @@ export function Companies() {
 function CompanyDialog({ c, onClose, onDone }: { c: Company; onClose: () => void; onDone: (m: string) => void }) {
   const toast = useToast();
   const [note, setNote] = useState('');
+  const [fix, setFix] = useState({ company_whatsapp: c.company_whatsapp ?? '', industry: c.industry ?? '', address: c.address ?? '', purpose: (c.purpose ?? 'hiring') as string, nib: c.nib ?? '' });
   const { busy, run } = useAction();
-  const decide = (st: string) => run(st, () => rpc('st_company_decide', { p_id: c.id, p_status: st, p_note: note }), () => onDone(`Status perusahaan: ${COMPANY_STATUS[st][0]}.`), (e) => toast(e, 'err'));
-  const domainMatch = c.business_domain && c.business_email.endsWith('@' + c.business_domain.replace(/^https?:\/\//, '').replace(/^www\./, ''));
+  const files = useLoad(async () => {
+    const paths = [c.logo_path, c.nib_doc_path].filter(Boolean) as string[];
+    if (!paths.length) return {} as Record<string, string>;
+    const { data } = await sb.storage.from('st-company').createSignedUrls(paths, 60);
+    return Object.fromEntries((data ?? []).filter((x) => x.signedUrl).map((x) => [x.path, x.signedUrl])) as Record<string, string>;
+  });
+  const notes = useLoad(async () => must(sb.from('st_outbox').select('*').eq('subject_id', c.id).order('created_at', { ascending: false })) as Promise<OutboxRow[]>);
+  const decide = (st: string) => run(st, async () => { await rpc('st_company_decide', { p_id: c.id, p_status: st, p_note: note }); return sendOutbox(); },
+    (r) => onDone(`Status perusahaan: ${COMPANY_STATUS[st === 'VERIFIED' ? 'COMPANY_INVITE_SENT' : st][0]}.${st !== 'REVIEW' ? (r?.failed ? ' Email dicoba ulang otomatis.' : ' Email status dikirim.') : ''}`), (e) => toast(e, 'err'));
+  const complete = () => run('fix', () => rpc('st_company_complete', { p_id: c.id, p: fix }), () => onDone('Data perusahaan dilengkapi — siap ditinjau.'), (e) => toast(e, 'err'));
+  const reinvite = () => run('re', async () => { await rpc('st_company_reinvite', { p_id: c.id }); return sendOutbox(); }, () => onDone('Undangan Company baru dikirim; tautan lama tidak berlaku.'), (e) => toast(e, 'err'));
+  const domainMatch = c.website && c.business_email.endsWith('@' + c.website.replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0]);
+  const logoUrl = c.logo_path ? files.data?.[c.logo_path] : undefined;
+  const docUrl = c.nib_doc_path ? files.data?.[c.nib_doc_path] : undefined;
+  const open = QUEUE.includes(c.status);
   return (
     <Dialog open onClose={onClose} title={c.legal_name} wide>
       <div className="st-stack">
-        <KV rows={[['Ref', c.ref], ['NIB', c.nib ?? '—'], ['Domain', c.business_domain ?? '—'], ['Email bisnis', <span key="e">{c.business_email} {domainMatch ? <Badge tone="ok">domain cocok</Badge> : <Badge tone="warn">cek domain</Badge>}</span>],
-          ['PIC', `${c.pic_name} · ${c.pic_role}`], ['Website', c.website ?? '—'], ['Diajukan', fmtDate(c.created_at)], ['Status', <StatusBadge key="s" map={COMPANY_STATUS} value={c.status} />]]} />
-        <div><span className="st-eyebrow">Kebutuhan rekrutmen</span><p>{c.hiring_needs}</p></div>
-        <Area label="Catatan keputusan" value={note} onChange={setNote} rows={2} hint="Wajib (min. 10 karakter) kecuali menandai “ditinjau”. Tercatat di audit." />
+        <div className="st-row">
+          {logoUrl ? <img src={logoUrl} alt={`Logo ${c.legal_name}`} style={{ maxHeight: 64, maxWidth: 180, objectFit: 'contain', background: '#fff', borderRadius: 8, padding: 6 }} /> : <Badge tone="muted">{c.logo_path ? 'Memuat logo…' : 'Tanpa logo'}</Badge>}
+          {c.logo_path && <Badge tone={c.logo_rights ? 'ok' : 'warn'}>{c.logo_rights ? 'Izin logo dinyatakan' : 'Izin logo belum ada'}</Badge>}
+        </div>
+        <KV rows={[['Ref', c.ref], ['Sumber', `${COMPANY_SOURCE[c.source] ?? c.source}${c.source_ref ? ` · ${c.source_ref}` : ''}`], ['Diajukan', fmtDate(c.created_at)], ['Status', <StatusBadge key="s" map={COMPANY_STATUS} value={c.status} />],
+          ['NIB', <span key="n">{c.nib ?? '—'} {docUrl ? <a href={docUrl} target="_blank" rel="noopener noreferrer">Lihat dokumen (60 detik)</a> : c.nib_doc_path ? null : <Badge tone="warn">tanpa dokumen</Badge>}</span>],
+          ['Industri', c.industry ?? '—'], ['Alamat', c.address ?? '—'], ['Website', c.website ?? '—'],
+          ['Email perusahaan', <span key="e">{c.business_email} {c.website ? (domainMatch ? <Badge tone="ok">domain cocok</Badge> : <Badge tone="warn">cek domain</Badge>) : null}</span>],
+          ['WhatsApp', <span key="w">{c.company_whatsapp ?? '—'} <small className="st-muted">{c.comm_consent_wa ? 'consent WA ✓' : 'tanpa consent WA'}</small></span>],
+          ['PIC', `${c.pic_name} · ${c.pic_role}${c.pic_email ? ` · ${c.pic_email}` : ''}`], ['Tujuan', c.purpose ? COMPANY_PURPOSE[c.purpose] : '—']]} />
+        <div><span className="st-eyebrow">Kebutuhan kandidat / layanan</span><p>{c.hiring_needs}</p></div>
+        {c.review_note && <p className="st-small st-muted">Catatan terakhir: {c.review_note}</p>}
+        <details className="st-details">
+          <summary>Notifikasi ({notes.data?.length ?? 0})</summary>
+          <ul className="st-list">{(notes.data ?? []).map((o) => (
+            <li key={o.id}><span><b>{o.channel === 'email' ? 'Email' : 'WhatsApp'}</b><small>{o.topic} · {o.recipient}{o.last_error && o.status !== 'sent' ? ` · ${o.last_error}` : ''}</small></span><StatusBadge map={OUTBOX_STATUS} value={o.status} /></li>
+          ))}</ul>
+        </details>
+        {c.needs_completion && open && (
+          <section className="st-invite-out" aria-label="Lengkapi data">
+            <span className="st-eyebrow">Lengkapi data dari balasan perusahaan</span>
+            <div className="st-form">
+              <Text label="WhatsApp perusahaan" value={fix.company_whatsapp} onChange={(v) => setFix({ ...fix, company_whatsapp: v })} placeholder="0812xxxxxxx" />
+              <Text label="Industri" value={fix.industry} onChange={(v) => setFix({ ...fix, industry: v })} />
+              <Text label="NIB" value={fix.nib} onChange={(v) => setFix({ ...fix, nib: v })} />
+              <Select label="Tujuan" value={fix.purpose} onChange={(v) => setFix({ ...fix, purpose: v })} options={Object.entries(COMPANY_PURPOSE) as [string, string][]} />
+              <Area label="Alamat usaha" value={fix.address} onChange={(v) => setFix({ ...fix, address: v })} rows={2} />
+              <div className="st-form__act"><Btn onClick={complete} busy={busy === 'fix'}>Simpan data</Btn></div>
+            </div>
+          </section>
+        )}
+        <Area label="Catatan keputusan" value={note} onChange={setNote} rows={2} hint="Wajib (min. 10 karakter) kecuali “ditinjau”. Catatan ikut terkirim di email status ke perusahaan." />
         <div className="st-dlg__foot">
-          {['APPLIED', 'NEED_INFO'].includes(c.status) && <Btn onClick={() => decide('REVIEW')} busy={busy === 'REVIEW'}>Tandai ditinjau</Btn>}
-          {c.status !== 'VERIFIED' && <Btn onClick={() => decide('NEED_INFO')} busy={busy === 'NEED_INFO'}>Minta info</Btn>}
-          {c.status !== 'REJECTED' && c.status !== 'VERIFIED' && <Btn kind="danger" onClick={() => decide('REJECTED')} busy={busy === 'REJECTED'}>Tolak</Btn>}
-          {c.status === 'VERIFIED' && <Btn kind="danger" onClick={() => decide('SUSPENDED')} busy={busy === 'SUSPENDED'}>Tangguhkan</Btn>}
-          {!['VERIFIED'].includes(c.status) && <Btn kind="primary" onClick={() => decide('VERIFIED')} busy={busy === 'VERIFIED'}><I.check size={16} />Verifikasi</Btn>}
+          {['SUBMITTED', 'IN_COMMANDER_QUEUE', 'NEED_INFO'].includes(c.status) && <Btn onClick={() => decide('REVIEW')} busy={busy === 'REVIEW'}>Tandai ditinjau</Btn>}
+          {open && <Btn onClick={() => decide('NEED_INFO')} busy={busy === 'NEED_INFO'}>Minta info</Btn>}
+          {(open || c.status === 'COMPANY_INVITE_SENT') && <Btn kind="danger" onClick={() => decide('REJECTED')} busy={busy === 'REJECTED'}>Tolak</Btn>}
+          {['ACTIVE', 'VERIFIED'].includes(c.status) && <Btn kind="danger" onClick={() => decide('SUSPENDED')} busy={busy === 'SUSPENDED'}>Tangguhkan</Btn>}
+          {c.status === 'COMPANY_INVITE_SENT' && <Btn onClick={reinvite} busy={busy === 're'}><I.key size={14} />Kirim ulang undangan</Btn>}
+          {open && <Btn kind="primary" onClick={() => decide('VERIFIED')} busy={busy === 'VERIFIED'} disabled={c.needs_completion}><I.check size={16} />Verifikasi &amp; kirim undangan</Btn>}
         </div>
       </div>
     </Dialog>

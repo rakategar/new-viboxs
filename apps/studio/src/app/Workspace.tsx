@@ -3,6 +3,7 @@ import { useAuth } from '../lib/auth';
 import { useLoad } from '../lib/hooks';
 import { ROLE, ENTITY, ago, rupiah, PROG_STATUS, BUSINESS_ROLES } from '../lib/labels';
 import { sb, must, type Audit, type Notification, type Payable, type ProgramDraft, type Points, type LearnerProfile } from '../lib/sb';
+import { PendingInvites } from './Invites';
 import { Badge, Card, ComingSoon, Empty, I, Loaded, PageHead, Stat, StatusBadge } from '../ui/kit';
 
 const count = async (q: PromiseLike<{ count: number | null; error: unknown }>) => { const r = await q; if (r.error) throw r.error; return r.count ?? 0; };
@@ -17,6 +18,7 @@ export default function Workspace() {
   return (
     <div className="st-page-in">
       <PageHead eyebrow={ROLE[role].label} title={`${greet()}${name ? `, ${name}` : ''}.`} desc={ROLE[role].desc} />
+      {role !== 'commander' && <PendingInvites />}
       {role === 'commander' ? <CommanderHome /> : role === 'ranger' ? <RangerHome /> : role === 'trainer' ? <TrainerHome /> : role === 'learner' ? <LearnerHome /> : role === 'company_partner' ? <Navigate to="/company" replace /> : BUSINESS_ROLES.includes(role) ? <BusinessHome /> : <Empty title="Belum ada modul untuk peran ini" />}
     </div>
   );
@@ -70,9 +72,9 @@ function CommanderHome() {
             <li><span className="st-integ__dot is-ok" /><span><b>Services → Studio</b><small>Lead “Start a Mission” masuk otomatis ke inbox (idempoten per nomor referensi).</small></span><Badge tone="ok">Aktif</Badge></li>
             <li><span className="st-integ__dot is-ok" /><span><b>EDU → Studio</b><small>Pendaftar kolaborator EDU masuk sebagai aplikasi Trainer.</small></span><Badge tone="ok">Aktif</Badge></li>
             <li><span className="st-integ__dot is-ok" /><span><b>Studio → EDU</b><small>Program disetujui dikirim sebagai draft; status tayang mengikuti CMS EDU.</small></span><Badge tone="ok">Aktif</Badge></li>
-            <li><span className="st-integ__dot is-warn" /><span><b>EDU order & enrollment</b><small>Checkout EDU belum memakai payment gateway terverifikasi — tidak ada data order.</small></span><Badge tone="warn">Belum aktif</Badge></li>
+            <li><span className="st-integ__dot is-warn" /><span><b>EDU order & enrollment</b><small>Order & webhook Midtrans terpasang. Pembayaran online menunggu flag edu_payments_enabled dan uji bayar sukses.</small></span><Badge tone="warn">Menunggu aktivasi</Badge></li>
             <li><span className="st-integ__dot" /><span><b>Studio → Universe</b><small>Universe sedang disiapkan. Produk showcase tetap di antrean.</small></span><Badge tone="muted">Sedang disiapkan</Badge></li>
-            <li><span className="st-integ__dot is-warn" /><span><b>Notifikasi email</b><small>Kanal awal in-app + realtime. Undangan dikirim manual dari email Anda.</small></span><Badge tone="warn">In-app saja</Badge></li>
+            <li><span className="st-integ__dot is-ok" /><span><b>Notifikasi email</b><small>Email aktivasi & undangan dikirim otomatis (antrean + retry). WhatsApp belum terhubung.</small></span><Badge tone="ok">Email aktif</Badge></li>
           </ul>
         </Card>
       </div>

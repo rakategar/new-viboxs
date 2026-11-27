@@ -9,3 +9,8 @@ dist
 /*.jpg
 /*.png
 *.tsbuildinfo
+
+# Dokumen revisi internal & kredensial demo (jangan di-commit)
+/apps/edu/dokumen-revisi-edu/
+/apps/edu/dokumen-revisi-edu-studio-v2/
+*RAHASIA*

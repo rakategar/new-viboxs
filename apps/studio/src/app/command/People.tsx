@@ -1,10 +1,9 @@
 import { useMemo, useState } from 'react';
 import { useAction, useLoad } from '../../lib/hooks';
-import { ROLE, INVITE_STATUS, GRANT_STATUS, RANGER_STATUS, ago, fmtDate } from '../../lib/labels';
-import { sb, must, rpc, authOrigin, type Grant, type Invite, type Profile, type RangerStatus, type Role } from '../../lib/sb';
-import { Area, Badge, Btn, Check, Chips, Copy, Dialog, Empty, I, Loaded, PageHead, Select, StatusBadge, Tabs, Text, useToast } from '../../ui/kit';
+import { ROLE, INVITE_STATUS, GRANT_STATUS, OUTBOX_STATUS, RANGER_STATUS, ago, fmtDate } from '../../lib/labels';
+import { sb, must, rpc, sendOutbox, type Grant, type Invite, type OutboxRow, type Profile, type RangerStatus, type Role } from '../../lib/sb';
+import { Area, Badge, Btn, Check, Chips, Dialog, Empty, I, Loaded, PageHead, Select, StatusBadge, Tabs, Text, useToast } from '../../ui/kit';
 
-export const inviteUrl = (token: string) => `${authOrigin()}/invite/${token}`;
 const PRO: Role[] = ['ranger', 'trainer', 'opc_founder', 'business_partner', 'collaborator'];
 
 /** CMD-01: undangan sekali pakai + peran per orang (tambah / tangguhkan / cabut). */
@@ -14,12 +13,19 @@ export default function People() {
   const [creating, setCreating] = useState(false);
   const people = useLoad(async () => {
     const [p, g] = await Promise.all([
-      must(sb.from('st_profiles').select('id, display_name, email, headline, skills, created_at').order('created_at', { ascending: false })) as Promise<Profile[]>,
+      must(sb.from('st_profiles').select('id, display_name, email, headline, skills, created_at, is_demo').order('created_at', { ascending: false })) as Promise<Profile[]>,
       must(sb.from('st_role_grants').select('*').order('created_at')) as Promise<Grant[]>,
     ]);
     return p.map((x) => ({ ...x, grants: g.filter((y) => y.person_id === x.id) }));
   });
-  const invites = useLoad(() => must(sb.from('st_invites').select('id, email, roles, status, expires_at, created_at, accepted_at, application_id').order('created_at', { ascending: false }).limit(200)) as Promise<Invite[]>);
+  const invites = useLoad(async () => {
+    const inv = await must(sb.from('st_invites').select('id, email, roles, status, expires_at, created_at, accepted_at, application_id, resend_requested_at').order('created_at', { ascending: false }).limit(200)) as Invite[];
+    const ob = inv.length ? await must(sb.from('st_outbox').select('*').eq('topic', 'invite.activation').in('aggregate_id', inv.map((i) => i.id))) as OutboxRow[] : [];
+    return inv.map((i) => ({ ...i, ob: ob.find((o) => o.aggregate_id === i.id) ?? null }));
+  });
+  const { busy, run } = useAction();
+  const reissue = (id: string) => run(id, async () => { await rpc('st_invite_reissue', { p_invite: id }); return sendOutbox(); },
+    (r) => { toast(r?.failed ? 'Undangan baru dibuat; email dicoba lagi otomatis.' : 'Undangan baru dikirim. Tautan lama tidak berlaku.'); invites.reload(); }, (m) => toast(m, 'err'));
   const pendingInv = (invites.data ?? []).filter((i) => i.status === 'pending' && new Date(i.expires_at) > new Date()).length;
   const rangers = useLoad(() => must(sb.from('st_ranger_status').select('*').order('updated_at', { ascending: false })) as Promise<RangerStatus[]>);
 
@@ -41,16 +47,19 @@ export default function People() {
         <Loaded state={invites} empty={(d) => (d.length ? null : <Empty title="Belum ada undangan" icon={I.key}>Undangan dibuat dari aplikasi yang disetujui atau langsung dari tombol di atas.</Empty>)}>
           {(d) => (
             <div className="st-table">
-              <div className="st-tr st-tr--h"><span>Email</span><span>Peran</span><span>Status</span><span>Berlaku s.d.</span><span /></div>
+              <div className="st-tr st-tr--h"><span>Email</span><span>Peran</span><span>Status</span><span>Email aktivasi</span><span /></div>
               {d.map((x, i) => {
                 const expired = x.status === 'pending' && new Date(x.expires_at) < new Date();
                 return (
                   <div key={x.id} className="st-tr" style={{ ['--i' as string]: i }}>
-                    <span><b>{x.email}</b><small>dibuat {ago(x.created_at)}</small></span>
+                    <span><b>{x.email}</b><small>dibuat {ago(x.created_at)} · berlaku s.d. {fmtDate(x.expires_at)}</small>{x.resend_requested_at && x.status !== 'accepted' && <Badge tone="warn">Minta kirim ulang</Badge>}</span>
                     <span>{x.roles.map((r) => ROLE[r].label).join(', ')}</span>
                     <span><StatusBadge map={INVITE_STATUS} value={expired ? 'expired' : x.status} /></span>
-                    <span className="st-muted">{fmtDate(x.expires_at)}</span>
-                    <span>{x.status === 'pending' && !expired && <Btn size="sm" kind="quiet" onClick={async () => { const { error } = await sb.from('st_invites').update({ status: 'revoked' }).eq('id', x.id); if (error) toast(error.message, 'err'); else { toast('Undangan dicabut.'); invites.reload(); } }}>Cabut</Btn>}</span>
+                    <span>{x.ob ? <StatusBadge map={OUTBOX_STATUS} value={x.ob.status} /> : <span className="st-muted st-small">Tautan manual (v3)</span>}</span>
+                    <span className="st-row">
+                      {x.status !== 'accepted' && <Btn size="sm" onClick={() => reissue(x.id)} busy={busy === x.id}>Kirim ulang</Btn>}
+                      {x.status === 'pending' && !expired && <Btn size="sm" kind="quiet" onClick={async () => { const { error } = await sb.from('st_invites').update({ status: 'revoked' }).eq('id', x.id); if (error) toast(error.message, 'err'); else { toast('Undangan dicabut.'); invites.reload(); } }}>Cabut</Btn>}
+                    </span>
                   </div>
                 );
               })}
@@ -78,7 +87,7 @@ function PersonCard({ p, i, onChange }: { p: Profile & { grants: Grant[] }; i: n
     <article className="st-person" style={{ ['--i' as string]: i }}>
       <header>
         <span className="st-avatar" aria-hidden="true">{(p.display_name || p.email || '?').slice(0, 2).toUpperCase()}</span>
-        <span><b>{p.display_name || '—'}</b><small>{p.email}</small></span>
+        <span><b>{p.display_name || '—'}</b> {p.is_demo && <Badge tone="warn">DEMO</Badge>}<small>{p.email}</small></span>
         <Btn size="sm" kind="quiet" onClick={() => setEdit((e) => !e)} aria-expanded={edit}>{edit ? 'Tutup' : 'Kelola'}</Btn>
       </header>
       <div className="st-row">{active.length ? active.map((g) => <span key={g.id} className={`st-rolechip ${g.status === 'suspended' ? 'is-off' : ''}`}>{ROLE[g.role].label}{g.status === 'suspended' && ' · ditangguhkan'}</span>) : <span className="st-muted st-small">Tanpa peran aktif</span>}</div>
@@ -134,34 +143,33 @@ function CreateInvite({ open, onClose, onDone }: { open: boolean; onClose: () =>
   const toast = useToast();
   const [email, setEmail] = useState('');
   const [roles, setRoles] = useState<string[]>(['ranger']);
-  const [days, setDays] = useState('7');
+  const [hours, setHours] = useState('24');
   const [legacy, setLegacy] = useState(false);
-  const [link, setLink] = useState('');
+  const [sent, setSent] = useState<null | 'ok' | 'queued'>(null);
   const { busy, run } = useAction();
   const opts = useMemo(() => PRO.map((r) => [r, ROLE[r].label] as [string, string]), []);
   const go = () => run('go', async () => {
-    const r = await rpc<{ token: string }>('st_create_invite', { p_email: email.trim(), p_roles: roles, p_application: null, p_days: Number(days), p_legacy: legacy });
-    setLink(inviteUrl(r.token));
-  }, () => { onDone(); }, (m) => toast(m, 'err'));
-  const close = () => { setLink(''); setEmail(''); onClose(); };
+    await rpc('st_create_invite', { p_email: email.trim(), p_roles: roles, p_application: null, p_hours: Number(hours), p_legacy: legacy });
+    return sendOutbox();
+  }, (r) => { setSent(r && !r.failed ? 'ok' : 'queued'); onDone(); }, (m) => toast(m, 'err'));
+  const close = () => { setSent(null); setEmail(''); onClose(); };
   return (
     <Dialog open={open} onClose={close} title="Undangan akses profesional">
-      {link ? (
+      {sent ? (
         <div className="st-invite-out">
-          <span className="st-eyebrow">Tautan sekali pakai · {email}</span>
-          <code>{link}</code>
-          <div className="st-row"><Copy text={link} label="Salin tautan" /><a className="st-btn st-btn--ghost st-btn--sm" href={`mailto:${email}?subject=${encodeURIComponent('Undangan VIBOXS Studio')}&body=${encodeURIComponent(`Halo,\n\nAnda diundang ke VIBOXS Studio sebagai ${roles.map((r) => ROLE[r as Role].label).join(', ')}.\nAktifkan melalui tautan sekali pakai ini (berlaku ${days} hari):\n${link}\n\nGunakan email ${email} saat membuat akun/masuk.\n\nCommander VIBOXS`)}`}><I.ext size={14} />Buka email</a></div>
-          <p className="st-hint">Undangan lama untuk email yang sama otomatis dicabut. Token tidak bisa dilihat lagi setelah dialog ditutup.</p>
+          <span className="st-eyebrow">{email}</span>
+          <p>{sent === 'ok' ? 'Email undangan terkirim.' : 'Undangan dibuat. Email sedang diantre dan dicoba ulang otomatis — pantau statusnya di tab Undangan.'}</p>
+          <p className="st-hint">Email berisi username (email) dan tombol untuk membuat password sendiri. Tautan sekali pakai; undangan lama untuk email yang sama otomatis dicabut. Tautan tidak ditampilkan di Studio.</p>
           <Btn kind="primary" onClick={close}>Selesai</Btn>
         </div>
       ) : (
         <div className="st-form">
           <Text label="Email penerima" type="email" value={email} onChange={setEmail} required wide />
           <Chips label="Peran yang diberikan" options={opts} value={roles} onChange={setRoles} hint="Peran diaktifkan hanya setelah undangan diterima oleh email yang sama." />
-          <Select label="Masa berlaku" value={days} onChange={setDays} options={[['3', '3 hari'], ['7', '7 hari'], ['14', '14 hari'], ['30', '30 hari']]} />
+          <Select label="Masa berlaku" value={hours} onChange={setHours} options={[['24', '24 jam (standar)'], ['72', '3 hari'], ['168', '7 hari']]} />
           {roles.includes('ranger') && <div className="st-field st-field--wide"><Check label={<>Ranger <b>existing</b> (legacy import) — terverifikasi dari catatan misi lama</>} checked={legacy} onChange={setLegacy}
             hint={legacy ? <Badge tone="warn">Tidak ada klaim alumni EDU untuk akun legacy</Badge> : 'Tanpa centang: penerima wajib sudah EDU Learner (jalur rekrutmen baru).'} /></div>}
-          <div className="st-form__act"><Btn kind="primary" onClick={go} busy={busy === 'go'} disabled={!email || !roles.length}><I.key size={16} />Buat tautan undangan</Btn></div>
+          <div className="st-form__act"><Btn kind="primary" onClick={go} busy={busy === 'go'} disabled={!email || !roles.length}><I.key size={16} />Kirim undangan</Btn></div>
         </div>
       )}
     </Dialog>

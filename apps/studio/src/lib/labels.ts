@@ -26,6 +26,10 @@ export const APP_STATUS: Record<string, [string, Tone]> = {
 export const SOURCE: Record<string, string> = { studio: 'Studio', edu: 'edu.viboxs.com', services: 'service.viboxs.com', corporate: 'viboxs.com', universe: 'Universe', manual: 'Input manual' };
 
 export const INVITE_STATUS: Record<string, [string, Tone]> = { pending: ['Menunggu', 'warn'], accepted: ['Diterima', 'ok'], revoked: ['Dicabut', 'muted'], expired: ['Kedaluwarsa', 'muted'] };
+export const OUTBOX_STATUS: Record<string, [string, Tone]> = {
+  queued: ['Antre kirim', 'info'], sending: ['Mengirim', 'info'], sent: ['Email terkirim', 'ok'], retry_pending: ['Gagal, dicoba lagi', 'warn'],
+  failed: ['Email gagal', 'danger'], cancelled: ['Diganti', 'muted'], skipped_provider_off: ['Kanal belum aktif', 'muted'],
+};
 export const GRANT_STATUS: Record<string, [string, Tone]> = { active: ['Aktif', 'ok'], suspended: ['Ditangguhkan', 'warn'], revoked: ['Dicabut', 'muted'] };
 
 export const LEAD_STATUS: Record<string, [string, Tone]> = {
@@ -132,8 +136,11 @@ export const ASM_STATUS: Record<string, [string, Tone]> = {
   DRAFT: ['Draft', 'muted'], IN_REVIEW: ['Menunggu review', 'violet'], NEEDS_REVISION: ['Perlu revisi', 'warn'], RELEASED: ['Dirilis', 'ok'], ARCHIVED: ['Arsip', 'muted'],
 };
 export const ATTEMPT_STATUS: Record<string, [string, Tone]> = { SCORED: ['Dinilai otomatis', 'info'], NEEDS_REVIEW: ['Menunggu reviewer', 'warn'], REVIEWED: ['Ditinjau reviewer', 'ok'] };
+export const COMPANY_PURPOSE: Record<string, string> = { hiring: 'Hiring talenta', services: 'VIBOXS Services', both: 'Hiring & Services' };
+export const COMPANY_SOURCE: Record<string, string> = { edu: 'Form EDU /for-companies', studio: 'Studio /company', backfill: 'Backfill form lama' };
 export const COMPANY_STATUS: Record<string, [string, Tone]> = {
-  APPLIED: ['Diajukan', 'info'], REVIEW: ['Ditinjau', 'violet'], NEED_INFO: ['Butuh info', 'warn'], REJECTED: ['Ditolak', 'muted'], VERIFIED: ['Terverifikasi', 'ok'], ACTIVE: ['Aktif', 'ok'], SUSPENDED: ['Ditangguhkan', 'danger'],
+  SUBMITTED: ['Perlu dilengkapi', 'warn'], IN_COMMANDER_QUEUE: ['Antrean Commander', 'info'], APPLIED: ['Diajukan', 'info'], REVIEW: ['Ditinjau', 'violet'], NEED_INFO: ['Butuh info', 'warn'],
+  REJECTED: ['Ditolak', 'muted'], VERIFIED: ['Terverifikasi', 'ok'], COMPANY_INVITE_SENT: ['Terverifikasi · undangan dikirim', 'accent'], ACTIVE: ['Aktif', 'ok'], SUSPENDED: ['Ditangguhkan', 'danger'],
 };
 export const HIRE_STATUS: Record<string, [string, Tone]> = {
   SENT: ['Menunggu kandidat', 'info'], ACCEPTED: ['Diterima kandidat', 'ok'], DECLINED: ['Ditolak kandidat', 'muted'], BLOCKED: ['Diblokir kandidat', 'danger'], WITHDRAWN: ['Ditarik', 'muted'], CLOSED: ['Ditutup', 'muted'],

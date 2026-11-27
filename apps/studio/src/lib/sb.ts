@@ -1,6 +1,6 @@
 import { STUDIO_ORIGIN } from '@viboxs/shared/ecosystem';
 import { createClient, type PostgrestError } from '@supabase/supabase-js';
-import { SUPABASE_KEY, SUPABASE_URL } from '@viboxs/shared/backend';
+import { SUPABASE_KEY, SUPABASE_URL, callEdge } from '@viboxs/shared/backend';
 
 /**
  * Klien Supabase Studio. Sesi host-only (localStorage studio.viboxs.com), terpisah dari CMS EDU.
@@ -12,7 +12,7 @@ export const sb = createClient(SUPABASE_URL, SUPABASE_KEY, {
 
 export type Role = 'commander' | 'operator' | 'ranger' | 'trainer' | 'learner' | 'opc_founder' | 'business_partner' | 'collaborator' | 'company_partner';
 
-export interface Profile { id: string; display_name: string; email: string | null; headline: string | null; skills: string[]; created_at: string }
+export interface Profile { id: string; display_name: string; email: string | null; headline: string | null; skills: string[]; created_at: string; is_demo?: boolean }
 export interface Me { roles: Role[]; active_role: Role | null; is_commander: boolean; profile: Profile }
 
 export interface Notification { id: string; recipient_id: string | null; audience: string | null; kind: string; title: string; body: string | null; link: string | null; read_at: string | null; created_at: string }
@@ -20,7 +20,8 @@ export interface Application {
   id: string; ref: string; type: Exclude<Role, 'commander' | 'operator' | 'learner'>; source: string; source_ref: string | null; person_id: string | null;
   name: string | null; email: string | null; payload: Record<string, unknown>; status: string; reviewer_note: string | null; created_at: string; updated_at: string;
 }
-export interface Invite { id: string; email: string; roles: Role[]; status: string; expires_at: string; created_at: string; accepted_at: string | null; application_id: string | null }
+export interface Invite { id: string; email: string; roles: Role[]; status: string; expires_at: string; created_at: string; accepted_at: string | null; application_id: string | null; resend_requested_at?: string | null }
+export interface OutboxRow { id: string; topic: string; aggregate_id: string; channel: 'email' | 'whatsapp'; recipient: string; template: string; status: string; attempts: number; last_error: string | null; sent_at: string | null; created_at: string; updated_at: string }
 export interface Grant { id: string; person_id: string; role: Role; status: string; note: string | null; created_at: string }
 export interface Lead { id: string; ref: string; source: string; source_ref: string | null; name: string | null; contact: string | null; company: string | null; summary: string | null; payload: Record<string, unknown>; status: string; notes: string | null; created_at: string }
 export interface Mission {
@@ -89,6 +90,15 @@ export const PRIVACY_VERSION = 'learner-privacy-draft-2026-11';
 export const authOrigin = () =>
   /^(localhost|127\.0\.0\.1)$/.test(location.hostname) ? location.origin : STUDIO_ORIGIN;
 
+/** Dorong pengiriman email antrean (edge st-notify). Gagal tidak memblokir alur: pg_cron mencoba lagi tiap 5 menit. */
+export async function sendOutbox() {
+  try {
+    const { data } = await sb.auth.getSession();
+    const r = await callEdge<{ processed?: number; sent?: number; failed?: number }>('st-notify', {}, data.session?.access_token);
+    return r.status === 200 ? r.data : null;
+  } catch { return null; }
+}
+
 /* ---------- Batch 2–6: EDU commerce, learner engine, company, showcase ---------- */
 export interface EduOrder {
   id: string; order_no: string; order_source: 'EDU_PUBLIC_GUEST' | 'STUDIO_MEMBER'; buyer_id: string | null; email: string; buyer_name: string; program_id: string; program_slug: string;
@@ -105,8 +115,11 @@ export interface AiEssaySuggestion { items: { index: number; score: number; conf
 export interface AiDiscovery { goal: string; current_gap: string; recommended: { slug: string; title: string; reason: string }[]; confidence_band: 'low' | 'medium' | 'high'; alternative_actions: string[]; discovery_version: number; model: string }
 export interface CreatorSale { program_id: string; slug: string; title: string; published: boolean; kind: string; starts_at: string | null; paid_orders: number; free_orders: number; refunded_orders: number; active_participants: number; basis: number; contributor_share: number; token_value: number; contributor_cash: number; released: number }
 export interface Company {
-  id: string; ref: string; owner_id: string; legal_name: string; nib: string | null; business_domain: string | null; business_email: string; pic_name: string; pic_role: string; hiring_needs: string;
+  id: string; ref: string; owner_id: string | null; legal_name: string; nib: string | null; business_domain: string | null; business_email: string; pic_name: string; pic_role: string; hiring_needs: string;
   website: string | null; status: string; grants: string[]; review_note: string | null; verified_at: string | null; created_at: string;
+  company_whatsapp: string | null; industry: string | null; address: string | null; pic_email: string | null; purpose: 'hiring' | 'services' | 'both' | null;
+  nib_doc_path: string | null; logo_path: string | null; logo_rights: boolean; comm_consent_wa: boolean; source: 'edu' | 'studio' | 'backfill'; source_ref: string | null;
+  invite_id: string | null; needs_completion: boolean;
 }
 export interface Talent { person_id: string; opt_in: boolean; alias: string | null; headline: string | null; skills: string[]; availability: string | null; work_pref: string | null; portfolio_url: string | null; show_star: boolean; show_assessments: boolean; opted_in_at: string | null }
 export interface Vacancy { id: string; company_id: string; title: string; skills: string[]; location: string | null; work_mode: string; contract_type: string; comp_range: string | null; show_comp: boolean; process: string | null; hr_contact: string | null; status: 'OPEN' | 'CLOSED'; created_at: string }
